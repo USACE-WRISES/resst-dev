@@ -1,0 +1,591 @@
+{
+  "currentVersion" : 12, 
+  "id" : 0, 
+  "name" : "survey", 
+  "type" : "Feature Layer", 
+  "serviceItemId" : "bafeeb0e549446a085f3790bec170b96", 
+  "cacheMaxAge" : 30, 
+  "sourceSchemaChangesAllowed" : true, 
+  "hasViews" : true, 
+  "displayField" : "", 
+  "description" : "", 
+  "copyrightText" : "", 
+  "defaultVisibility" : true, 
+  "ownershipBasedAccessControlForFeatures" : {
+    "allowOthersToQuery" : true, 
+    "allowOthersToDelete" : true, 
+    "allowOthersToUpdate" : true, 
+    "allowAnonymousToQuery" : true, 
+    "allowAnonymousToUpdate" : false, 
+    "allowAnonymousToDelete" : false
+  }, 
+  "editFieldsInfo" : {
+    "creationDateField" : "CreationDate", 
+    "creatorField" : "Creator", 
+    "editDateField" : "EditDate", 
+    "editorField" : "Editor"
+  }, 
+  "editingInfo" : {
+    "lastEditDate" : 1784056421742, 
+    "schemaLastEditDate" : 1773439653045, 
+    "dataLastEditDate" : 1784056421742
+  }, 
+  "relationships" : [], 
+  "isDataVersioned" : false, 
+  "hasContingentValuesDefinition" : false, 
+  "supportsAppend" : true, 
+  "supportsCalculate" : true, 
+  "supportsASyncCalculate" : true, 
+  "supportsTruncate" : false, 
+  "supportsAttachmentsByUploadId" : true, 
+  "supportsAttachmentsResizing" : true, 
+  "supportsRollbackOnFailureParameter" : true, 
+  "supportsStatistics" : true, 
+  "supportsExceedsLimitStatistics" : true, 
+  "supportsAdvancedQueries" : true, 
+  "supportsValidateSql" : true, 
+  "supportsCoordinatesQuantization" : true, 
+  "supportsLayerOverrides" : true, 
+  "supportsTilesAndBasicQueriesMode" : true, 
+  "supportsFieldDescriptionProperty" : true, 
+  "supportsQuantizationEditMode" : true, 
+  "supportsColumnStoreIndex" : true, 
+  "supportsApplyEditsWithGlobalIds" : true, 
+  "supportsReturningQueryGeometry" : true, 
+  "enableNullGeometry" : false, 
+  "supportsOBACForAnonymousUsers" : true, 
+  "advancedQueryCapabilities" : {
+    "supportsPagination" : true, 
+    "supportsPaginationOnAggregatedQueries" : true, 
+    "supportsQueryRelatedPagination" : true, 
+    "supportsQueryWithDistance" : true, 
+    "supportsOutDistance" : true, 
+    "supportsReturningQueryExtent" : true, 
+    "supportsStatistics" : true, 
+    "supportsOrderBy" : true, 
+    "supportsDistinct" : true, 
+    "supportsQueryWithResultType" : true, 
+    "supportsSqlExpression" : true, 
+    "supportsTimeRelation" : true, 
+    "supportsAdvancedQueryRelated" : true, 
+    "supportsCountDistinct" : true, 
+    "supportsPercentileStatistics" : true, 
+    "supportsApproxPercentileStatistics" : true, 
+    "supportsSpatialAggregationStatistics" : true, 
+    "supportedSpatialAggregationStatistics" : [
+      "EnvelopeAggregate", 
+      "CentroidAggregate", 
+      "ConvexHullAggregate"
+    ], 
+    "supportsQueryAttachments" : true, 
+    "supportsQueryAttachmentsCountOnly" : true, 
+    "supportsQueryAttachmentOrderByFields" : true, 
+    "supportsQueryAttachmentWithTypeWildcard" : true, 
+    "supportsLod" : true, 
+    "supportsQueryWithLodSR" : false, 
+    "supportedLodTypes" : [
+      "geohash"
+    ], 
+    "supportsReturningGeometryCentroid" : false, 
+    "supportsReturningGeometryEnvelope" : false, 
+    "supportsQueryWithDatumTransformation" : true, 
+    "supportsCurrentUserQueries" : true, 
+    "supportsHavingClause" : true, 
+    "supportsOutFieldSQLExpression" : true, 
+    "supportsMaxRecordCountFactor" : true, 
+    "supportsTopFeaturesQuery" : true, 
+    "supportsDisjointSpatialRel" : true, 
+    "supportsQueryWithCacheHint" : true, 
+    "supportedOperationsWithCacheHint" : [
+      "query", 
+      "queryTopFilter", 
+      "queryAnalytics", 
+      "queryAttachments", 
+      "queryRelated", 
+      "queryBins", 
+      "queryPivot"
+    ], 
+    "supportsQueryAttachmentsWithReturnUrl" : true, 
+    "supportsQueryAnalytic" : true, 
+    "supportsQueryPivot" : true, 
+    "supportsQueryBins" : true, 
+    "supportsDefaultSR" : true, 
+    "supportsTranslations" : false, 
+    "supportsAggIds" : true, 
+    "supportsQueryWithCollation" : true, 
+    "supportsISODOW" : true, 
+    "supportsISOWeek" : true, 
+    "supportsFullTextSearch" : true, 
+    "fullTextSearchCapabilities" : {
+      "supportsAccentSensitivity" : true, 
+      "supportsStopWords" : true, 
+      "supportsSearchOperator" : true, 
+      "supportsOperator" : true
+    }, 
+    "fullTextSearchableFields" : [
+      "site_name"
+    ]
+  }, 
+  "advancedQueryAnalyticCapabilities" : {
+    "supportsLinearRegression" : true, 
+    "supportsTrendlineRegression" : true, 
+    "supportsAsync" : true, 
+    "supportsPercentileAnalytic" : true
+  }, 
+  "queryBinsCapabilities" : {
+    "supportsAsync" : true, 
+    "supportsAutoIntervalBin" : true, 
+    "supportsFixedIntervalBin" : true, 
+    "supportsFixedBoundariesBin" : true, 
+    "supportsDateBin" : true, 
+    "supportsClassificationBin" : true, 
+    "supportsStackBy" : true, 
+    "supportsSplitBy" : true, 
+    "supportsFirstDayOfWeek" : true, 
+    "supportsSnapToData" : true, 
+    "supportsReturnFullIntervalBin" : true, 
+    "supportsReturnStackValueRange" : true, 
+    "supportsNormalization" : true, 
+    "supportedStatisticTypes" : [
+      "COUNT", 
+      "SUM", 
+      "AVG", 
+      "VAR", 
+      "STDDEV", 
+      "MIN", 
+      "MAX", 
+      "PERCENTILE_CONT", 
+      "PERCENTILE_DISC", 
+      "APPROX_PERCENTILE_CONT", 
+      "APPROX_PERCENTILE_DISC", 
+      "CentroidAggregate", 
+      "EnvelopeAggregate", 
+      "ConvexHullAggregate"
+    ], 
+    "supportedNormalizationTypes" : [
+      "boxCox", 
+      "field", 
+      "inverse", 
+      "log", 
+      "naturalLog", 
+      "percentOfTotal", 
+      "squareRoot"
+    ]
+  }, 
+  "supportedOperationsWithCollation" : "query,addField,updateField", 
+  "advancedEditingCapabilities" : {
+    "supportedSqlFormatsInCalculate" : [
+      "standard"
+    ], 
+    "supportsAsyncApplyEdits" : true, 
+    "supportsReturnEditResults" : true, 
+    "supportsApplyEditsbyUploadID" : true, 
+    "supportedApplyEditsUploadIDFormats" : "JSON,PBF", 
+    "supportsTranslation" : false, 
+    "supportsMaxTranslations" : 10
+  }, 
+  "infoInEstimates" : [
+    "extent", 
+    "count"
+  ], 
+  "useStandardizedQueries" : true, 
+  "geometryType" : "esriGeometryPoint", 
+  "minScale" : 0, 
+  "maxScale" : 0, 
+  "extent" : {
+    "xmin" : -180, 
+    "ymin" : -90, 
+    "xmax" : 180, 
+    "ymax" : 90, 
+    "spatialReference" : {
+      "wkid" : 4326, 
+      "latestWkid" : 4326
+    }
+  }, 
+  "spatialReference" : {
+    "wkid" : 4326, 
+    "latestWkid" : 4326
+  }, 
+  "drawingInfo":{"labelingInfo":null,"renderer":{"label":"Survey Point","symbol":{"angle":0,"color":[255,0,0,255],"outline":{"color":[255,255,0,255],"width":1},"size":8,"style":"esriSMSCircle","type":"esriSMS","xoffset":0,"yoffset":0},"type":"simple"},"transparency":0}, 
+  "allowGeometryUpdates" : true, 
+  "hasAttachments" : true, 
+  "propagateVisibleFields" : true, 
+  
+  "attachmentProperties" : [
+    {
+      "name" : "id", 
+      "fieldName" : "ATTACHMENTID", 
+      "isEnabled" : true
+    }, 
+    {
+      "name" : "globalId", 
+      "fieldName" : "AttachmentGlobalID", 
+      "isEnabled" : true
+    }, 
+    {
+      "name" : "name", 
+      "fieldName" : "ATT_NAME", 
+      "isEnabled" : true
+    }, 
+    {
+      "name" : "size", 
+      "fieldName" : "DATA_SIZE", 
+      "isEnabled" : true
+    }, 
+    {
+      "name" : "contentType", 
+      "fieldName" : "CONTENT_TYPE", 
+      "isEnabled" : true
+    }, 
+    {
+      "name" : "keywords", 
+      "fieldName" : "Keywords", 
+      "isEnabled" : true
+    }, 
+    {
+      "name" : "exifInfo", 
+      "fieldName" : "ExifInfo", 
+      "isEnabled" : true
+    }
+  ], 
+  "htmlPopupType" : "esriServerHTMLPopupTypeAsHTMLText", 
+  "hasM" : false, 
+  "hasZ" : false, 
+  "objectIdField" : "objectid", 
+  "uniqueIdField" : 
+  {
+    "name" : "objectid", 
+    "isSystemMaintained" : true
+  }, 
+  "globalIdField" : "globalid", 
+  "typeIdField" : "", 
+  "collation" : {
+    "locale" : "neutral", 
+    "caseSensitive" : false, 
+    "accentSensitive" : true
+  }, 
+  "fields" : [
+    {
+      "name" : "objectid", 
+      "type" : "esriFieldTypeOID", 
+      "alias" : "ObjectID", 
+      "sqlType" : "sqlTypeOther", 
+      "nullable" : false, 
+      "editable" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "globalid", 
+      "type" : "esriFieldTypeGlobalID", 
+      "alias" : "GlobalID", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 38, 
+      "nullable" : false, 
+      "editable" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "CreationDate", 
+      "type" : "esriFieldTypeDate", 
+      "alias" : "CreationDate", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 8, 
+      "nullable" : true, 
+      "editable" : false, 
+      "domain" : null, 
+      "defaultValue" : null, 
+      "precision" : 1
+    }, 
+    {
+      "name" : "Creator", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "Creator", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 128, 
+      "nullable" : true, 
+      "editable" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "EditDate", 
+      "type" : "esriFieldTypeDate", 
+      "alias" : "EditDate", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 8, 
+      "nullable" : true, 
+      "editable" : false, 
+      "domain" : null, 
+      "defaultValue" : null, 
+      "precision" : 1
+    }, 
+    {
+      "name" : "Editor", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "Editor", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 128, 
+      "nullable" : true, 
+      "editable" : false, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "site_name", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "Site Name", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 255, 
+      "nullable" : true, 
+      "editable" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "nid_id", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "NID ID", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 255, 
+      "nullable" : true, 
+      "editable" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "responsible_districtagency", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "Responsible District/Agency", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 255, 
+      "nullable" : true, 
+      "editable" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "address", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "Address", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 255, 
+      "nullable" : true, 
+      "editable" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "city", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "City", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 255, 
+      "nullable" : true, 
+      "editable" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "site_type", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "Site Type", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 1000, 
+      "nullable" : true, 
+      "editable" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "sediment_release", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "Sediment Release", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 1000, 
+      "nullable" : true, 
+      "editable" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "ecological_concern", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "Ecological Concern", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 1000, 
+      "nullable" : true, 
+      "editable" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "analysis", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "Analysis", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 1000, 
+      "nullable" : true, 
+      "editable" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "longitude", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "Longitude", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 255, 
+      "nullable" : true, 
+      "editable" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }, 
+    {
+      "name" : "latitude", 
+      "type" : "esriFieldTypeString", 
+      "alias" : "Latitude", 
+      "sqlType" : "sqlTypeOther", 
+      "length" : 255, 
+      "nullable" : true, 
+      "editable" : true, 
+      "domain" : null, 
+      "defaultValue" : null
+    }
+  ], 
+  "indexes" : [
+    {
+      "name" : "GlobalIDIndex", 
+      "fields" : "globalid", 
+      "isAscending" : false, 
+      "isUnique" : true, 
+      "description" : "GlobalID index", 
+      "indexType" : "Attribute"
+    }, 
+    {
+      "name" : "survey123_85c1db578d5b4222869a785ba658791c_SURVEY_Shape_sidx", 
+      "fields" : "Shape", 
+      "isAscending" : true, 
+      "isUnique" : false, 
+      "description" : "Shape Index", 
+      "indexType" : "Spatial"
+    }, 
+    {
+      "name" : "PK__survey12__5242E632E839118D", 
+      "fields" : "objectid", 
+      "isAscending" : true, 
+      "isUnique" : true, 
+      "description" : "clustered, unique, primary key", 
+      "indexType" : "Attribute"
+    }, 
+    {
+      "name" : "CreationDateIndex", 
+      "fields" : "CreationDate", 
+      "isAscending" : true, 
+      "isUnique" : false, 
+      "description" : "CreationDate Field index", 
+      "indexType" : "Attribute"
+    }, 
+    {
+      "name" : "CreatorIndex", 
+      "fields" : "Creator", 
+      "isAscending" : false, 
+      "isUnique" : false, 
+      "description" : "Creator Field index", 
+      "indexType" : "Attribute"
+    }, 
+    {
+      "name" : "EditDateIndex", 
+      "fields" : "EditDate", 
+      "isAscending" : true, 
+      "isUnique" : false, 
+      "description" : "EditDate Field index", 
+      "indexType" : "Attribute"
+    }, 
+    {
+      "name" : "EditorIndex", 
+      "fields" : "Editor", 
+      "isAscending" : false, 
+      "isUnique" : false, 
+      "description" : "Editor Field index", 
+      "indexType" : "Attribute"
+    }, 
+    {
+      "name" : "exb_site_name", 
+      "fields" : "site_name", 
+      "isAscending" : true, 
+      "isUnique" : false, 
+      "description" : "", 
+      "indexType" : "Attribute"
+    }, 
+    {
+      "name" : "exb_site_name_total", 
+      "fields" : "site_name", 
+      "description" : "", 
+      "locale" : "neutral", 
+      "indexType" : "FullText"
+    }
+  ], 
+  "dateFieldsTimeReference" : {
+    "timeZone" : "UTC", 
+    "timeZoneIANA" : "Etc/UTC", 
+    "respectsDaylightSaving" : false
+  }, 
+  "preferredTimeReference" : null, 
+  "types" : [], 
+  "templates" : [
+    {
+      "name" : "New Feature", 
+      "description" : "", 
+      "drawingTool" : "esriFeatureEditToolNone", 
+      "prototype" : {
+        "attributes" : {
+          "site_name" : null, 
+          "nid_id" : null, 
+          "responsible_districtagency" : null, 
+          "address" : null, 
+          "city" : null, 
+          "site_type" : null, 
+          "sediment_release" : null, 
+          "ecological_concern" : null, 
+          "analysis" : null, 
+          "longitude" : null, 
+          "latitude" : null
+        }
+      }
+    }
+  ], 
+  "supportedQueryFormats" : "JSON, geoJSON, PBF", 
+  "supportedAppendFormats" : "sqlite,geoPackage,shapefile,filegdb,featureCollection,geojson,csv,excel,jsonl,featureService,pbf,imageCollection", 
+  "supportedAppendSourceFilterFormats" : "sqlite,geoPackage,shapefile,filegdb,featureService", 
+  "supportedExportFormats" : "csv,shapefile,sqlite,geoPackage,filegdb,featureCollection,geojson,kml,excel,parquet", 
+  "supportedConvertFileFormats" : "JSON,PBF,Parquet", 
+  "supportedConvertContentFormats" : "LayerEditCollection,FeatureCollection", 
+  "supportedSpatialRelationships" : [
+    "esriSpatialRelIntersects", 
+    "esriSpatialRelContains", 
+    "esriSpatialRelCrosses", 
+    "esriSpatialRelEnvelopeIntersects", 
+    "esriSpatialRelIndexIntersects", 
+    "esriSpatialRelOverlaps", 
+    "esriSpatialRelTouches", 
+    "esriSpatialRelWithin", 
+    "esriSpatialRelDisjoint", 
+    "esriSpatialRelRelation"
+  ], 
+  "guidFormat" : "", 
+  "supportsContingentValues" : true, 
+  "supportsEditingContingentValues" : true, 
+  "supportedContingentValuesFormats" : "JSON, PBF", 
+  "supportsFieldGroups" : true, 
+  "supportedSyncDataOptions" : 260, 
+  "hasStaticData" : true, 
+  "maxRecordCount" : 2000, 
+  "standardMaxRecordCount" : 16000, 
+  "maxIdsCount" : 1000000, 
+  "standardMaxRecordCountNoGeometry" : 32000, 
+  "tileMaxRecordCount" : 8000, 
+  "maxRecordCountFactor" : 1, 
+  "capabilities" : "Query,Extract,Sync"
+}

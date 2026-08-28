@@ -1,0 +1,122 @@
+{
+  "total": 19,
+  "start": 1,
+  "num": 19,
+  "nextStart": -1,
+  "resources": [
+    {
+      "resource": "config/config.json",
+      "created": 1773439776000,
+      "size": 317946,
+      "access": "inherit"
+    },
+    {
+      "resource": "images/icon-resources-list.json",
+      "created": 1754407882000,
+      "size": 2,
+      "access": "inherit"
+    },
+    {
+      "resource": "images/image-resources-list.json",
+      "created": 1768946436000,
+      "size": 3262,
+      "access": "inherit"
+    },
+    {
+      "resource": "images/widget_185/widget_185-snap1-1754535919417.jpg",
+      "created": 1754535921000,
+      "size": 600216,
+      "access": "inherit"
+    },
+    {
+      "resource": "images/widget_185/widget_185-snap2-1754535922924.jpg",
+      "created": 1754535924000,
+      "size": 628388,
+      "access": "inherit"
+    },
+    {
+      "resource": "images/widget_185/widget_185-snap3-1754535934084.jpg",
+      "created": 1754535938000,
+      "size": 726265,
+      "access": "inherit"
+    },
+    {
+      "resource": "images/widget_185/widget_185-snap4-1754535925941.jpg",
+      "created": 1754535927000,
+      "size": 639929,
+      "access": "inherit"
+    },
+    {
+      "resource": "images/widget_185/widget_185-snap5-1754535929354.jpg",
+      "created": 1754535931000,
+      "size": 684419,
+      "access": "inherit"
+    },
+    {
+      "resource": "images/widget_185/widget_185-snap6-1754535899512.jpg",
+      "created": 1754535901000,
+      "size": 570129,
+      "access": "inherit"
+    },
+    {
+      "resource": "images/widget_2/1754576905434.png",
+      "created": 1754576906000,
+      "size": 35664,
+      "access": "inherit"
+    },
+    {
+      "resource": "images/widget_2/1754577013836.png",
+      "created": 1754577014000,
+      "size": 13590,
+      "access": "inherit"
+    },
+    {
+      "resource": "images/widget_2/1754577114215.png",
+      "created": 1754577114000,
+      "size": 13249,
+      "access": "inherit"
+    },
+    {
+      "resource": "images/widget_2/1754577290576.png",
+      "created": 1754577291000,
+      "size": 10365,
+      "access": "inherit"
+    },
+    {
+      "resource": "images/widget_2/1754577310051.png",
+      "created": 1754577310000,
+      "size": 4749,
+      "access": "inherit"
+    },
+    {
+      "resource": "images/widget_257/1768946365167.png",
+      "created": 1768946369000,
+      "size": 1333344,
+      "access": "inherit"
+    },
+    {
+      "resource": "images/widget_358/1768600953353.png",
+      "created": 1768600966000,
+      "size": 1404511,
+      "access": "inherit"
+    },
+    {
+      "resource": "images/widget_502/1768945756813.png",
+      "created": 1768945760000,
+      "size": 986480,
+      "access": "inherit"
+    },
+    {
+      "resource": "images/widget_505/1768945926650.png",
+      "created": 1768945930000,
+      "size": 1550417,
+      "access": "inherit"
+    },
+    {
+      "resource": "images/widget_508/1768946334065.png",
+      "created": 1768946337000,
+      "size": 1173059,
+      "access": "inherit"
+    }
+  ]
+}

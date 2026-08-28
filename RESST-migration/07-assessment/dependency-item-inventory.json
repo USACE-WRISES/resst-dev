@@ -1,0 +1,121 @@
+﻿[
+    {
+        "id":  "3a22d9b823e64d28acfa0c8157617555",
+        "title":  "(error: Item does not exist or is inaccessible.)",
+        "type":  "",
+        "owner":  "",
+        "access":  ""
+    },
+    {
+        "id":  "415a0570338d499ba06da2343daa864b",
+        "title":  "(error: Item does not exist or is inaccessible.)",
+        "type":  "",
+        "owner":  "",
+        "access":  ""
+    },
+    {
+        "id":  "4cf66bf1ae124bf59d1144b789529385",
+        "title":  "North America Lakes and Rivers",
+        "type":  "Feature Service",
+        "owner":  "CECAtlas",
+        "access":  "public"
+    },
+    {
+        "id":  "5246c1e01eb2432e953f2bec8483c50d",
+        "title":  "ResSedMan_LitSurveyRev",
+        "type":  "Feature Service",
+        "owner":  "garrett.t.menichino.erdc",
+        "access":  "public"
+    },
+    {
+        "id":  "53a9a02a7e93406ba041c2c17f0b0e75",
+        "title":  "Watershed Boundary Dataset HUC 6s",
+        "type":  "Feature Service",
+        "owner":  "esri_environment",
+        "access":  "public"
+    },
+    {
+        "id":  "5bbefdcd2511472ea9abd0afedb85c7e",
+        "title":  "Watershed Boundary Dataset HUC 8s",
+        "type":  "Feature Service",
+        "owner":  "esri_environment",
+        "access":  "public"
+    },
+    {
+        "id":  "5eab99323660482cbe4a745523b5b83d",
+        "title":  "ResSedManWebMap",
+        "type":  "Web Map",
+        "owner":  "garrett.t.menichino.erdc",
+        "access":  "public"
+    },
+    {
+        "id":  "770376c04d9e48cf80f195bb813eed3c",
+        "title":  "(error: You do not have permissions to access this resource or perform this operation.)",
+        "type":  "",
+        "owner":  "",
+        "access":  ""
+    },
+    {
+        "id":  "81c5a9f2a2704d54a49042a44eefa5d3",
+        "title":  "Live Stream Gauges",
+        "type":  "Feature Service",
+        "owner":  "esri_livefeeds2",
+        "access":  "public"
+    },
+    {
+        "id":  "85c1db578d5b4222869a785ba658791c",
+        "title":  "(error: You do not have permissions to access this resource or perform this operation.)",
+        "type":  "",
+        "owner":  "",
+        "access":  ""
+    },
+    {
+        "id":  "957440bbaac34b45b2975379f309fe5b",
+        "title":  "(error: Item does not exist or is inaccessible.)",
+        "type":  "",
+        "owner":  "",
+        "access":  ""
+    },
+    {
+        "id":  "a4c195b7a6b74f278ff43e5d60c6915d",
+        "title":  "National Inventory of Dams",
+        "type":  "Feature Service",
+        "owner":  "Esri_US_Federal_Data",
+        "access":  "public"
+    },
+    {
+        "id":  "b488124ac6a64be091299d2a1a061a07",
+        "title":  "(error: Item does not exist or is inaccessible.)",
+        "type":  "",
+        "owner":  "",
+        "access":  ""
+    },
+    {
+        "id":  "b92b73b36ef74c5cba1e3035fce94623",
+        "title":  "Watershed Boundary Dataset HUC 4s",
+        "type":  "Feature Service",
+        "owner":  "esri_environment",
+        "access":  "public"
+    },
+    {
+        "id":  "bafeeb0e549446a085f3790bec170b96",
+        "title":  "ResSedMan_SiteSurvey",
+        "type":  "Feature Service",
+        "owner":  "garrett.t.menichino.erdc",
+        "access":  "public"
+    },
+    {
+        "id":  "bc0cc62461d1442580412b4fdd49d2b4",
+        "title":  "Watershed Boundary Dataset HUC 2s",
+        "type":  "Feature Service",
+        "owner":  "esri_environment",
+        "access":  "public"
+    },
+    {
+        "id":  "c03bc32943ca4eb292620b90f6f1158b",
+        "title":  "(error: Item does not exist or is inaccessible.)",
+        "type":  "",
+        "owner":  "",
+        "access":  ""
+    }
+]
