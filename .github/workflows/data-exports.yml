@@ -1,0 +1,32 @@
+name: Data exports
+
+on:
+  push:
+    branches: [main]
+    paths: ["data/**", "scripts/build-exports.sh"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  exports:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install GDAL
+        run: sudo apt-get update && sudo apt-get install -y gdal-bin zip
+      - name: GDAL version (needs >= 3.6 for OpenFileGDB write)
+        run: ogrinfo --version
+      - name: Build export bundles
+        run: bash scripts/build-exports.sh
+      - name: Publish to the rolling data-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view data-latest >/dev/null 2>&1 || \
+            gh release create data-latest --title "RESST data (latest)" \
+              --notes "Full-dataset downloads in GIS formats, regenerated automatically from data/ on every change. Built from commit ${GITHUB_SHA}." \
+              --latest=false
+          gh release upload data-latest exports/resst-shapefiles.zip exports/resst.gpkg exports/resst-filegdb.zip exports/resst-csv.zip --clobber
+          gh release edit data-latest --notes "Full-dataset downloads in GIS formats, regenerated automatically from data/ on every change. Built from commit ${GITHUB_SHA} on $(date -u +%Y-%m-%d)."

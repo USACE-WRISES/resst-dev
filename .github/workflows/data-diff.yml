@@ -1,0 +1,42 @@
+name: Data diff comment
+
+on:
+  pull_request:
+    paths: ["data/**"]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: head
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build diff summary
+        run: node head/scripts/data-diff.mjs base head > diff.md && cat diff.md
+      - name: Upsert PR comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          MARKER='<!-- resst-data-diff -->'
+          CID=$(gh api "repos/${REPO}/issues/${PR}/comments" --paginate \
+            --jq ".[] | select(.body | startswith(\"$MARKER\")) | .id" | head -n1)
+          if [ -n "$CID" ]; then
+            gh api "repos/${REPO}/issues/comments/${CID}" -X PATCH -F body=@diff.md >/dev/null
+            echo "updated comment $CID"
+          else
+            gh api "repos/${REPO}/issues/${PR}/comments" -F body=@diff.md >/dev/null
+            echo "created comment"
+          fi
