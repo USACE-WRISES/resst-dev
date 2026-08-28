@@ -1,0 +1,17 @@
+{
+  "generated": "2026-08-28T17:02:47.065Z",
+  "counts": {
+    "sites.json": 979,
+    "literature.json": 466,
+    "literature_entries.json": 1410,
+    "nid.json": 46,
+    "site_linked_entries": 1192,
+    "general_literature": 214
+  },
+  "sha256": {
+    "sites.json": "e897b36350472cf1",
+    "literature.json": "7425a34ec6cd51ce",
+    "literature_entries.json": "99e6118033382641",
+    "nid.json": "064f87abf7cbf291"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "resst",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Reservoir Sustainable Sediment Tool — static web application and authoritative dataset",
+  "scripts": {
+    "migrate": "node scripts/migrate.mjs",
+    "validate": "node scripts/validate.mjs",
+    "build:data": "node scripts/build-data.mjs"
+  }
+}
