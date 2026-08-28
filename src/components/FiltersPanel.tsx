@@ -95,14 +95,26 @@ export function FiltersPanel({ data, filters, derived }: { data: AppData; filter
   const anyActive = FILTER_DEFS.some((d) => filters[d.key]?.enabled || (filters[d.key]?.selected.length ?? 0) > 0);
 
   return (
-    <aside className="filters-panel" aria-label="Data filters">
+    <aside className="filters-panel" id="filters-panel" aria-label="Data filters">
       <div className="panel-title-row">
         <h2>Data Filters</h2>
-        {anyActive && (
-          <button type="button" className="linklike" onClick={() => actions.clearAllFilters()}>
-            Clear all
+        <span className="panel-title-tools">
+          {anyActive && (
+            <button type="button" className="linklike" onClick={() => actions.clearAllFilters()}>
+              Clear all
+            </button>
+          )}
+          <button
+            type="button"
+            className="panel-collapse-btn"
+            aria-expanded={true}
+            aria-controls="filters-panel"
+            aria-label="Collapse Data Filters panel"
+            onClick={() => actions.setPanelCollapsed("filters", true)}
+          >
+            <span aria-hidden="true">«</span>
           </button>
-        )}
+        </span>
       </div>
       {GROUPS.map((g) => {
         const open = !!openGroups[g.domain];

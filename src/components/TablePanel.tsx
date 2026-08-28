@@ -13,6 +13,7 @@ import {
   useReactTable,
   type SortingState,
 } from "@tanstack/react-table";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { TABS, type TabDef, type TabId } from "../config/tabs";
 import type { Derived } from "../state/derive";
 import { actions, type AppState } from "../state/store";
@@ -21,6 +22,9 @@ import { exportCsv, exportGeoJson, exportShapefile } from "../utils/exporters";
 import { mapCommands } from "../map/mapBus";
 
 type Row = Record<string, unknown>;
+
+// Stable fallback so the columnVisibility memo doesn't churn on every render.
+const EMPTY_HIDDEN: Record<string, boolean> = {};
 
 function rowsForTab(tab: TabId, derived: Derived): Row[] {
   switch (tab) {
@@ -121,9 +125,26 @@ function DataTable({ tab, rows, selectedIds, columnVisibility }: {
   });
 
   const selectable = tab.id === "sites" || tab.id === "siteLit";
+
+  // Virtualized rows: only the viewport (plus overscan) renders — the
+  // literature tabs would otherwise commit up to ~31k <td> per tab switch.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const rowModel = table.getRowModel().rows;
+  const virtualizer = useVirtualizer({
+    count: rowModel.length,
+    getScrollElement: () => scrollRef.current,
+    // Rows are uniform single-line (nowrap cells): 13px text + 2×5px padding + 1px border.
+    estimateSize: () => 30,
+    overscan: 12,
+  });
+  const vItems = virtualizer.getVirtualItems();
+  const padTop = vItems.length ? vItems[0].start : 0;
+  const padBottom = vItems.length ? virtualizer.getTotalSize() - vItems[vItems.length - 1].end : 0;
+  const colCount = table.getVisibleLeafColumns().length;
+
   return (
-    <div className="table-scroll" role="region" aria-label={`${tab.label} results`} tabIndex={0}>
-      <table className="data-table">
+    <div className="table-scroll" ref={scrollRef} role="region" aria-label={`${tab.label} results`} tabIndex={0}>
+      <table className="data-table" aria-rowcount={rowModel.length + 1}>
         <caption className="sr-only">
           {tab.label}: {rows.length} records. {selectable ? "Click a row to select its site." : ""}
         </caption>
@@ -145,13 +166,20 @@ function DataTable({ tab, rows, selectedIds, columnVisibility }: {
           ))}
         </thead>
         <tbody>
-          {table.getRowModel().rows.map((r) => {
+          {padTop > 0 && (
+            <tr className="v-spacer" aria-hidden="true">
+              <td colSpan={colCount} style={{ height: padTop }} />
+            </tr>
+          )}
+          {vItems.map((vi) => {
+            const r = rowModel[vi.index];
             const row = r.original;
             const rowSiteId = (row["site_id"] as string) || "";
             const isSelected = selectable && !!rowSiteId && selectedIds.has(rowSiteId);
             return (
               <tr
                 key={r.id}
+                aria-rowindex={vi.index + 2}
                 className={isSelected ? "row-selected" : selectable && rowSiteId ? "row-selectable" : undefined}
                 aria-selected={selectable ? isSelected : undefined}
                 onClick={selectable && rowSiteId ? () => actions.selectSite(isSelected ? null : rowSiteId) : undefined}
@@ -162,6 +190,11 @@ function DataTable({ tab, rows, selectedIds, columnVisibility }: {
               </tr>
             );
           })}
+          {padBottom > 0 && (
+            <tr className="v-spacer" aria-hidden="true">
+              <td colSpan={colCount} style={{ height: padBottom }} />
+            </tr>
+          )}
         </tbody>
       </table>
     </div>
@@ -215,7 +248,7 @@ export function TablePanel({ derived, state }: { derived: Derived; state: AppSta
   const allRows = rowsForTab(tab.id, derived);
   const selectedIds = derived.selection.siteIdSet;
   const [hiddenByTab, setHiddenByTab] = useState<Partial<Record<TabId, Record<string, boolean>>>>({});
-  const hidden = hiddenByTab[tab.id] ?? {};
+  const hidden = hiddenByTab[tab.id] ?? EMPTY_HIDDEN;
   const columnVisibility = useMemo(
     () => Object.fromEntries(Object.entries(hidden).map(([f, h]) => [f, !h])),
     [hidden],
@@ -280,7 +313,9 @@ export function TablePanel({ derived, state }: { derived: Derived; state: AppSta
           <ActionsMenu tab={tab} rows={rows} derived={derived} />
         </div>
       </div>
-      <DataTable tab={tab} rows={rows} selectedIds={selectedIds} columnVisibility={columnVisibility} />
+      {/* Keyed per tab: remount resets sorting (a sort by a column the next
+          tab lacks would silently misbehave) and the scroll position. */}
+      <DataTable key={tab.id} tab={tab} rows={rows} selectedIds={selectedIds} columnVisibility={columnVisibility} />
       <div className="table-footer">
         Total: <b>{rows.length.toLocaleString()}</b> | Selection: <b>{selectedIds.size}</b>
         {searchText && <span className="muted"> (search active)</span>}

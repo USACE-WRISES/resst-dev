@@ -39,6 +39,7 @@ difference.
 | 10 | Add Data, Share widget, and the "DummyTestingSteps" test page not carried over | Add Data was a generic EXB utility; Share is replaced by ordinary URLs; the test page was unfinished content publicly reachable in the old app |
 | 11 | Full-dataset downloads added (Shapefile/GeoPackage/FileGDB/CSV via the `data-latest` release) | D3 — replaces ArcGIS hosted-layer exports |
 | 12 | Accessibility rebuilt (labeled controls, keyboard-complete, axe-clean) | The old app exposed a nearly empty accessibility tree |
+| 13 | Left/right side panels are collapsible on wide screens (chevron in the panel header; a slim rail restores them) | Owner request after launch review — gives the map/table the full width when filters or details aren't needed |
 
 ## Open items for the owner
 

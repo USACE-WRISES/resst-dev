@@ -52,7 +52,15 @@ button { font: inherit; color: inherit; }
   flex: 1 1 auto; min-height: 0; min-width: 0; height: 0; display: grid;
   grid-template-columns: 270px minmax(0, 1fr) 320px;
 }
-.center-stack { display: grid; grid-template-rows: minmax(0, 1fr) minmax(0, 46%); min-width: 0; min-height: 0; }
+.center-stack {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 46%);
+  /* Explicit column: without it the implicit track auto-sizes to the table's
+     max-content width and the map/table overflow the grid over the details
+     panel (and MapLibre inflates its canvas to match). */
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0; min-height: 0;
+}
 
 .app-footer {
   height: var(--footer-h); flex: 0 0 auto; display: flex; align-items: center;
@@ -146,7 +154,7 @@ button { font: inherit; color: inherit; }
 .popup-row span { color: var(--ink-3); }
 
 /* ---------- table ---------- */
-.table-panel { display: flex; flex-direction: column; min-height: 0; border-top: 1px solid var(--line); }
+.table-panel { display: flex; flex-direction: column; min-height: 0; min-width: 0; border-top: 1px solid var(--line); }
 .table-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 8px; flex-wrap: wrap; }
 .tabs { display: flex; gap: 2px; }
 .tab {
@@ -166,6 +174,8 @@ button { font: inherit; color: inherit; }
 .th-sort { background: none; border: none; cursor: pointer; padding: 7px 10px; font-weight: 600; width: 100%; text-align: left; }
 .sort-ind { color: var(--accent); }
 .data-table td { border-bottom: 1px solid var(--panel); padding: 5px 10px; max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Virtualization spacer rows stand in for the off-screen rows' height. */
+.v-spacer td { padding: 0; border: 0; }
 .row-selectable { cursor: pointer; }
 .row-selectable:hover td { background: var(--accent-soft); }
 .row-selected td { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--select); }
@@ -250,6 +260,11 @@ button { font: inherit; color: inherit; }
 .panel-slot { display: contents; }
 .mobile-bar { display: none; }
 .drawer-scrim { display: none; }
+/* Collapse affordances exist only on wide screens (see the min-width block);
+   narrow screens use the drawers instead. */
+.panel-rail { display: none; }
+.panel-collapse-btn { display: none; }
+.panel-title-tools { display: flex; align-items: center; gap: 8px; }
 
 @media (max-width: 1100px) {
   .app-main { grid-template-columns: 240px minmax(0, 1fr); }
@@ -272,6 +287,34 @@ button { font: inherit; color: inherit; }
 @media (min-width: 1101px) {
   /* Wide screens never show drawers; the second mobile-bar button is enough on narrow. */
   .mobile-bar { display: none !important; }
+
+  /* Collapsible side panels. These rules MUST stay inside this media block:
+     .app-main.filters-collapsed (0,2,0) would out-specify the narrow-screen
+     .app-main grid overrides (0,1,0) and wreck the drawer layouts. */
+  .panel-collapse-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; padding: 0; background: none;
+    border: 1px solid var(--line); border-radius: 4px; cursor: pointer; color: var(--ink-2);
+  }
+  .panel-collapse-btn:hover { background: var(--accent-soft); }
+
+  .app-main.filters-collapsed { grid-template-columns: 28px minmax(0, 1fr) 320px; }
+  .app-main.details-collapsed { grid-template-columns: 270px minmax(0, 1fr) 28px; }
+  .app-main.filters-collapsed.details-collapsed { grid-template-columns: 28px minmax(0, 1fr) 28px; }
+  .app-main.filters-collapsed .filters-panel { display: none; }
+  .app-main.details-collapsed .details-panel { display: none; }
+  .app-main.filters-collapsed .rail-filters { display: flex; }
+  .app-main.details-collapsed .rail-details { display: flex; }
+
+  .panel-rail {
+    flex-direction: column; align-items: center; gap: 8px; padding: 12px 0;
+    background: var(--panel); border: none; cursor: pointer;
+    color: var(--ink-2); font-size: 12px;
+  }
+  .rail-filters { border-right: 1px solid var(--line); }
+  .rail-details { border-left: 1px solid var(--line); }
+  .panel-rail:hover { background: var(--accent-soft); }
+  .rail-text { writing-mode: vertical-rl; text-transform: uppercase; letter-spacing: 0.05em; }
 }
 @media (max-width: 760px) {
   .app-main { grid-template-columns: minmax(0, 1fr); }

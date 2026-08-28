@@ -75,9 +75,26 @@ export default function App() {
           </a>
         </nav>
       </header>
-      <main className="app-main">
+      <main
+        className={
+          "app-main" +
+          (state.filtersCollapsed ? " filters-collapsed" : "") +
+          (state.detailsCollapsed ? " details-collapsed" : "")
+        }
+      >
         <div className={state.mobilePanel === "filters" ? "panel-slot filters open" : "panel-slot filters"}>
           <FiltersPanel data={data} filters={state.filters} derived={derived} />
+          <button
+            type="button"
+            className="panel-rail rail-filters"
+            aria-expanded={false}
+            aria-controls="filters-panel"
+            aria-label="Expand Data Filters panel"
+            onClick={() => actions.setPanelCollapsed("filters", false)}
+          >
+            <span aria-hidden="true">»</span>
+            <span className="rail-text">Data Filters</span>
+          </button>
         </div>
         <div className="center-stack">
           <MapPanel sites={derived.sites} allSites={data.sites} siteById={data.siteById} state={state} />
@@ -85,6 +102,17 @@ export default function App() {
         </div>
         <div className={state.mobilePanel === "details" ? "panel-slot details open" : "panel-slot details"}>
           <DetailsPanel derived={derived} />
+          <button
+            type="button"
+            className="panel-rail rail-details"
+            aria-expanded={false}
+            aria-controls="details-panel"
+            aria-label="Expand Selected Data panel"
+            onClick={() => actions.setPanelCollapsed("details", false)}
+          >
+            <span aria-hidden="true">«</span>
+            <span className="rail-text">Selected Data</span>
+          </button>
         </div>
         {state.mobilePanel && (
           <button

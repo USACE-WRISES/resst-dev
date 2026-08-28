@@ -7,3 +7,4 @@ playwright-report/
 *.local
 Thumbs.db
 .DS_Store
+.claude/scheduled_tasks.lock

@@ -23,6 +23,9 @@ export interface AppState {
   overlays: Record<string, boolean>;
   /** Which side panel is open as a drawer on narrow screens. */
   mobilePanel: "filters" | "details" | null;
+  /** Desktop-only side-panel collapse (the drawers take over on narrow screens). */
+  filtersCollapsed: boolean;
+  detailsCollapsed: boolean;
   helpOpen: boolean;
   downloadsOpen: boolean;
   welcomeOpen: boolean;
@@ -40,6 +43,8 @@ let state: AppState = {
   boxSelectActive: false,
   overlays: {},
   mobilePanel: null,
+  filtersCollapsed: false,
+  detailsCollapsed: false,
   helpOpen: false,
   downloadsOpen: false,
   welcomeOpen: (() => {
@@ -124,6 +129,9 @@ export const actions = {
   },
   setMobilePanel(panel: "filters" | "details" | null): void {
     set({ mobilePanel: panel });
+  },
+  setPanelCollapsed(panel: "filters" | "details", collapsed: boolean): void {
+    set(panel === "filters" ? { filtersCollapsed: collapsed } : { detailsCollapsed: collapsed });
   },
   setDownloadsOpen(open: boolean): void {
     set({ downloadsOpen: open });
