@@ -45,6 +45,9 @@ difference.
 
 - Approve fixes for the discovered value corruptions
   ("…maNot Applicablegement" ×93, "Depostion" ×8) — currently preserved as-is.
+- Same decision class, found in the launch review: mojibake in some
+  international address/city values (48 `Ã` sequences in `data/sites.csv`,
+  e.g. "HumaitÃ¡" for "Humaitá") — also preserved as-is.
 - Optionally relink the 92 legacy entries whose site text matches no site
   (list in `data/MIGRATION-LOG.md`).
 - Backfill coordinates for the 15 unlocated sites when known.
