@@ -93,7 +93,12 @@ function ActionsMenu({ tab, rows, derived }: { tab: TabDef; rows: Row[]; derived
   );
 }
 
-function DataTable({ tab, rows, selectedIds }: { tab: TabDef; rows: Row[]; selectedIds: Set<string> }) {
+function DataTable({ tab, rows, selectedIds, columnVisibility }: {
+  tab: TabDef;
+  rows: Row[];
+  selectedIds: Set<string>;
+  columnVisibility: Record<string, boolean>;
+}) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const columns = useMemo(() => {
     const helper = createColumnHelper<Row>();
@@ -109,7 +114,7 @@ function DataTable({ tab, rows, selectedIds }: { tab: TabDef; rows: Row[]; selec
   const table = useReactTable({
     data: rows,
     columns,
-    state: { sorting },
+    state: { sorting, columnVisibility },
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -163,11 +168,58 @@ function DataTable({ tab, rows, selectedIds }: { tab: TabDef; rows: Row[]; selec
   );
 }
 
+function ColumnChooser({ tab, hidden, onToggle }: {
+  tab: TabDef;
+  hidden: Record<string, boolean>;
+  onToggle: (field: string, visible: boolean) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+  return (
+    <div className="actions-menu" ref={ref}>
+      <button type="button" className="actions-btn" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
+        Columns ▾
+      </button>
+      {open && (
+        <div className="menu-popover col-chooser" role="group" aria-label={`Show or hide ${tab.label} columns`}>
+          {tab.columns.map((c) => (
+            <label key={c.field} className="value-option">
+              <input
+                type="checkbox"
+                checked={hidden[c.field] !== true}
+                onChange={(e) => onToggle(c.field, e.target.checked)}
+              />
+              <span>{c.label}</span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function TablePanel({ derived, state }: { derived: Derived; state: AppState }) {
   const tab = TABS.find((t) => t.id === state.activeTab) ?? TABS[0];
   const searchText = state.tabSearch[tab.id] ?? "";
   const allRows = rowsForTab(tab.id, derived);
   const selectedIds = derived.selection.siteIdSet;
+  const [hiddenByTab, setHiddenByTab] = useState<Partial<Record<TabId, Record<string, boolean>>>>({});
+  const hidden = hiddenByTab[tab.id] ?? {};
+  const columnVisibility = useMemo(
+    () => Object.fromEntries(Object.entries(hidden).map(([f, h]) => [f, !h])),
+    [hidden],
+  );
 
   const rows = useMemo(() => {
     let r = allRows;
@@ -179,7 +231,7 @@ export function TablePanel({ derived, state }: { derived: Derived; state: AppSta
   }, [allRows, searchText, tab, state.showSelectionOnly, selectedIds]);
 
   return (
-    <section className="table-panel" aria-label="Results tables">
+    <section className="table-panel" id="results-table" aria-label="Results tables">
       <div className="table-toolbar">
         <div role="tablist" aria-label="Result tables" className="tabs">
           {TABS.map((t) => (
@@ -218,10 +270,17 @@ export function TablePanel({ derived, state }: { derived: Derived; state: AppSta
               Clear selection
             </button>
           )}
+          <ColumnChooser
+            tab={tab}
+            hidden={hidden}
+            onToggle={(field, visible) =>
+              setHiddenByTab((s) => ({ ...s, [tab.id]: { ...(s[tab.id] ?? {}), [field]: !visible } }))
+            }
+          />
           <ActionsMenu tab={tab} rows={rows} derived={derived} />
         </div>
       </div>
-      <DataTable tab={tab} rows={rows} selectedIds={selectedIds} />
+      <DataTable tab={tab} rows={rows} selectedIds={selectedIds} columnVisibility={columnVisibility} />
       <div className="table-footer">
         Total: <b>{rows.length.toLocaleString()}</b> | Selection: <b>{selectedIds.size}</b>
         {searchText && <span className="muted"> (search active)</span>}

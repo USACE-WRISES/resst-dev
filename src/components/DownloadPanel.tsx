@@ -3,9 +3,10 @@
 // and the contribute pointer. In-app filtered exports live under each table's
 // Actions menu.
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import type { DataManifest } from "../lib/types";
 import { actions } from "../state/store";
+import { useFocusTrap } from "../lib/useFocusTrap";
 
 const RELEASE_BASE = "https://github.com/USACE-WRISES/resst-dev/releases/download/data-latest";
 const REPO = "https://github.com/USACE-WRISES/resst-dev";
@@ -18,17 +19,16 @@ const FILES = [
 ];
 
 export function DownloadPanel({ manifest }: { manifest: DataManifest }) {
-  const dialogRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useFocusTrap<HTMLDivElement>();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && actions.setDownloadsOpen(false);
     document.addEventListener("keydown", onKey);
-    dialogRef.current?.focus();
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
   return (
     <div className="dialog-scrim" role="presentation" onClick={(e) => e.target === e.currentTarget && actions.setDownloadsOpen(false)}>
-      <div className="dialog" role="dialog" aria-modal="true" aria-label="Download data" ref={dialogRef} tabIndex={-1}>
+      <div className="dialog" role="dialog" aria-modal="true" aria-label="Download data" ref={dialogRef}>
         <div className="help-head">
           <h2 style={{ margin: 0 }}>Download Data</h2>
           <button type="button" className="linklike" onClick={() => actions.setDownloadsOpen(false)} aria-label="Close downloads">

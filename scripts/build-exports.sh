@@ -9,7 +9,10 @@ set -euo pipefail
 command -v ogr2ogr >/dev/null || { echo "ogr2ogr (gdal-bin) is required"; exit 1; }
 rm -rf exports && mkdir -p exports/work
 
-CSV_OPTS=(-oo X_POSSIBLE_NAMES=longitude -oo Y_POSSIBLE_NAMES=latitude -oo KEEP_GEOM_COLUMNS=NO)
+# longitude/latitude stay as attribute columns AND drive point geometry; rows
+# with blank coordinates get null geometry (kept in GPKG/FileGDB, filtered out
+# of shapefiles, which handle null geometry poorly).
+CSV_OPTS=(-oo X_POSSIBLE_NAMES=longitude -oo Y_POSSIBLE_NAMES=latitude)
 
 # --- Shapefiles (located records only; DBF names truncate to 10 chars) -------
 mkdir -p exports/work/shapefiles

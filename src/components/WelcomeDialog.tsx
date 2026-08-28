@@ -4,12 +4,14 @@
 
 import { useState } from "react";
 import { actions } from "../state/store";
+import { useFocusTrap } from "../lib/useFocusTrap";
 
 export function WelcomeDialog() {
   const [dontShow, setDontShow] = useState(false);
+  const trapRef = useFocusTrap<HTMLDivElement>();
   return (
     <div className="dialog-scrim" role="presentation">
-      <div className="dialog" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+      <div className="dialog" role="dialog" aria-modal="true" aria-labelledby="welcome-title" ref={trapRef}>
         <h2 id="welcome-title">Welcome to ReSST</h2>
         <p>
           The Reservoir Sustainable Sediment Tool (ReSST) is a web-based application developed to compile and synthesize
