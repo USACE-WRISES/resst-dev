@@ -8,6 +8,8 @@ export interface MapCommands {
   fitToSites(sites: Site[]): void;
   /** Jump/fly to one coordinate. */
   flyTo(lon: number, lat: number, zoom?: number): void;
+  /** Fit to explicit [west, south, east, north] bounds. */
+  fitBounds(bounds: [number, number, number, number]): void;
 }
 
 let current: MapCommands | null = null;

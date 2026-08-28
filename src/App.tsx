@@ -7,6 +7,8 @@ import { FiltersPanel } from "./components/FiltersPanel";
 import { TablePanel } from "./components/TablePanel";
 import { DetailsPanel } from "./components/DetailsPanel";
 import { WelcomeDialog } from "./components/WelcomeDialog";
+import { HelpOverlay } from "./components/HelpOverlay";
+import { DownloadPanel } from "./components/DownloadPanel";
 import { MapPanel } from "./map/MapPanel";
 
 export default function App() {
@@ -49,6 +51,9 @@ export default function App() {
           <button type="button" className="toolbar-btn" onClick={() => actions.setHelpOpen(!state.helpOpen)}>
             Help
           </button>
+          <button type="button" className="toolbar-btn" onClick={() => actions.setDownloadsOpen(true)}>
+            Download Data
+          </button>
           <a
             className="toolbar-btn"
             href="https://github.com/USACE-WRISES/resst-dev"
@@ -75,6 +80,8 @@ export default function App() {
         <span>Basemap: USGS The National Map</span>
       </footer>
       {state.welcomeOpen && <WelcomeDialog />}
+      {state.helpOpen && <HelpOverlay />}
+      {state.downloadsOpen && <DownloadPanel manifest={data.manifest} />}
     </div>
   );
 }
