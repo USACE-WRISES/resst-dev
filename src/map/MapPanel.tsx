@@ -22,14 +22,14 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import type { Site } from "../lib/types";
 import { SITE_DETAIL_FIELDS, SITE_FIELD_LABELS } from "../config/fields";
 import { actions, type AppState } from "../state/store";
+import { MAP_VIEWS } from "../config/mapViews.generated";
 import { registerMapCommands } from "./mapBus";
 import { SearchControl } from "./SearchControl";
 import { MapToolPanels } from "./MapToolPanels";
 import { installOverlays, updateOverlays } from "./overlays";
 
-// Initial view ≈ the web map's saved extent (CONUS-wide).
-const INITIAL_CENTER: [number, number] = [-91.6, 38.5];
-const INITIAL_ZOOM = 3.4;
+// Initial view = the app's "Default" map view (the captured CONUS extent).
+const DEFAULT_VIEW = MAP_VIEWS[0];
 
 const BASE_STYLE: StyleSpecification = {
   version: 8,
@@ -93,15 +93,16 @@ export function MapPanel({ sites, allSites, siteById, state }: {
   const selectedIds = state.selectedSiteIds;
   const overlaysRef = useRef(state.overlays);
   overlaysRef.current = state.overlays;
-  const [zoomTick, setZoomTick] = useState(INITIAL_ZOOM);
+  const [zoomTick, setZoomTick] = useState(4);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     const map = new MlMap({
       container: containerRef.current,
       style: BASE_STYLE,
-      center: INITIAL_CENTER,
-      zoom: INITIAL_ZOOM,
+      bounds: DEFAULT_VIEW.bounds,
+      // Same padding the Views cards use, so picking "Default" reproduces this view.
+      fitBoundsOptions: { padding: 20 },
       attributionControl: { compact: true },
     });
     mapRef.current = map;
@@ -193,6 +194,9 @@ export function MapPanel({ sites, allSites, siteById, state }: {
       });
 
       loadedRef.current = true;
+      // The constructor fitted the Default bounds; report the real zoom so the
+      // zoom-gated overlay notes are accurate before the first moveend.
+      setZoomTick(Math.round(map.getZoom() * 10) / 10);
       (map.getSource("sites") as GeoJSONSource).setData(sitesToGeoJSON(sitesRef.current));
       updateOverlays(map, overlaysRef.current);
     });

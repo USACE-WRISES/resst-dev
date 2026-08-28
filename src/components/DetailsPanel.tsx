@@ -37,14 +37,26 @@ export function DetailsPanel({ derived }: { derived: Derived }) {
   const current = selected[Math.min(page, selected.length - 1)];
 
   return (
-    <aside className="details-panel" aria-label="Selected data">
+    <aside className="details-panel" id="details-panel" aria-label="Selected data">
       <div className="panel-title-row">
         <h2>Selected Data</h2>
-        {selected.length > 0 && (
-          <button type="button" className="linklike" onClick={() => actions.clearSelection()}>
-            Clear
+        <span className="panel-title-tools">
+          {selected.length > 0 && (
+            <button type="button" className="linklike" onClick={() => actions.clearSelection()}>
+              Clear
+            </button>
+          )}
+          <button
+            type="button"
+            className="panel-collapse-btn"
+            aria-expanded={true}
+            aria-controls="details-panel"
+            aria-label="Collapse Selected Data panel"
+            onClick={() => actions.setPanelCollapsed("details", true)}
+          >
+            <span aria-hidden="true">»</span>
           </button>
-        )}
+        </span>
       </div>
       {selected.length === 0 ? (
         <p className="muted empty-note">
