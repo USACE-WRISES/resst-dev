@@ -20,6 +20,14 @@ export default function App() {
     loadAppData().then(setData, (e) => setLoadError(String(e)));
   }, []);
 
+  // Escape closes an open mobile drawer (dialogs handle their own Escape).
+  useEffect(() => {
+    if (!state.mobilePanel) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && actions.setMobilePanel(null);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [state.mobilePanel]);
+
   if (loadError) {
     return (
       <div className="load-screen" role="alert">
@@ -42,6 +50,9 @@ export default function App() {
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#results-table">
+        Skip to results table
+      </a>
       <header className="app-header">
         <div className="brand">
           <span className="brand-mark" aria-hidden="true">🌊</span>
@@ -65,13 +76,42 @@ export default function App() {
         </nav>
       </header>
       <main className="app-main">
-        <FiltersPanel data={data} filters={state.filters} derived={derived} />
+        <div className={state.mobilePanel === "filters" ? "panel-slot filters open" : "panel-slot filters"}>
+          <FiltersPanel data={data} filters={state.filters} derived={derived} />
+        </div>
         <div className="center-stack">
           <MapPanel sites={derived.sites} allSites={data.sites} siteById={data.siteById} state={state} />
           <TablePanel derived={derived} state={state} />
         </div>
-        <DetailsPanel derived={derived} />
+        <div className={state.mobilePanel === "details" ? "panel-slot details open" : "panel-slot details"}>
+          <DetailsPanel derived={derived} />
+        </div>
+        {state.mobilePanel && (
+          <button
+            type="button"
+            className="drawer-scrim"
+            aria-label="Close panel"
+            onClick={() => actions.setMobilePanel(null)}
+          />
+        )}
       </main>
+      <nav className="mobile-bar" aria-label="Panels">
+        <button
+          type="button"
+          className="for-filters"
+          aria-pressed={state.mobilePanel === "filters"}
+          onClick={() => actions.setMobilePanel(state.mobilePanel === "filters" ? null : "filters")}
+        >
+          Filters
+        </button>
+        <button
+          type="button"
+          aria-pressed={state.mobilePanel === "details"}
+          onClick={() => actions.setMobilePanel(state.mobilePanel === "details" ? null : "details")}
+        >
+          Selected{derived.selection.sites.length > 0 ? ` (${derived.selection.sites.length})` : ""}
+        </button>
+      </nav>
       <footer className="app-footer">
         <span>
           Data as of {new Date(data.manifest.generated).toLocaleDateString()} · {data.sites.length.toLocaleString()} sites ·{" "}

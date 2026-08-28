@@ -33,9 +33,8 @@ const INITIAL_ZOOM = 3.4;
 
 const BASE_STYLE: StyleSpecification = {
   version: 8,
-  // Glyphs are required for the site-name text layer. TODO(M7): self-host the
-  // font PBFs under public/fonts to remove the third-party dependency.
-  glyphs: "https://fonts.openmaptiles.org/{fontstack}/{range}.pbf",
+  // Self-hosted glyph PBFs (public/fonts) — no third-party font dependency.
+  glyphs: `${location.origin}${import.meta.env.BASE_URL}fonts/{fontstack}/{range}.pbf`,
   sources: {
     usgsTopo: {
       type: "raster",

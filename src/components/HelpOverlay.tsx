@@ -5,14 +5,15 @@
 // config (scripts/gen-content.mjs); the HTML is owner-authored app content,
 // not user input.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { HELP_VIEWS } from "../config/helpContent.generated";
 import { actions } from "../state/store";
+import { useFocusTrap } from "../lib/useFocusTrap";
 
 export function HelpOverlay() {
   const [index, setIndex] = useState(0);
   const view = HELP_VIEWS[index];
-  const dialogRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useFocusTrap<HTMLDivElement>();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -21,13 +22,12 @@ export function HelpOverlay() {
       if (e.key === "ArrowLeft") setIndex((i) => Math.max(0, i - 1));
     };
     document.addEventListener("keydown", onKey);
-    dialogRef.current?.focus();
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
   return (
     <div className="dialog-scrim" role="presentation" onClick={(e) => e.target === e.currentTarget && actions.setHelpOpen(false)}>
-      <div className="dialog help-dialog" role="dialog" aria-modal="true" aria-label="Help and workflows" ref={dialogRef} tabIndex={-1}>
+      <div className="dialog help-dialog" role="dialog" aria-modal="true" aria-label="Help and workflows" ref={dialogRef}>
         <div className="help-head">
           <nav className="help-pills" aria-label="Help topics">
             {HELP_VIEWS.map((v, i) => (

@@ -21,6 +21,8 @@ export interface AppState {
   boxSelectActive: boolean;
   /** Reference overlay visibility by overlay key (all off by default). */
   overlays: Record<string, boolean>;
+  /** Which side panel is open as a drawer on narrow screens. */
+  mobilePanel: "filters" | "details" | null;
   helpOpen: boolean;
   downloadsOpen: boolean;
   welcomeOpen: boolean;
@@ -37,6 +39,7 @@ let state: AppState = {
   showSelectionOnly: false,
   boxSelectActive: false,
   overlays: {},
+  mobilePanel: null,
   helpOpen: false,
   downloadsOpen: false,
   welcomeOpen: (() => {
@@ -118,6 +121,9 @@ export const actions = {
   },
   setHelpOpen(open: boolean): void {
     set({ helpOpen: open });
+  },
+  setMobilePanel(panel: "filters" | "details" | null): void {
+    set({ mobilePanel: panel });
   },
   setDownloadsOpen(open: boolean): void {
     set({ downloadsOpen: open });
