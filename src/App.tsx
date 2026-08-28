@@ -62,7 +62,7 @@ export default function App() {
       <main className="app-main">
         <FiltersPanel data={data} filters={state.filters} derived={derived} />
         <div className="center-stack">
-          <MapPanel sites={derived.sites} siteById={data.siteById} selectedSiteId={state.selectedSiteId} />
+          <MapPanel sites={derived.sites} allSites={data.sites} siteById={data.siteById} state={state} />
           <TablePanel derived={derived} state={state} />
         </div>
         <DetailsPanel derived={derived} />

@@ -7,6 +7,12 @@ import { applyFilters, type FilterState } from "../filters/engine";
 import { FILTER_DEFS } from "../config/filters.generated";
 import type { AppState } from "./store";
 
+export interface SelectedSite {
+  site: Site;
+  entries: LiteratureEntry[];
+  nid: NidRecord | null;
+}
+
 export interface Derived {
   /** Sites after the Site Keywords filters. */
   sites: Site[];
@@ -20,13 +26,15 @@ export interface Derived {
   generalLit: LiteratureSurvey[];
   counts: { sites: number; siteLit: number; generalLit: number };
   selection: {
-    site: Site | null;
+    /** One block per selected site, in selection order. */
+    sites: SelectedSite[];
+    /** Union of the selected sites' literature entries. */
     entries: LiteratureEntry[];
-    nid: NidRecord | null;
+    siteIdSet: Set<string>;
   };
 }
 
-let cacheKey: { data: AppData; filters: FilterState; selectedSiteId: string | null } | null = null;
+let cacheKey: { data: AppData; filters: FilterState; selected: string[] } | null = null;
 let cacheVal: Derived | null = null;
 
 export function derive(data: AppData, state: AppState): Derived {
@@ -35,7 +43,7 @@ export function derive(data: AppData, state: AppState): Derived {
     cacheKey &&
     cacheKey.data === data &&
     cacheKey.filters === state.filters &&
-    cacheKey.selectedSiteId === state.selectedSiteId
+    cacheKey.selected === state.selectedSiteIds
   ) {
     return cacheVal;
   }
@@ -46,14 +54,16 @@ export function derive(data: AppData, state: AppState): Derived {
   const literatureAll = applyFilters(data.literature, FILTER_DEFS, state.filters, "generalLit");
   const generalLit = literatureAll.filter((l) => l.site_names === "");
 
-  const site = state.selectedSiteId ? (data.siteById.get(state.selectedSiteId) ?? null) : null;
-  const selection = {
-    site,
-    entries: site ? (data.entriesBySite.get(site.site_id) ?? []) : [],
-    nid: site && site.nid_id ? (data.nidById.get(site.nid_id) ?? null) : null,
-  };
+  const selectedSites: SelectedSite[] = state.selectedSiteIds
+    .map((id) => data.siteById.get(id))
+    .filter((s): s is Site => !!s)
+    .map((site) => ({
+      site,
+      entries: data.entriesBySite.get(site.site_id) ?? [],
+      nid: site.nid_id ? (data.nidById.get(site.nid_id) ?? null) : null,
+    }));
 
-  cacheKey = { data, filters: state.filters, selectedSiteId: state.selectedSiteId };
+  cacheKey = { data, filters: state.filters, selected: state.selectedSiteIds };
   cacheVal = {
     sites,
     entriesAll,
@@ -61,7 +71,11 @@ export function derive(data: AppData, state: AppState): Derived {
     literatureAll,
     generalLit,
     counts: { sites: sites.length, siteLit: siteLit.length, generalLit: generalLit.length },
-    selection,
+    selection: {
+      sites: selectedSites,
+      entries: selectedSites.flatMap((s) => s.entries),
+      siteIdSet: new Set(selectedSites.map((s) => s.site.site_id)),
+    },
   };
   return cacheVal;
 }
