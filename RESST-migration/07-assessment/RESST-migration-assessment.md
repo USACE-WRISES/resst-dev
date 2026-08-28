@@ -1,7 +1,26 @@
 # RESST Migration Assessment
 
-**Prepared:** 2026-08-28 · **Status:** For owner review — no implementation has begun (per brief rule 1)
+**Prepared:** 2026-08-28 · **Status:** Direction approved by owner 2026-08-28 — implementation underway (see Decisions of record below)
 **Subject:** Reservoir Sustainable Sediment Tool (RESST), ArcGIS Experience Builder app `b1eec438459e45c284df2fcf89e5d8e0`
+
+## Decisions of record (owner review, 2026-08-28)
+
+The owner answered all §13 questions, approving implementation with one major revision to §8: **ArcGIS is retired as the authoring system entirely — the repository is the database.** Editing happens offline by people with repo write access and lands via pull requests. Specifically:
+
+| # | Decision |
+|---|---|
+| D1 | Static TypeScript SPA — Vite + React + MapLibre GL JS, TanStack Table (as recommended) |
+| D2 | Repo is the database: source of truth = CSV tables `data/sites.csv`, `data/literature.csv`, `data/literature_entries.csv`; Survey123/Edit-Data panel dropped from the app |
+| D3 | Runtime = CI-generated JSON; downloads = CI-built Shapefile + GeoPackage + FileGDB + CSV (GDAL); in-app filtered exports = client-side CSV/GeoJSON/Shapefile |
+| D4 | Basemap: USGS National Map topo (keyless); attribute search replaces the Esri geocoder |
+| D5 | Public repo `usace-wrises/resst-dev` (supersedes `usace-wrises/resst` eventually); host GitHub Pages |
+| D6 | Reference overlays stay remote services; the 48 site-linked NID records snapshotted into repo data |
+| D7 | Data fixes applied in repo CSVs at migration, documented in `data/MIGRATION-LOG.md` |
+| D8 | Approved improvements: global Clear-All · Site Literature tab uses the 1,192 view · curated NID details · full-function mobile |
+| D9 | No near-term R analytics; future analyses = separate Posit Connect Cloud apps linked from RESST. Correction to §7: Connect Cloud's documented content types now include **Static Files** (checked 2026-08-28) — a viable fallback host; Node.js remains unsupported there |
+| D10 | Current EXB app untouched until cutover |
+
+Migration findings recorded after approval (M1): filter option lists are **hand-curated static lists** in the EXB config (extracted to `filter-config-extracted.json`); the "Water Injection Dreding" typo lives in that config, not the data (a dead filter option today); ArcGIS `LIKE`/`=` are case-insensitive, so the replacement matches case-insensitively; new data corruptions discovered and flagged, not fixed ("…maNot Applicablegement" ×93, "Depostion" ×8); two distinct sites are both named "Rio Grande", resolved by an explicit `site_id` foreign key on entries (1,100 linked, 92 legacy unlinked kept as text) — full detail in `data/MIGRATION-LOG.md`.
 
 Everything in this assessment is grounded in evidence collected 2026-08-28: the published Experience configuration, web-map JSON, feature-service definitions, full data extracts (verified against service counts), and a live behavioral session driving the public app in a browser — including captured network `where=` clauses. Facts, inferences, and recommendations are labeled. Nothing in ArcGIS was modified.
 
