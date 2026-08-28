@@ -10,12 +10,17 @@ import type { TabId } from "../config/tabs";
 
 export interface AppState {
   filters: FilterState;
-  /** Currently selected site (map click, table row, or search). */
-  selectedSiteId: string | null;
+  /** Selected sites — one from a click, several from the box-select tool. */
+  selectedSiteIds: string[];
   activeTab: TabId;
   /** Per-tab quick-search text. */
   tabSearch: Partial<Record<TabId, string>>;
+  /** Table option: show only rows belonging to the selection. */
+  showSelectionOnly: boolean;
+  /** Box-select tool armed on the map. */
+  boxSelectActive: boolean;
   helpOpen: boolean;
+  downloadsOpen: boolean;
   welcomeOpen: boolean;
 }
 
@@ -24,10 +29,13 @@ const initialFilters = (): FilterState =>
 
 let state: AppState = {
   filters: initialFilters(),
-  selectedSiteId: null,
+  selectedSiteIds: [],
   activeTab: "sites",
   tabSearch: {},
+  showSelectionOnly: false,
+  boxSelectActive: false,
   helpOpen: false,
+  downloadsOpen: false,
   welcomeOpen: (() => {
     try {
       return localStorage.getItem("resst.hideWelcome") !== "1";
@@ -75,8 +83,22 @@ export const actions = {
   clearAllFilters(): void {
     set({ filters: initialFilters() });
   },
+  /** Single-site selection (map click, table row, search result). */
   selectSite(siteId: string | null): void {
-    set({ selectedSiteId: siteId });
+    set({ selectedSiteIds: siteId ? [siteId] : [], showSelectionOnly: siteId ? state.showSelectionOnly : false });
+  },
+  /** Multi-selection from the box-select tool. */
+  selectSites(siteIds: string[]): void {
+    set({ selectedSiteIds: [...new Set(siteIds)], boxSelectActive: false });
+  },
+  clearSelection(): void {
+    set({ selectedSiteIds: [], showSelectionOnly: false });
+  },
+  setShowSelectionOnly(on: boolean): void {
+    set({ showSelectionOnly: on });
+  },
+  setBoxSelectActive(on: boolean): void {
+    set({ boxSelectActive: on });
   },
   setActiveTab(tab: TabId): void {
     set({ activeTab: tab });
@@ -86,6 +108,9 @@ export const actions = {
   },
   setHelpOpen(open: boolean): void {
     set({ helpOpen: open });
+  },
+  setDownloadsOpen(open: boolean): void {
+    set({ downloadsOpen: open });
   },
   closeWelcome(dontShowAgain: boolean): void {
     if (dontShowAgain) {

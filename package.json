@@ -14,6 +14,7 @@
     "gen:filters": "node scripts/gen-filter-config.mjs"
   },
   "dependencies": {
+    "@mapbox/shp-write": "^0.4.3",
     "@tanstack/react-table": "^8.21.3",
     "maplibre-gl": "^6.6.0",
     "react": "^19.2.8",
