@@ -32,7 +32,7 @@ button { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* ---------- shell ---------- */
-.app-shell { height: 100%; display: flex; flex-direction: column; }
+.app-shell { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
 .app-header {
   height: var(--header-h); flex: 0 0 auto; display: flex; align-items: center;
   justify-content: space-between; gap: 16px; padding: 0 14px;
@@ -49,10 +49,10 @@ button { font: inherit; color: inherit; }
 .toolbar-btn:hover { background: rgba(255, 255, 255, 0.22); }
 
 .app-main {
-  flex: 1 1 auto; min-height: 0; display: grid;
+  flex: 1 1 auto; min-height: 0; min-width: 0; height: 0; display: grid;
   grid-template-columns: 270px minmax(0, 1fr) 320px;
 }
-.center-stack { display: grid; grid-template-rows: minmax(0, 1fr) minmax(0, 46%); min-width: 0; }
+.center-stack { display: grid; grid-template-rows: minmax(0, 1fr) minmax(0, 46%); min-width: 0; min-height: 0; }
 
 .app-footer {
   height: var(--footer-h); flex: 0 0 auto; display: flex; align-items: center;
@@ -191,6 +191,43 @@ button { font: inherit; color: inherit; }
 .pager { display: flex; align-items: center; justify-content: center; gap: 12px; }
 .pager-btn { background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 3px 10px; cursor: pointer; }
 .pager-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* map tool popovers (Views / Layers / Legend) */
+.tool-popover { position: relative; }
+.tool-popover-panel {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 8; min-width: 240px; max-width: 330px;
+  background: var(--paper); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+  padding: 10px;
+}
+.views-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.view-card {
+  display: flex; flex-direction: column; gap: 4px; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 5px; padding: 5px; cursor: pointer; font-size: 12.5px;
+}
+.view-card:hover { border-color: var(--accent); }
+.view-card img { width: 100%; height: 60px; object-fit: cover; border-radius: 3px; }
+.layers-list { display: flex; flex-direction: column; gap: 4px; }
+.swatch { width: 13px; height: 13px; border-radius: 3px; display: inline-block; flex: 0 0 auto; }
+.gate-note { font-size: 12px; margin: 6px 0 0; }
+.legend-list { display: flex; flex-direction: column; gap: 6px; }
+.legend-row { display: flex; align-items: center; gap: 8px; }
+.legend-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid; display: inline-block; }
+.legend-line { width: 16px; height: 3px; display: inline-block; border-radius: 2px; }
+
+/* help + downloads */
+.help-dialog { max-width: 900px; width: calc(100% - 60px); max-height: calc(100% - 60px); display: flex; flex-direction: column; }
+.help-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+.help-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.pill { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 4px 12px; cursor: pointer; font-size: 13px; }
+.pill.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.help-body { overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+.help-image { max-width: 100%; border: 1px solid var(--line); border-radius: 6px; }
+.help-text { line-height: 1.55; }
+.help-text p { margin: 0 0 10px; }
+.help-foot { display: flex; justify-content: center; align-items: center; gap: 14px; padding-top: 12px; }
+.download-list { list-style: none; margin: 0 0 14px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.download-list a { display: block; border: 1px solid var(--line); border-radius: 6px; padding: 9px 12px; text-decoration: none; color: var(--ink); }
+.download-list a:hover { border-color: var(--accent); background: var(--accent-soft); }
 
 /* ---------- dialog ---------- */
 .dialog-scrim { position: fixed; inset: 0; background: rgba(28, 39, 51, 0.45); display: grid; place-items: center; z-index: 30; }

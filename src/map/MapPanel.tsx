@@ -6,7 +6,7 @@
 // the search box matches site names. Selection drives the details panel,
 // tables, popup, and highlight rings.
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Map as MlMap,
   Popup,
@@ -24,6 +24,8 @@ import { SITE_DETAIL_FIELDS, SITE_FIELD_LABELS } from "../config/fields";
 import { actions, type AppState } from "../state/store";
 import { registerMapCommands } from "./mapBus";
 import { SearchControl } from "./SearchControl";
+import { MapToolPanels } from "./MapToolPanels";
+import { installOverlays, updateOverlays } from "./overlays";
 
 // Initial view ≈ the web map's saved extent (CONUS-wide).
 const INITIAL_CENTER: [number, number] = [-91.6, 38.5];
@@ -90,6 +92,9 @@ export function MapPanel({ sites, allSites, siteById, state }: {
   const boxSelectActiveRef = useRef(state.boxSelectActive);
   boxSelectActiveRef.current = state.boxSelectActive;
   const selectedIds = state.selectedSiteIds;
+  const overlaysRef = useRef(state.overlays);
+  overlaysRef.current = state.overlays;
+  const [zoomTick, setZoomTick] = useState(INITIAL_ZOOM);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -101,6 +106,8 @@ export function MapPanel({ sites, allSites, siteById, state }: {
       attributionControl: { compact: true },
     });
     mapRef.current = map;
+    // Read-only handle for the e2e suite (and console debugging).
+    (window as unknown as { __resstMap?: MlMap }).__resstMap = map;
     map.addControl(new NavigationControl({ showCompass: false }), "top-right");
     map.addControl(new ScaleControl({ unit: "imperial" }), "bottom-left");
 
@@ -116,6 +123,9 @@ export function MapPanel({ sites, allSites, siteById, state }: {
       },
       flyTo(lon, lat, zoom = 9) {
         map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), zoom), duration: 700 });
+      },
+      fitBounds(b) {
+        map.fitBounds(new LngLatBounds([b[0], b[1]], [b[2], b[3]]), { padding: 20, duration: 700 });
       },
     });
 
@@ -176,11 +186,25 @@ export function MapPanel({ sites, allSites, siteById, state }: {
       });
       map.on("mouseleave", "sites-circles", () => (map.getCanvas().style.cursor = ""));
 
+      // Reference overlays render beneath the sites layers.
+      installOverlays(map);
+      map.on("moveend", () => {
+        updateOverlays(map, overlaysRef.current);
+        setZoomTick(Math.round(map.getZoom() * 10) / 10);
+      });
+
       loadedRef.current = true;
       (map.getSource("sites") as GeoJSONSource).setData(sitesToGeoJSON(sitesRef.current));
+      updateOverlays(map, overlaysRef.current);
     });
 
+    // Keep the canvas sized to the grid cell (panels collapse, drawers open,
+    // the window resizes) — MapLibre doesn't observe its container itself.
+    const ro = new ResizeObserver(() => map.resize());
+    ro.observe(containerRef.current);
+
     return () => {
+      ro.disconnect();
       registerMapCommands(null);
       map.remove();
       mapRef.current = null;
@@ -188,6 +212,13 @@ export function MapPanel({ sites, allSites, siteById, state }: {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Overlay visibility changes → sync layers + fetch what's now on.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !loadedRef.current) return;
+    updateOverlays(map, state.overlays);
+  }, [state.overlays]);
 
   // Keep the source in sync with the filtered sites.
   const sitesRef = useRef(sites);
@@ -287,6 +318,7 @@ export function MapPanel({ sites, allSites, siteById, state }: {
         >
           ⬚ Select
         </button>
+        <MapToolPanels state={state} zoom={zoomTick} />
       </div>
     </div>
   );

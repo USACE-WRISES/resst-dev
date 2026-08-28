@@ -19,6 +19,8 @@ export interface AppState {
   showSelectionOnly: boolean;
   /** Box-select tool armed on the map. */
   boxSelectActive: boolean;
+  /** Reference overlay visibility by overlay key (all off by default). */
+  overlays: Record<string, boolean>;
   helpOpen: boolean;
   downloadsOpen: boolean;
   welcomeOpen: boolean;
@@ -34,6 +36,7 @@ let state: AppState = {
   tabSearch: {},
   showSelectionOnly: false,
   boxSelectActive: false,
+  overlays: {},
   helpOpen: false,
   downloadsOpen: false,
   welcomeOpen: (() => {
@@ -99,6 +102,13 @@ export const actions = {
   },
   setBoxSelectActive(on: boolean): void {
     set({ boxSelectActive: on });
+  },
+  setOverlay(key: string, on: boolean): void {
+    set({ overlays: { ...state.overlays, [key]: on } });
+  },
+  /** Apply a saved map view's overlay set (the caller also fits the extent). */
+  setOverlays(overlays: Record<string, boolean>): void {
+    set({ overlays });
   },
   setActiveTab(tab: TabId): void {
     set({ activeTab: tab });
