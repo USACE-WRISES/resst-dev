@@ -33,6 +33,8 @@ test("no serious/critical violations with dialogs open", async ({ page }) => {
 
 test("welcome dialog traps focus and the skip link works", async ({ page }) => {
   await page.goto("./");
+  // Wait until the trap has taken focus (React mounts after load).
+  await page.waitForFunction(() => !!document.activeElement?.closest(".dialog"));
   // Tab cycles within the dialog.
   for (let i = 0; i < 6; i++) await page.keyboard.press("Tab");
   const inDialog = await page.evaluate(() => !!document.activeElement?.closest(".dialog"));
