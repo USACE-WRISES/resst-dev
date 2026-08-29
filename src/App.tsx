@@ -10,6 +10,7 @@ import { WelcomeDialog } from "./components/WelcomeDialog";
 import { HelpOverlay } from "./components/HelpOverlay";
 import { DownloadPanel } from "./components/DownloadPanel";
 import { MapPanel } from "./map/MapPanel";
+import { BASEMAPS } from "./map/basemaps";
 import { Logo } from "./components/Logo";
 
 export default function App() {
@@ -146,7 +147,7 @@ export default function App() {
           Data as of {new Date(data.manifest.generated).toLocaleDateString()} · {data.sites.length.toLocaleString()} sites ·{" "}
           {data.entries.length.toLocaleString()} literature entries
         </span>
-        <span>Basemap: USGS The National Map</span>
+        <span>Basemap: {BASEMAPS[state.basemap].label}</span>
       </footer>
       {state.welcomeOpen && <WelcomeDialog />}
       {state.helpOpen && <HelpOverlay />}

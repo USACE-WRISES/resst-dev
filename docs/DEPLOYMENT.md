@@ -24,7 +24,10 @@ Everything is automated through GitHub Actions; there is no server to run.
 
 | Service | Used for | If it breaks |
 |---|---|---|
-| `basemap.nationalmap.gov` (USGS) | basemap tiles | map background blank; app otherwise functional |
+| `basemap.nationalmap.gov` (USGS) | default basemap tiles | map background blank; app otherwise functional |
+| `cdn.arcgis.com` | optional Esri basemap: style + sprite | the basemap toggle shows a retryable error; USGS default unaffected |
+| `basemaps.arcgis.com` | optional Esri basemap: vector tiles + fonts | same |
+| `services.arcgisonline.com` | optional Esri basemap: hillshade tiles | hillshade missing under the Esri style; USGS default unaffected |
 | NID / Stream Gauges / HUC / Rivers (Esri-hosted public services) | optional overlays | that overlay stays empty (console warning); toggles remain |
 | `SDMDataAccess.sc.egov.usda.gov` | SSURGO WMS overlay | same |
 

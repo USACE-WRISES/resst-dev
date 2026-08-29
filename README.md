@@ -14,7 +14,8 @@ Experience Builder version of RESST.
   goes through a pull request, is validated by CI, and automatically rebuilds
   both the app and the GIS downloads. See [docs/DATA-EDITING.md](docs/DATA-EDITING.md).
 - **The app** (Vite + React + TypeScript + MapLibre GL) renders a USGS topo
-  map with the site and literature layers, 40 keyword filters, four result
+  map (with a toggle to the original Esri Topographic basemap) with the site
+  and literature layers, 40 keyword filters, four result
   tables, cross-linked selection details (including National Inventory of
   Dams records), map views, reference overlays, guided help, and exports.
 - **Behavioral parity** with the retired Experience Builder app was captured
