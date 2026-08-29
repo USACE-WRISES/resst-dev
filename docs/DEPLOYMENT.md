@@ -24,15 +24,25 @@ Everything is automated through GitHub Actions; there is no server to run.
 
 | Service | Used for | If it breaks |
 |---|---|---|
-| `basemap.nationalmap.gov` (USGS) | default basemap tiles | map background blank; app otherwise functional |
-| `cdn.arcgis.com` | optional Esri basemap: style + sprite | the basemap picker shows a retryable error; USGS default unaffected |
-| `basemaps.arcgis.com` | optional Esri basemap: vector tiles + fonts | same |
-| `services.arcgisonline.com` | optional Esri basemap: hillshade tiles | hillshade missing under the Esri style; USGS default unaffected |
-| NID / Stream Gauges / HUC / Rivers (Esri-hosted public services) | optional overlays | that overlay stays empty (console warning); toggles remain |
+| `basemap.nationalmap.gov` (USGS) | fallback basemap tiles (also the boot style and the auto-revert target) | map background blank while on the fallback; app otherwise functional |
+| `cdn.arcgis.com` | default Esri basemap: style + sprite | automatic revert to USGS with a retryable error in the picker |
+| `basemaps.arcgis.com` | default Esri basemap: vector tiles + fonts | same |
+| `services.arcgisonline.com` | default Esri basemap: hillshade tiles | hillshade missing under the Esri style; USGS fallback unaffected |
+| NID / Stream Gauges (Esri-hosted public services) | optional live point overlays | that overlay stays empty (console warning); toggles remain |
 | `SDMDataAccess.sc.egov.usda.gov` | SSURGO WMS overlay | same |
+| `carto.nationalmap.gov` (USGS GNIS) | place search (streams, lakes, cities) in the map search box | site-name search keeps working; the Places group shows "Place search unavailable" |
+
+The HUC-boundary and rivers overlays are **self-hosted snapshots** served with
+the app itself (`public/overlays/` — same-origin, so a failure surfaces as an
+error chip with Retry, and the HUC/river Select tools run fully client-side).
+Their upstream sources — `hydro.nationalmap.gov` (USGS WBD, public domain) and
+the CEC rivers service on `services7.arcgis.com` (CC BY 4.0) — are contacted
+only at build time by `npm run build:overlays`, never by the deployed app.
 
 No API keys, tokens, or secrets exist anywhere in the system. Glyph fonts are
-self-hosted under `public/fonts/`.
+self-hosted under `public/fonts/`. Cold loads fetch the Esri style at boot;
+the e2e suite stays hermetic by route-stubbing every Esri endpoint
+(`tests/e2e/helpers/esriStub.ts`).
 
 ## Local development
 

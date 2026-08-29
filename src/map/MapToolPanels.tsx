@@ -1,8 +1,9 @@
-// The map's Views / Layers / Legend controls — popover panels on the map
-// toolbar, porting the Bookmark Views, Map Layers, and Legend widgets.
+// The map's Layers / Legend controls — popover panels on the map toolbar,
+// porting the Map Layers and Legend widgets. (The Bookmark Views widget was
+// retired — every overlay it could set is a Layers checkbox, and all its
+// views shared the app's start extent. PARITY.md difference 15.)
 
 import { useRef, useState, type ReactNode } from "react";
-import { MAP_VIEWS } from "../config/mapViews.generated";
 import { OVERLAYS } from "./overlays";
 import { actions, type AppState } from "../state/store";
 import { mapCommands } from "./mapBus";
@@ -31,25 +32,6 @@ export function MapToolPanels({ state, zoom }: { state: AppState; zoom: number }
 
   return (
     <>
-      <ToolPopover label="Views" ariaLabel="Saved map views">
-        <div className="views-grid">
-          {MAP_VIEWS.map((v) => (
-            <button
-              key={v.id}
-              type="button"
-              className="view-card"
-              onClick={() => {
-                actions.setOverlays({ ...v.overlays });
-                mapCommands()?.fitBounds(v.bounds);
-              }}
-            >
-              {v.thumb && <img src={`${import.meta.env.BASE_URL}${v.thumb}`} alt="" loading="lazy" />}
-              <span>{v.name}</span>
-            </button>
-          ))}
-        </div>
-      </ToolPopover>
-
       <ToolPopover label="Layers" ariaLabel="Reference layers">
         <div className="layers-list">
           {OVERLAYS.map((d) => {

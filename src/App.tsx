@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import type { AppData } from "./lib/types";
 import { loadAppData } from "./lib/data";
 import { useAppState, actions } from "./state/store";
 import { derive } from "./state/derive";
 import { FiltersPanel } from "./components/FiltersPanel";
 import { TablePanel } from "./components/TablePanel";
+import { TableResizer } from "./components/TableResizer";
 import { DetailsPanel } from "./components/DetailsPanel";
 import { WelcomeDialog } from "./components/WelcomeDialog";
 import { HelpOverlay } from "./components/HelpOverlay";
@@ -17,6 +18,16 @@ export default function App() {
   const [data, setData] = useState<AppData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const state = useAppState();
+
+  // One computed source for the table grid row: collapse beats a custom
+  // height, and null defers to the responsive stylesheet default (46%; 52%
+  // on phones).
+  const tableRow = state.tableCollapsed
+    ? "0px"
+    : state.tableHeightFrac != null
+      ? `${(state.tableHeightFrac * 100).toFixed(2)}%`
+      : undefined;
+  const tableRowStyle = tableRow !== undefined ? ({ "--table-row": tableRow } as CSSProperties) : undefined;
 
   useEffect(() => {
     loadAppData().then(setData, (e) => setLoadError(String(e)));
@@ -67,14 +78,6 @@ export default function App() {
           <button type="button" className="toolbar-btn" onClick={() => actions.setDownloadsOpen(true)}>
             Download Data
           </button>
-          <a
-            className="toolbar-btn"
-            href="https://github.com/USACE-WRISES/resst-dev"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Data &amp; Code
-          </a>
         </nav>
       </header>
       <main
@@ -86,36 +89,44 @@ export default function App() {
       >
         <div className={state.mobilePanel === "filters" ? "panel-slot filters open" : "panel-slot filters"}>
           <FiltersPanel data={data} filters={state.filters} derived={derived} />
-          <button
-            type="button"
-            className="panel-rail rail-filters"
-            aria-expanded={false}
-            aria-controls="filters-panel"
-            aria-label="Expand Data Filters panel"
-            onClick={() => actions.setPanelCollapsed("filters", false)}
-          >
-            <span aria-hidden="true">»</span>
-            <span className="rail-text">Data Filters</span>
-          </button>
         </div>
-        <div className="center-stack">
+        <div
+          className={state.tableCollapsed ? "center-stack table-collapsed" : "center-stack"}
+          style={tableRowStyle}
+        >
           <MapPanel sites={derived.sites} allSites={data.sites} siteById={data.siteById} state={state} />
+          <TableResizer collapsed={state.tableCollapsed} heightFrac={state.tableHeightFrac} />
           <TablePanel derived={derived} state={state} />
         </div>
         <div className={state.mobilePanel === "details" ? "panel-slot details open" : "panel-slot details"}>
           <DetailsPanel derived={derived} />
-          <button
-            type="button"
-            className="panel-rail rail-details"
-            aria-expanded={false}
-            aria-controls="details-panel"
-            aria-label="Expand Selected Data panel"
-            onClick={() => actions.setPanelCollapsed("details", false)}
-          >
-            <span aria-hidden="true">«</span>
-            <span className="rail-text">Selected Data</span>
-          </button>
         </div>
+        {/* Desktop-only edge pills (the original app's sidebar toggles) — the
+            drawers own the narrow-screen experience, so CSS hides these ≤1100px. */}
+        <button
+          type="button"
+          className="side-collapse-tab side-tab-filters"
+          aria-expanded={!state.filtersCollapsed}
+          aria-controls="filters-panel"
+          aria-label={state.filtersCollapsed ? "Expand Data Filters panel" : "Collapse Data Filters panel"}
+          onClick={() => actions.setPanelCollapsed("filters", !state.filtersCollapsed)}
+        >
+          <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 16 16">
+            <path d="M3.5 6l4.5 4.5L12.5 6" fill="none" stroke="currentColor" strokeWidth="1.6" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          className="side-collapse-tab side-tab-details"
+          aria-expanded={!state.detailsCollapsed}
+          aria-controls="details-panel"
+          aria-label={state.detailsCollapsed ? "Expand Selected Data panel" : "Collapse Selected Data panel"}
+          onClick={() => actions.setPanelCollapsed("details", !state.detailsCollapsed)}
+        >
+          <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 16 16">
+            <path d="M3.5 6l4.5 4.5L12.5 6" fill="none" stroke="currentColor" strokeWidth="1.6" />
+          </svg>
+        </button>
         {state.mobilePanel && (
           <button
             type="button"

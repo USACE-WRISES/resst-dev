@@ -1,12 +1,13 @@
 // Basemap registry and the machinery to swap between them at runtime.
 //
-// "usgs" is the migration default (decision D4: public domain, no key).
-// "esri" reproduces the original EXB app's "Topographic" basemap — the World
-// Topographic Map vector-tile style over World Hillshade — from the exact
-// public, keyless endpoints the original web map references (verified
-// anonymous + CORS-open; Esri's sanctioned route for custom apps is an API
-// key, so if these endpoints are ever gated the toggle fails with a
-// retryable error and the USGS default is unaffected).
+// "esri" is the default (owner request 2026-08-29, restoring the original EXB
+// look): the World Topographic Map vector-tile style over World Hillshade,
+// from the exact public, keyless endpoints the original web map references
+// (verified anonymous + CORS-open; Esri's sanctioned route for custom apps is
+// an API key, so if these endpoints are ever gated the swap fails with a
+// retryable error and the app auto-reverts — un-persisted — to "usgs").
+// "usgs" is the public-domain fallback and the boot style (decision D4), so
+// an offline start still renders a map.
 //
 // MapLibre cannot consume Esri's published style verbatim:
 //   1. its source `url` points at an ArcGIS VectorTileServer, not TileJSON —
@@ -34,10 +35,9 @@ export const BASEMAPS: Record<BasemapId, BasemapDef> = {
   esri: { id: "esri", label: "Esri World Topographic Map", shortLabel: "Esri Topo" },
 };
 
-/** Display order in the picker (Record iteration order is incidental). */
-export const BASEMAP_ORDER: readonly BasemapId[] = ["usgs", "esri"];
-
-export const DEFAULT_BASEMAP: BasemapId = "usgs";
+/** Display order in the picker — the default first (it is also the checked
+    radio, so arrow-key traversal starts from it). */
+export const BASEMAP_ORDER: readonly BasemapId[] = ["esri", "usgs"];
 
 // The style item the original web map's baseMapLayers reference
 // (RESST-migration/02-web-map-configuration/resst-web-map-data.json).
@@ -167,8 +167,9 @@ export function mergeAppLayers(
 /**
  * Swap the map to the requested basemap. The USGS path is synchronous and
  * cannot fail; the Esri path downloads the style once (cached) and reports
- * loading/error through the store for the toggle control. On failure the map
- * never left USGS, so the stored choice is reverted (un-persisting it too).
+ * loading/error through the store for the picker. On failure the map never
+ * left USGS, so the app reverts there WITHOUT persisting and forgets the
+ * stored choice — the next visit retries the default.
  */
 export async function applyBasemap(
   map: Pick<MlMap, "setStyle">,
@@ -193,7 +194,9 @@ export async function applyBasemap(
     console.warn("Esri basemap failed to load.", err);
     if (getState().basemap === "esri") {
       actions.setBasemapStatus("error");
-      actions.setBasemap("usgs");
+      // "usgs" as the FALLBACK, not "the default" — it is the basemap that
+      // still works when Esri endpoints are unreachable.
+      actions.revertBasemap("usgs");
     } else {
       actions.setBasemapStatus(null);
     }

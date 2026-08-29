@@ -1,16 +1,19 @@
-// The interactive map: USGS National Map topo basemap (public domain, no API
-// key — decision D4; a control under the zoom buttons toggles to the original
-// app's Esri Topographic basemap) with the filtered Sites layer rendered in
+// The interactive map: boots on the USGS National Map topo style (public
+// domain, no API key — decision D4) and swaps to the default Esri Topographic
+// basemap — the original app's look — once loaded; a picker under the zoom
+// buttons toggles between them. The filtered Sites layer renders in
 // the current app's symbology: red circles, yellow outline, blue site-name
 // labels above (ported from the service drawingInfo + web-map labelingInfo).
-// Clicking a point selects the site; the Select tool drags a box to select
-// several; the search box matches site names. Selection drives the details
+// Clicking a point selects the site; the Select menu arms box / polygon /
+// HUC-basin / near-a-river selection sessions (selectTools.ts); the search
+// box matches site names and USGS GNIS places. Selection drives the details
 // panel, tables, popup, and highlight rings.
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   Map as MlMap,
+  Marker,
   Popup,
   NavigationControl,
   ScaleControl,
@@ -23,17 +26,19 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import type { Site } from "../lib/types";
 import { SITE_DETAIL_FIELDS, SITE_FIELD_LABELS } from "../config/fields";
 import { actions, type AppState } from "../state/store";
-import { MAP_VIEWS } from "../config/mapViews.generated";
 import { registerMapCommands } from "./mapBus";
 import { SearchControl } from "./SearchControl";
 import { MapToolPanels } from "./MapToolPanels";
+import { SelectMenu } from "./SelectMenu";
+import { SelectHintBar } from "./SelectHintBar";
+import { startSelectSession, recomputeRiver, type RiverPick, type SessionCtx, type ToolMsg } from "./selectTools";
 import { installOverlays, updateOverlays, scheduleOverlayRefresh, retryOverlay, disposeOverlays } from "./overlays";
-import { applyBasemap, buildUsgsStyle } from "./basemaps";
+import { applyBasemap, buildUsgsStyle, fetchEsriTopoStyle } from "./basemaps";
 import { BasemapControl } from "./BasemapControl";
 import { BasemapPicker } from "./BasemapPicker";
 
-// Initial view = the app's "Default" map view (the captured CONUS extent).
-const DEFAULT_VIEW = MAP_VIEWS[0];
+// Initial view — the captured CONUS extent the original app opened on.
+const CONUS_BOUNDS: [number, number, number, number] = [-116.7544, 30.8881, -79.9282, 46.6079];
 
 function sitesToGeoJSON(sites: Site[]): FeatureCollection {
   return {
@@ -70,10 +75,19 @@ export function MapPanel({ sites, allSites, siteById, state }: {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MlMap | null>(null);
   const popupRef = useRef<Popup | null>(null);
+  // The place-search pin (a DOM marker — it survives basemap setStyle swaps).
+  const placeMarkerRef = useRef<Marker | null>(null);
   const loadedRef = useRef(false);
   const boxRef = useRef<HTMLDivElement>(null);
-  const boxSelectActiveRef = useRef(state.boxSelectActive);
-  boxSelectActiveRef.current = state.boxSelectActive;
+  // Ref mirror for the install-once map closures (site click, hover cursor).
+  const mapToolRef = useRef(state.mapTool);
+  mapToolRef.current = state.mapTool;
+  // Set by a completing Select gesture so the selection effect keeps the
+  // basin/river/polygon highlight that gesture just drew.
+  const keepHighlightRef = useRef(false);
+  // The live river pick (near-a-river refine stage) for distance recomputes.
+  const riverRef = useRef<RiverPick | null>(null);
+  const [toolMsg, setToolMsg] = useState<ToolMsg | null>(null);
   const selectedIds = state.selectedSiteIds;
   const overlaysRef = useRef(state.overlays);
   overlaysRef.current = state.overlays;
@@ -95,10 +109,15 @@ export function MapPanel({ sites, allSites, siteById, state }: {
     const map = new MlMap({
       container: containerRef.current,
       style: buildUsgsStyle(),
-      bounds: DEFAULT_VIEW.bounds,
-      // Same padding the Views cards use, so picking "Default" reproduces this view.
+      bounds: CONUS_BOUNDS,
       fitBoundsOptions: { padding: 20 },
-      attributionControl: { compact: true },
+      // No on-map attribution control (owner request); the credits live in the
+      // footer's basemap label and Help → About → Credits.
+      attributionControl: false,
+      // Our own ResizeObserver below owns resizing (unthrottled resize+redraw
+      // per frame); maplibre's built-in observer throttles at 50ms and would
+      // double the work — and wipe our synchronous redraws mid-drag.
+      trackResize: false,
     });
     mapRef.current = map;
     // Read-only handle for the e2e suite (and console debugging).
@@ -106,6 +125,11 @@ export function MapPanel({ sites, allSites, siteById, state }: {
     map.addControl(new NavigationControl({ showCompass: false }), "top-right");
     map.addControl(new BasemapControl(basemapHost), "top-right"); // stacks directly under the zoom buttons
     map.addControl(new ScaleControl({ unit: "imperial" }), "bottom-left");
+
+    // Warm the Esri style download in parallel with the USGS boot so the
+    // post-load swap lands as soon as possible. Errors are applyBasemap's job
+    // (a failed promise is evicted from the memo, so its retry refetches).
+    if (basemapRef.current === "esri") void fetchEsriTopoStyle().catch(() => {});
 
     registerMapCommands({
       fitToSites(list) {
@@ -120,8 +144,29 @@ export function MapPanel({ sites, allSites, siteById, state }: {
       flyTo(lon, lat, zoom = 9) {
         map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), zoom), duration: 700 });
       },
-      fitBounds(b) {
-        map.fitBounds(new LngLatBounds([b[0], b[1]], [b[2], b[3]]), { padding: 20, duration: 700 });
+      showPlaceMarker(lon, lat, label) {
+        placeMarkerRef.current?.remove();
+        const popup = new Popup({ offset: 25, maxWidth: "280px" }).setText(label); // setText escapes
+        const m = new Marker() // default maplibre pin — matches the original app's drop-a-pin behavior
+          .setLngLat([lon, lat])
+          .setPopup(popup)
+          .addTo(map);
+        // The pin is a temporary highlight: closing its popup (the ✕, or any
+        // map click) dismisses the whole pin. The identity guard makes this
+        // re-entrancy safe — remove() fires "close" synchronously while a
+        // replacement is being installed.
+        popup.on("close", () => {
+          if (placeMarkerRef.current === m) {
+            placeMarkerRef.current = null;
+            m.remove();
+          }
+        });
+        m.togglePopup(); // open the name immediately
+        placeMarkerRef.current = m;
+      },
+      clearPlaceMarker() {
+        placeMarkerRef.current?.remove();
+        placeMarkerRef.current = null;
       },
       refreshOverlay(key) {
         retryOverlay(map, key, overlaysRef.current);
@@ -176,17 +221,72 @@ export function MapPanel({ sites, allSites, siteById, state }: {
       });
 
       map.on("click", "sites-circles", (e: MapLayerMouseEvent) => {
-        if (boxSelectActiveRef.current) return;
+        if (mapToolRef.current !== "none") return; // an armed Select session owns clicks
         const siteId = e.features?.[0]?.properties?.site_id as string | undefined;
         if (siteId) actions.selectSite(siteId);
       });
       map.on("mouseenter", "sites-circles", () => {
-        if (!boxSelectActiveRef.current) map.getCanvas().style.cursor = "pointer";
+        if (mapToolRef.current === "none") map.getCanvas().style.cursor = "pointer";
       });
-      map.on("mouseleave", "sites-circles", () => (map.getCanvas().style.cursor = ""));
+      map.on("mouseleave", "sites-circles", () => {
+        if (mapToolRef.current === "none") map.getCanvas().style.cursor = "";
+      });
 
       // Reference overlays render beneath the sites layers.
       installOverlays(map);
+
+      // Select-tool scratch layers, both ov-prefixed so basemap swaps carry
+      // them (with their current data) across setStyle. ov-select = the
+      // chosen basin/river/polygon highlight, under the site circles;
+      // ov-draw = the in-progress polygon sketch, above everything.
+      const emptyFC: FeatureCollection = { type: "FeatureCollection", features: [] };
+      map.addSource("ov-select", { type: "geojson", data: emptyFC });
+      map.addLayer(
+        {
+          id: "ov-select-fill",
+          type: "fill",
+          source: "ov-select",
+          filter: ["==", ["geometry-type"], "Polygon"],
+          paint: { "fill-color": "#00a0b0", "fill-opacity": 0.08 },
+        },
+        "sites-circles",
+      );
+      map.addLayer(
+        {
+          id: "ov-select-line",
+          type: "line",
+          source: "ov-select",
+          paint: { "line-color": "#00a0b0", "line-width": 2.5, "line-opacity": 0.9 },
+        },
+        "sites-circles",
+      );
+      map.addSource("ov-draw", { type: "geojson", data: emptyFC });
+      map.addLayer({
+        id: "ov-draw-fill",
+        type: "fill",
+        source: "ov-draw",
+        filter: ["==", ["geometry-type"], "Polygon"],
+        paint: { "fill-color": "#00a0b0", "fill-opacity": 0.12 },
+      });
+      map.addLayer({
+        id: "ov-draw-line",
+        type: "line",
+        source: "ov-draw",
+        filter: ["==", ["geometry-type"], "LineString"],
+        paint: { "line-color": "#00a0b0", "line-width": 2, "line-dasharray": [2, 1.5] },
+      });
+      map.addLayer({
+        id: "ov-draw-vertex",
+        type: "circle",
+        source: "ov-draw",
+        filter: ["==", ["geometry-type"], "Point"],
+        paint: {
+          "circle-radius": 4,
+          "circle-color": "#ffffff",
+          "circle-stroke-color": "#00a0b0",
+          "circle-stroke-width": 2,
+        },
+      });
       map.on("moveend", () => {
         // Debounced: rapid pans supersede each other instead of stacking fetches.
         scheduleOverlayRefresh(map, () => overlaysRef.current);
@@ -199,20 +299,32 @@ export function MapPanel({ sites, allSites, siteById, state }: {
       setZoomTick(Math.round(map.getZoom() * 10) / 10);
       (map.getSource("sites") as GeoJSONSource).setData(sitesToGeoJSON(sitesRef.current));
       updateOverlays(map, overlaysRef.current);
-      // A persisted Esri choice applies after install; the constructor always
-      // starts from the USGS style so an offline start still renders a map.
+      // The constructor always boots the USGS style so an offline start still
+      // renders a map; the active basemap (default Esri, or a persisted
+      // choice) applies right after install.
       if (basemapRef.current !== "usgs") void applyBasemap(map, basemapRef.current);
     });
 
     // Keep the canvas sized to the grid cell (panels collapse, drawers open,
-    // the window resizes) — MapLibre doesn't observe its container itself.
-    const ro = new ResizeObserver(() => map.resize());
+    // the table divider drags, the window resizes). resize() zero-clears the
+    // WebGL buffer and only SCHEDULES a repaint for the next frame — and RO
+    // callbacks run after rAF, so without the synchronous redraw() every
+    // resized frame would composite a blank (white) canvas: the divider-drag
+    // flash. resize+redraw in one task is maplibre's own trackResize pattern,
+    // minus its 50ms throttle (which would lag the divider); the built-in
+    // observer is disabled via trackResize: false above.
+    const ro = new ResizeObserver(() => {
+      map.resize();
+      map.redraw();
+    });
     ro.observe(containerRef.current);
 
     return () => {
       ro.disconnect();
       registerMapCommands(null);
       disposeOverlays(); // cancel timers/aborts before the map goes away
+      placeMarkerRef.current?.remove();
+      placeMarkerRef.current = null;
       map.remove();
       mapRef.current = null;
       loadedRef.current = false;
@@ -247,9 +359,20 @@ export function MapPanel({ sites, allSites, siteById, state }: {
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !loadedRef.current) return;
+    // A Select gesture that just drew its basin/river/polygon outline flags
+    // keepHighlightRef; every other selection change (table row, search, site
+    // click, Clear) retires the outline along with the old selection.
+    if (keepHighlightRef.current) keepHighlightRef.current = false;
+    else (map.getSource("ov-select") as GeoJSONSource | undefined)?.setData({ type: "FeatureCollection", features: [] });
     map.setFilter("sites-selected", ["in", ["get", "site_id"], ["literal", selectedIds]]);
     popupRef.current?.remove();
     popupRef.current = null;
+    // Selecting sites (map click, table row, search) retires the temporary
+    // place-search pin — the site popup and a stale pin never show together.
+    if (selectedIds.length > 0) {
+      placeMarkerRef.current?.remove();
+      placeMarkerRef.current = null;
+    }
     if (selectedIds.length !== 1) return;
     const site = siteById.get(selectedIds[0]);
     if (!site || site.longitude == null || site.latitude == null) return;
@@ -260,62 +383,36 @@ export function MapPanel({ sites, allSites, siteById, state }: {
     map.flyTo({ center: [site.longitude, site.latitude], zoom: Math.max(map.getZoom(), 8), duration: 700 });
   }, [selectedIds, siteById]);
 
-  // Box-select tool: while armed, drag draws a rectangle; on release every
-  // rendered (i.e., currently filtered) site inside it becomes selected.
+  // Armed Select tool → one session per arming (selectTools.ts). The effect
+  // cleanup IS the disarm path: Esc, Cancel/Done, one-shot completion, mode
+  // switch, and unmount all run it.
+  const sessionCtx = (map: MlMap): SessionCtx => ({
+    map,
+    container: containerRef.current!,
+    boxEl: boxRef.current!,
+    sites: () => sitesRef.current,
+    setMsg: setToolMsg,
+    riverRef,
+    keepHighlightRef,
+  });
   useEffect(() => {
     const map = mapRef.current;
-    const container = containerRef.current;
-    if (!map || !container) return;
-    if (!state.boxSelectActive) return;
+    if (!map || !containerRef.current || state.mapTool === "none") return;
+    return startSelectSession(state.mapTool, sessionCtx(map));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.mapTool]);
 
-    map.dragPan.disable();
-    map.getCanvas().style.cursor = "crosshair";
-    let start: { x: number; y: number } | null = null;
-    const boxEl = boxRef.current!;
-
-    const toLocal = (e: MouseEvent) => {
-      const r = container.getBoundingClientRect();
-      return { x: e.clientX - r.left, y: e.clientY - r.top };
-    };
-    const onDown = (e: MouseEvent) => {
-      start = toLocal(e);
-      boxEl.style.display = "block";
-    };
-    const onMove = (e: MouseEvent) => {
-      if (!start) return;
-      const p = toLocal(e);
-      const x = Math.min(start.x, p.x), y = Math.min(start.y, p.y);
-      boxEl.style.left = `${x}px`;
-      boxEl.style.top = `${y}px`;
-      boxEl.style.width = `${Math.abs(p.x - start.x)}px`;
-      boxEl.style.height = `${Math.abs(p.y - start.y)}px`;
-    };
-    const onUp = (e: MouseEvent) => {
-      if (!start) return;
-      const p = toLocal(e);
-      const sw: [number, number] = [Math.min(start.x, p.x), Math.min(start.y, p.y)];
-      const ne: [number, number] = [Math.max(start.x, p.x), Math.max(start.y, p.y)];
-      start = null;
-      boxEl.style.display = "none";
-      boxEl.style.width = "0";
-      const features = map.queryRenderedFeatures([sw, ne], { layers: ["sites-circles"] });
-      const ids = features.map((f) => f.properties?.site_id as string).filter(Boolean);
-      if (ids.length) actions.selectSites(ids);
-      else actions.setBoxSelectActive(false);
-    };
-    const canvas = map.getCanvas();
-    canvas.addEventListener("mousedown", onDown);
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    return () => {
-      canvas.removeEventListener("mousedown", onDown);
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-      boxEl.style.display = "none";
-      map.dragPan.enable();
-      map.getCanvas().style.cursor = "";
-    };
-  }, [state.boxSelectActive]);
+  // Near-a-river refine stage: distance edits recompute the selection live.
+  // Debounced so typing "25" doesn't apply at "2". `sites` stays out of the
+  // deps deliberately — the filtered array's identity changes on every
+  // selection, and depending on it would loop through selectSites.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || state.mapTool !== "river" || !riverRef.current) return;
+    const t = setTimeout(() => recomputeRiver(sessionCtx(map)), 200);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.riverDistanceMiles, state.mapTool]);
 
   return (
     <div className="map-panel-wrap">
@@ -323,16 +420,18 @@ export function MapPanel({ sites, allSites, siteById, state }: {
       <div ref={boxRef} className="select-box" aria-hidden="true" />
       <div className="map-toolbar">
         <SearchControl sites={allSites} />
-        <button
-          type="button"
-          className={state.boxSelectActive ? "map-tool active" : "map-tool"}
-          aria-pressed={state.boxSelectActive}
-          title="Select sites by dragging a box"
-          onClick={() => actions.setBoxSelectActive(!state.boxSelectActive)}
-        >
-          ⬚ Select
-        </button>
+        <SelectMenu tool={state.mapTool} distance={state.riverDistanceMiles} hasSelection={selectedIds.length > 0} />
         <MapToolPanels state={state} zoom={zoomTick} />
+        {state.mapTool !== "none" && (
+          <SelectHintBar
+            tool={state.mapTool}
+            msg={toolMsg}
+            distance={state.riverDistanceMiles}
+            // HUC tool keys double as overlay keys; box/polygon resolve to
+            // nothing and stay false.
+            overlayLoading={state.overlayStatus[state.mapTool === "river" ? "rivers" : state.mapTool] === "loading"}
+          />
+        )}
       </div>
       {createPortal(<BasemapPicker basemap={state.basemap} status={state.basemapStatus} />, basemapHostRef.current)}
     </div>

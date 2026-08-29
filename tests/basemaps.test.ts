@@ -13,7 +13,7 @@ import {
   fixupEsriStyle,
   mergeAppLayers,
 } from "../src/map/basemaps";
-import { actions, getState, parseBasemapId, subscribe } from "../src/state/store";
+import { actions, DEFAULT_BASEMAP, getState, parseBasemapId, subscribe } from "../src/state/store";
 
 // Miniature stand-in for Esri's root.json: a VectorTileServer source `url`
 // (not TileJSON), a sprite path containing "/../", and a layer id that
@@ -58,11 +58,12 @@ const PREV_USGS_WITH_APP: StyleSpecification = {
 };
 
 describe("parseBasemapId", () => {
-  it("accepts known ids and falls back to usgs", () => {
+  it("accepts known ids and falls back to the esri default", () => {
+    expect(DEFAULT_BASEMAP).toBe("esri");
     expect(parseBasemapId("esri")).toBe("esri");
     expect(parseBasemapId("usgs")).toBe("usgs");
-    expect(parseBasemapId("mars")).toBe("usgs");
-    expect(parseBasemapId(null)).toBe("usgs");
+    expect(parseBasemapId("mars")).toBe(DEFAULT_BASEMAP);
+    expect(parseBasemapId(null)).toBe(DEFAULT_BASEMAP);
   });
 });
 
@@ -72,13 +73,27 @@ describe("setBasemap", () => {
     const unsubscribe = subscribe(() => {
       emits += 1;
     });
-    actions.setBasemap("usgs"); // already active — no emit, no storage write
+    actions.setBasemap("esri"); // the boot default is already active — no emit, no storage write
     expect(emits).toBe(0);
-    actions.setBasemap("esri");
+    actions.setBasemap("usgs");
     expect(emits).toBe(1);
-    actions.setBasemap("usgs"); // leave the store on the default for later tests
+    actions.setBasemap("esri"); // leave the store on the default for later tests
     expect(emits).toBe(2);
     unsubscribe();
+  });
+});
+
+describe("revertBasemap", () => {
+  it("changes state without persisting and forgets the stored choice", () => {
+    const ls = { getItem: vi.fn(() => null), setItem: vi.fn(), removeItem: vi.fn() };
+    vi.stubGlobal("localStorage", ls);
+    expect(getState().basemap).toBe("esri"); // the boot default
+    actions.revertBasemap("usgs");
+    expect(getState().basemap).toBe("usgs");
+    expect(ls.removeItem).toHaveBeenCalledWith("resst.basemap");
+    expect(ls.setItem).not.toHaveBeenCalled(); // the revert is never persisted
+    actions.setBasemap("esri"); // restore the default for later tests
+    vi.unstubAllGlobals();
   });
 });
 
@@ -170,16 +185,21 @@ describe("mergeAppLayers", () => {
 });
 
 describe("applyBasemap + fetchEsriTopoStyle (order-dependent: failure first)", () => {
-  it("reverts to USGS with an error status when the style cannot load", async () => {
+  it("reverts to USGS un-persisted with an error status when the style cannot load", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    actions.setBasemap("esri");
+    const ls = { getItem: vi.fn(() => null), setItem: vi.fn(), removeItem: vi.fn() };
+    vi.stubGlobal("localStorage", ls);
+    actions.setBasemap("esri"); // already the default — no-op, no storage write
     const setStyle = vi.fn();
     const bad = vi.fn(async () => ({ ok: false, status: 503 })) as unknown as typeof fetch;
     await applyBasemap({ setStyle } as unknown as Parameters<typeof applyBasemap>[0], "esri", bad);
     expect(setStyle).not.toHaveBeenCalled();
-    expect(getState().basemap).toBe("usgs"); // un-persists the broken choice
+    expect(getState().basemap).toBe("usgs"); // reverted to the fallback…
+    expect(ls.removeItem).toHaveBeenCalledWith("resst.basemap"); // …and the stored choice forgotten
+    expect(ls.setItem).not.toHaveBeenCalled(); // a transient failure must not pin "usgs"
     expect(getState().basemapStatus).toBe("error");
     actions.setBasemapStatus(null);
+    vi.unstubAllGlobals();
     warn.mockRestore();
   });
 
@@ -207,7 +227,7 @@ describe("applyBasemap + fetchEsriTopoStyle (order-dependent: failure first)", (
     expect(style.layers[1].id).toBe("esri-hillshade");
     expect(opts.transformStyle).toBe(mergeAppLayers);
     expect(getState().basemapStatus).toBeNull();
-    actions.setBasemap("usgs");
+    // The store ends on "esri" — the default — for any later block.
   });
 
   it("applies the USGS style synchronously", async () => {

@@ -1,80 +1,14 @@
-// Basemap toggle: swaps to the original app's Esri Topographic basemap
-// (style fixed up for MapLibre, hillshade underneath) while the sites and
-// any loaded overlays ride across the swap — and back. Every Esri endpoint
-// is route-intercepted, so CI never depends on Esri being reachable.
+// Basemap machinery: Esri Topographic is the DEFAULT basemap (the boot path
+// is USGS style → post-load swap; USGS stays the fallback), and the sites
+// plus any loaded overlays ride across swaps — both ways. Every Esri endpoint
+// is route-intercepted (helpers/esriStub), so CI never depends on Esri being
+// reachable.
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { stubEsri, waitForBasemap } from "./helpers/esriStub";
+import { HUC2_FC } from "./helpers/overlayFixtures";
 
-const ROOT_ROUTE = /cdn\.arcgis\.com\/.+\/styles\/root\.json/;
-const SPRITE_ROUTE = /cdn\.arcgis\.com\/.+\/sprites\/sprite/;
-const ESRI_PBF_ROUTE = /basemaps\.arcgis\.com\/.+\.pbf/;
-const HILLSHADE_ROUTE = /services\.arcgisonline\.com\/.+\/World_Hillshade\//;
-const HUC_ROUTE = /https:\/\/services\.arcgis\.com\/.+\/FeatureServer\/\d+\/query/;
-
-// Served as root.json — exercises the VectorTileServer url→tiles rewrite
-// (the .pbf requests below prove it) and the "/../" sprite normalization.
-const ESRI_STYLE_FIXTURE = {
-  version: 8,
-  sprite:
-    "https://cdn.arcgis.com/sharing/rest/content/items/27e89eb03c1e4341a1d75e597f0291e6/resources/styles/../sprites/sprite",
-  glyphs:
-    "https://basemaps.arcgis.com/arcgis/rest/services/World_Basemap_v2/VectorTileServer/resources/fonts/{fontstack}/{range}.pbf",
-  sources: {
-    esri: {
-      type: "vector",
-      url: "https://basemaps.arcgis.com/arcgis/rest/services/World_Basemap_v2/VectorTileServer",
-    },
-  },
-  layers: [
-    {
-      id: "Land/Not ice",
-      type: "fill",
-      source: "esri",
-      "source-layer": "Land",
-      paint: { "fill-color": "#dfe8dc", "fill-opacity": 0.3 },
-    },
-  ],
-};
-
-const PNG_1PX = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
-  "base64",
-);
-
-// Same 2°x2° HUC fixture the overlays spec uses (inside the CONUS viewport).
-const FIXTURE_PAGE = {
-  transform: { originPosition: "upperLeft", scale: [0.02, 0.02], translate: [-105, 42] },
-  features: [
-    {
-      attributes: { huc2: "10", name: "Test basin" },
-      geometry: { rings: [[[0, 0], [100, 0], [0, 100], [-100, 0], [0, -100]]] },
-    },
-  ],
-  exceededTransferLimit: false,
-};
-
-async function stubEsri(page: Page, opts: { failRootCalls?: number } = {}): Promise<{ rootCalls: () => number }> {
-  let root = 0;
-  await page.route(ROOT_ROUTE, (route) => {
-    root += 1;
-    if (opts.failRootCalls && root <= opts.failRootCalls) return route.abort("failed");
-    return route.fulfill({ json: ESRI_STYLE_FIXTURE });
-  });
-  await page.route(SPRITE_ROUTE, (route) =>
-    route.request().url().endsWith(".json")
-      ? route.fulfill({ json: {} })
-      : route.fulfill({ body: PNG_1PX, contentType: "image/png" }),
-  );
-  // A zero-byte body is a valid, empty vector tile (and empty glyph range) —
-  // it parses cleanly, so map.loaded() settles instead of hanging.
-  await page.route(ESRI_PBF_ROUTE, (route) =>
-    route.fulfill({ body: Buffer.alloc(0), contentType: "application/x-protobuf" }),
-  );
-  await page.route(HILLSHADE_ROUTE, (route) => route.fulfill({ body: PNG_1PX, contentType: "image/png" }));
-  return { rootCalls: () => root };
-}
-
-async function openApp(page: Page): Promise<void> {
+async function openApp(page: Page, opts: { settled?: boolean } = {}): Promise<void> {
   await page.goto("./");
   await page.getByRole("button", { name: "OK" }).click(); // welcome dialog
   await page.waitForFunction(
@@ -85,21 +19,10 @@ async function openApp(page: Page): Promise<void> {
     undefined,
     { timeout: 30_000 },
   );
+  // The bare wait can settle on the interim USGS boot style; settled (the
+  // default) means "the Esri default has fully applied".
+  if (opts.settled !== false) await waitForBasemap(page, true);
 }
-
-/** Wait until the requested basemap's layers are active and tiles settled. */
-const waitForBasemap = (page: Page, esri: boolean) =>
-  page.waitForFunction(
-    (wantEsri) => {
-      const m = (window as any).__resstMap;
-      if (!m) return false;
-      const hasEsri = !!m.getLayer("esri-hillshade");
-      const hasUsgs = !!m.getLayer("usgs-topo");
-      return (wantEsri ? hasEsri && !hasUsgs : hasUsgs && !hasEsri) && m.isStyleLoaded() && m.loaded();
-    },
-    esri,
-    { timeout: 20_000 },
-  );
 
 const hucRow = (page: Page) => page.locator(".layers-list .layer-row", { hasText: "HUC 2 boundaries" });
 
@@ -126,16 +49,21 @@ async function pickBasemap(page: Page, name: "USGS Topo" | "Esri Topo"): Promise
   await option(page, name).click();
 }
 
-test("picking a basemap reproduces the Esri style and carries app layers across (and back)", async ({ page }) => {
+test("the Esri default boots, and app layers carry across to USGS (and back)", async ({ page }) => {
   let hucCalls = 0;
-  await page.route(HUC_ROUTE, (route) => {
+  await page.route("**/overlays/huc2.json", (route) => {
     hucCalls += 1;
-    return route.fulfill({ json: FIXTURE_PAGE });
+    return route.fulfill({ json: HUC2_FC });
   });
   await stubEsri(page);
-  await openApp(page);
+  await openApp(page); // settled on the Esri default
 
-  // Load an overlay first so the swap has app data to carry.
+  await expect(trigger(page)).toHaveAccessibleName("Basemap: Esri Topo");
+  // The fixture's own layer arrived with the boot swap.
+  expect(await page.evaluate(() => !!(window as any).__resstMap.getLayer("Land/Not ice"))).toBe(true);
+  await expect(page.locator(".app-footer")).toContainText("Esri World Topographic Map");
+
+  // Load an overlay so the swap has app data to carry.
   await page.getByRole("button", { name: "Layers" }).click();
   const row = hucRow(page);
   await row.locator(".value-option input").check();
@@ -143,59 +71,76 @@ test("picking a basemap reproduces the Esri style and carries app layers across 
   const hucCallsBeforeSwap = hucCalls;
   await page.keyboard.press("Escape"); // close the Layers popover deterministically
 
-  await expect(trigger(page)).toHaveAccessibleName("Basemap: USGS Topo");
-  await pickBasemap(page, "Esri Topo");
-  await waitForBasemap(page, true);
-  // The fixture's own layer arrived with the swap…
-  expect(await page.evaluate(() => !!(window as any).__resstMap.getLayer("Land/Not ice"))).toBe(true);
+  await pickBasemap(page, "USGS Topo");
+  await waitForBasemap(page, false);
   // …sites still render on top…
   await expect.poll(() => renderedSites(page), { timeout: 10_000 }).toBeGreaterThan(50);
   // …and the loaded overlay rode across WITHOUT a refetch.
   expect(await sourceFeatureCount(page)).toBeGreaterThan(0);
   expect(hucCalls).toBe(hucCallsBeforeSwap);
-  await expect(page.locator(".app-footer")).toContainText("Esri World Topographic Map");
-  await expect(trigger(page)).toHaveAccessibleName("Basemap: Esri Topo");
-  expect(await page.evaluate(() => localStorage.getItem("resst.basemap"))).toBe("esri");
+  await expect(page.locator(".app-footer")).toContainText("USGS The National Map");
+  await expect(trigger(page)).toHaveAccessibleName("Basemap: USGS Topo");
+  // Picking the non-default is a real write.
+  expect(await page.evaluate(() => localStorage.getItem("resst.basemap"))).toBe("usgs");
 
-  await pickBasemap(page, "USGS Topo");
-  await waitForBasemap(page, false);
+  await pickBasemap(page, "Esri Topo");
+  await waitForBasemap(page, true);
   await expect.poll(() => renderedSites(page), { timeout: 10_000 }).toBeGreaterThan(50);
   expect(await sourceFeatureCount(page)).toBeGreaterThan(0);
-  await expect(page.locator(".app-footer")).toContainText("USGS The National Map");
-  expect(await page.evaluate(() => localStorage.getItem("resst.basemap"))).toBe("usgs");
+  await expect(page.locator(".app-footer")).toContainText("Esri World Topographic Map");
+  expect(await page.evaluate(() => localStorage.getItem("resst.basemap"))).toBe("esri");
 });
 
-test("a persisted Esri choice applies on load", async ({ page }) => {
-  await stubEsri(page);
+test("a persisted USGS choice applies on load without fetching Esri", async ({ page }) => {
+  const stub = await stubEsri(page);
   await page.addInitScript(() => {
     try {
-      localStorage.setItem("resst.basemap", "esri");
+      localStorage.setItem("resst.basemap", "usgs");
     } catch {
       /* ignore */
     }
   });
-  await openApp(page);
-  await waitForBasemap(page, true);
-  await expect(page.locator(".app-footer")).toContainText("Esri World Topographic Map");
-  await expect(trigger(page)).toHaveAccessibleName("Basemap: Esri Topo");
+  await openApp(page, { settled: false });
+  await waitForBasemap(page, false);
+  await expect(page.locator(".app-footer")).toContainText("USGS The National Map");
+  await expect(trigger(page)).toHaveAccessibleName("Basemap: USGS Topo");
+  // The style prefetch is gated on the esri default — a persisted USGS boot
+  // must never touch Esri endpoints.
+  expect(stub.rootCalls()).toBe(0);
 });
 
-test("a failed style fetch reverts to USGS and the next attempt succeeds", async ({ page }) => {
-  const stub = await stubEsri(page, { failRootCalls: 1 });
-  await openApp(page);
-  await pickBasemap(page, "Esri Topo");
+test("an unreachable Esri style auto-reverts to USGS un-persisted, and Retry recovers", async ({ page }) => {
+  const stub = await stubEsri(page, { failRoot: true });
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem("resst.basemap", "esri"); // proves REMOVAL below, not mere absence
+    } catch {
+      /* ignore */
+    }
+  });
+  await openApp(page, { settled: false });
+  // The boot swap fails with no interaction: error status, map still on USGS.
   await expect(page.locator(".basemap-picker")).toHaveAttribute("data-status", "error", { timeout: 10_000 });
-  await expect(page.locator(".basemap-error")).toContainText(/couldn.t load esri topo/i);
-  // The map never left USGS, and the broken choice was un-persisted.
   expect(await page.evaluate(() => !!(window as any).__resstMap.getLayer("usgs-topo"))).toBe(true);
-  expect(await page.evaluate(() => localStorage.getItem("resst.basemap"))).toBe("usgs");
+  // The broken choice was FORGOTTEN (removed), not overwritten with "usgs" —
+  // a transient failure must not pin this browser off the default.
+  expect(await page.evaluate(() => localStorage.getItem("resst.basemap"))).toBe(null);
+
+  await trigger(page).click();
+  await expect(page.locator(".basemap-error")).toContainText(/couldn.t load esri topo/i);
   await expect(option(page, "USGS Topo")).toBeChecked();
   await expect(option(page, "Esri Topo")).not.toBeChecked();
+
   // The failure must not poison the style cache — the retry goes to network.
   // (Scoped: the Layers panel has a "Retry" button too.)
+  stub.setFailRoot(false);
   await page.locator(".basemap-panel").getByRole("button", { name: "Retry" }).click();
   await waitForBasemap(page, true);
-  expect(stub.rootCalls()).toBe(2);
+  // ≥2, not an exact count: the mount prefetch and the boot swap may each
+  // have burned a failed call before the retry.
+  expect(stub.rootCalls()).toBeGreaterThanOrEqual(2);
+  // An explicit Retry is a user choice — it persists.
+  expect(await page.evaluate(() => localStorage.getItem("resst.basemap"))).toBe("esri");
 });
 
 test("the picker opens, closes, and is keyboard operable", async ({ page }) => {
@@ -203,12 +148,16 @@ test("the picker opens, closes, and is keyboard operable", async ({ page }) => {
   await openApp(page);
   const t = trigger(page);
   await expect(t).toHaveAttribute("aria-expanded", "false");
+  // Icon-only at every width — pixel-matches the 29px zoom buttons above it.
+  const triggerBox = (await t.boundingBox())!;
+  expect(triggerBox.width).toBe(29);
+  expect(triggerBox.height).toBe(29);
   await expect(page.locator(".basemap-panel")).toHaveCount(0);
 
   await t.click();
   await expect(t).toHaveAttribute("aria-expanded", "true");
-  await expect(option(page, "USGS Topo")).toBeChecked();
-  await expect(option(page, "USGS Topo")).toBeFocused(); // opening moves focus into the group
+  await expect(option(page, "Esri Topo")).toBeChecked();
+  await expect(option(page, "Esri Topo")).toBeFocused(); // opening moves focus into the group
 
   await page.keyboard.press("Escape");
   await expect(page.locator(".basemap-panel")).toHaveCount(0);
@@ -220,13 +169,14 @@ test("the picker opens, closes, and is keyboard operable", async ({ page }) => {
   await page.locator(".app-footer").click();
   await expect(page.locator(".basemap-panel")).toHaveCount(0);
 
-  // Keyboard: open, then arrow to the next basemap (native radio behavior).
+  // Keyboard: open, then arrow to the next basemap (native radio behavior —
+  // the default is first, so ArrowDown lands on USGS).
   await t.focus();
   await page.keyboard.press("Enter");
   await expect(page.locator(".basemap-panel")).toBeVisible();
   await page.keyboard.press("ArrowDown");
-  await waitForBasemap(page, true);
-  await expect(t).toHaveAccessibleName("Basemap: Esri Topo");
+  await waitForBasemap(page, false);
+  await expect(t).toHaveAccessibleName("Basemap: USGS Topo");
 });
 
 test("the picker is accessible closed and open", async ({ page }) => {
@@ -245,25 +195,23 @@ test("the picker is accessible closed and open", async ({ page }) => {
   expect(await scan()).toEqual([]);
 });
 
-test("the picker collapses to an icon at phone widths without covering the toolbar", async ({ page }) => {
+test("the icon trigger fits phone widths without covering the toolbar", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await stubEsri(page);
   await openApp(page);
-  // The trigger collapses to an icon square and the label stops taking space
-  // (clipped, not display:none — the accessible name has to survive).
-  await expect(trigger(page)).toHaveAccessibleName("Basemap: USGS Topo");
+  // The trigger is a 29px icon square at every width; aria-label carries the
+  // accessible name.
+  await expect(trigger(page)).toHaveAccessibleName("Basemap: Esri Topo");
   const boxes = await page.evaluate(() => {
-    const r = (sel: string) => document.querySelector(sel)!.getBoundingClientRect();
-    return {
-      toolbar: r(".map-toolbar").bottom,
-      ctrl: r(".basemap-trigger").top,
-      ctrlWidth: r(".basemap-trigger").width,
-      labelWidth: r(".basemap-trigger .basemap-name").width,
-    };
+    const t = document.querySelector(".basemap-trigger")!.getBoundingClientRect();
+    // The toolbar wraps to extra rows at phone widths, so compare hit-testing,
+    // not bounding boxes: nothing may sit over the trigger's center (the
+    // toolbar's own frame is pointer-events: none).
+    const hit = document.elementFromPoint(t.left + t.width / 2, t.top + t.height / 2);
+    return { ctrlWidth: t.width, hitsTrigger: !!hit?.closest(".basemap-trigger") };
   });
   expect(boxes.ctrlWidth).toBeLessThanOrEqual(32);
-  expect(boxes.labelWidth).toBeLessThanOrEqual(1);
-  expect(boxes.ctrl).toBeGreaterThan(boxes.toolbar); // sits below the toolbar row
+  expect(boxes.hitsTrigger).toBe(true); // uncovered and clickable
 
   await trigger(page).click();
   const panel = await page.locator(".basemap-panel").boundingBox();

@@ -8,8 +8,10 @@ export interface MapCommands {
   fitToSites(sites: Site[]): void;
   /** Jump/fly to one coordinate. */
   flyTo(lon: number, lat: number, zoom?: number): void;
-  /** Fit to explicit [west, south, east, north] bounds. */
-  fitBounds(bounds: [number, number, number, number]): void;
+  /** Drop (replacing any previous) the temporary place-search pin with a named popup. */
+  showPlaceMarker(lon: number, lat: number, label: string): void;
+  /** Remove the place pin (a site was chosen instead). */
+  clearPlaceMarker(): void;
   /** Re-fetch one reference overlay (the Layers panel's Retry). */
   refreshOverlay(key: string): void;
 }
