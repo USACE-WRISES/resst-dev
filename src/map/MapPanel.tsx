@@ -26,7 +26,7 @@ import { MAP_VIEWS } from "../config/mapViews.generated";
 import { registerMapCommands } from "./mapBus";
 import { SearchControl } from "./SearchControl";
 import { MapToolPanels } from "./MapToolPanels";
-import { installOverlays, updateOverlays } from "./overlays";
+import { installOverlays, updateOverlays, scheduleOverlayRefresh, retryOverlay, disposeOverlays } from "./overlays";
 
 // Initial view = the app's "Default" map view (the captured CONUS extent).
 const DEFAULT_VIEW = MAP_VIEWS[0];
@@ -127,6 +127,9 @@ export function MapPanel({ sites, allSites, siteById, state }: {
       fitBounds(b) {
         map.fitBounds(new LngLatBounds([b[0], b[1]], [b[2], b[3]]), { padding: 20, duration: 700 });
       },
+      refreshOverlay(key) {
+        retryOverlay(map, key, overlaysRef.current);
+      },
     });
 
     map.on("load", () => {
@@ -189,7 +192,8 @@ export function MapPanel({ sites, allSites, siteById, state }: {
       // Reference overlays render beneath the sites layers.
       installOverlays(map);
       map.on("moveend", () => {
-        updateOverlays(map, overlaysRef.current);
+        // Debounced: rapid pans supersede each other instead of stacking fetches.
+        scheduleOverlayRefresh(map, () => overlaysRef.current);
         setZoomTick(Math.round(map.getZoom() * 10) / 10);
       });
 
@@ -209,6 +213,7 @@ export function MapPanel({ sites, allSites, siteById, state }: {
     return () => {
       ro.disconnect();
       registerMapCommands(null);
+      disposeOverlays(); // cancel timers/aborts before the map goes away
       map.remove();
       mapRef.current = null;
       loadedRef.current = false;

@@ -10,6 +10,8 @@ export interface MapCommands {
   flyTo(lon: number, lat: number, zoom?: number): void;
   /** Fit to explicit [west, south, east, north] bounds. */
   fitBounds(bounds: [number, number, number, number]): void;
+  /** Re-fetch one reference overlay (the Layers panel's Retry). */
+  refreshOverlay(key: string): void;
 }
 
 let current: MapCommands | null = null;
