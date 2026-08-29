@@ -10,6 +10,7 @@ import { WelcomeDialog } from "./components/WelcomeDialog";
 import { HelpOverlay } from "./components/HelpOverlay";
 import { DownloadPanel } from "./components/DownloadPanel";
 import { MapPanel } from "./map/MapPanel";
+import { Logo } from "./components/Logo";
 
 export default function App() {
   const [data, setData] = useState<AppData | null>(null);
@@ -55,7 +56,7 @@ export default function App() {
       </a>
       <header className="app-header">
         <div className="brand">
-          <span className="brand-mark" aria-hidden="true">🌊</span>
+          <span className="brand-mark" aria-hidden="true"><Logo size={26} /></span>
           <h1>Reservoir Sustainable Sediment Tool (RESST)</h1>
         </div>
         <nav className="header-tools" aria-label="Application tools">
