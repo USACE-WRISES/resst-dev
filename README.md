@@ -13,11 +13,13 @@ Experience Builder version of RESST.
   (sites, literature surveys, literature entries, NID snapshot). Every change
   goes through a pull request, is validated by CI, and automatically rebuilds
   both the app and the GIS downloads. See [docs/DATA-EDITING.md](docs/DATA-EDITING.md).
-- **The app** (Vite + React + TypeScript + MapLibre GL) renders a USGS topo
-  map (with a picker for the original Esri Topographic basemap) with the site
+- **The app** (Vite + React + TypeScript + MapLibre GL) renders the original
+  app's Esri Topographic basemap by default (keyless; USGS National Map topo
+  is the built-in fallback and stays in the picker) with the site
   and literature layers, 40 keyword filters, four result
   tables, cross-linked selection details (including National Inventory of
-  Dams records), map views, reference overlays, guided help, and exports.
+  Dams records), spatial selection (box, drawn polygon, by HUC basin, near a
+  river), reference overlays, guided help, and exports.
 - **Behavioral parity** with the retired Experience Builder app was captured
   and verified record-for-record before the rebuild — see
   [docs/PARITY.md](docs/PARITY.md) and the full assessment under
@@ -41,10 +43,11 @@ npm run build      # typecheck + production build
 |---|---|
 | `data/` | Authoritative CSV tables + `MIGRATION-LOG.md` |
 | `scripts/` | Data tooling: validate, build-data, migrate (one-time), export bundles, PR diff, config generators |
-| `src/config/` | Typed app configuration: fields/labels, filters, tabs, map views, help content |
+| `src/config/` | Typed app configuration: fields/labels, filters, tabs, help content |
 | `src/filters/` | The pure filter engine (verified parity semantics) |
-| `src/map/` | MapLibre map, overlays, views, search, box select |
+| `src/map/` | MapLibre map, overlays, search, the Select tools (box/polygon/HUC/river) |
 | `public/data/` | Generated runtime JSON (never edit by hand) |
+| `public/overlays/` | Generated reference-overlay snapshots (USGS WBD HUCs, CEC rivers) — refresh with `npm run build:overlays`, never edit by hand |
 | `tests/` | Vitest unit + Playwright e2e/a11y suites |
 | `docs/` | Runbooks: data editing, deployment, parity, cutover |
 | `RESST-migration/` | Read-only evidence archive of the original ArcGIS app |
@@ -55,6 +58,9 @@ npm run build      # typecheck + production build
 The CSVs are converted at build time into small JSON files the browser loads
 once (~1 MB gzipped total); all filtering, search, selection, and counting run
 client-side (the dataset is ~1,400 point features + 1,410 related rows).
-Reference layers (NID dams, stream gauges, USGS HUC boundaries, rivers, SSURGO
-soils) stream on demand from their public services and are never stored here.
+Reference layers split two ways: the USGS HUC boundaries and rivers are
+self-hosted snapshots under `public/overlays/` (public-domain WBD + CC BY 4.0
+CEC data; each file lazy-loads once on first toggle and also powers the
+client-side HUC/river selection), while the live NID dams, stream gauges, and
+SSURGO soils still stream on demand from their public services.
 There is no server, no database, and no API key anywhere in the system.

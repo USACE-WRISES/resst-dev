@@ -4,7 +4,9 @@
 // automatically under the zoom buttons, plus the pointer-events the corner
 // container switches off) but deliberately NOT `maplibregl-ctrl-group`,
 // whose `.maplibregl-ctrl-group button` rule out-specifies ours and would
-// force display:block, a 29px box, and outline:none onto the trigger.
+// force display:block and outline:none onto the trigger, swapping our
+// focus/hover treatment for maplibre's — the trigger restates the group's
+// 29px look itself (see styles.css).
 
 import type { IControl, Map as MlMap } from "maplibre-gl";
 

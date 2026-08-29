@@ -1,8 +1,8 @@
-// Basemap picker — the ArcGIS basemap-gallery pattern: a button showing the
-// active basemap, opening a panel that lists every basemap by name. Rendered
-// into a maplibre control element (see BasemapControl) so it stacks under the
-// zoom buttons. Selecting does not close the panel: a swap can take a second
-// or fail, and the panel is where that feedback lives.
+// Basemap picker — the ArcGIS basemap-gallery pattern: an icon button whose
+// tooltip names the active basemap, opening a panel that lists every basemap
+// by name. Rendered into a maplibre control element (see BasemapControl) so it
+// stacks under the zoom buttons. Selecting does not close the panel: a swap
+// can take a second or fail, and the panel is where that feedback lives.
 
 import { useEffect, useRef, useState } from "react";
 import { actions, type AppState, type BasemapId } from "../state/store";
@@ -10,24 +10,26 @@ import { BASEMAPS, BASEMAP_ORDER } from "./basemaps";
 import { useDismissPopover } from "./useDismissPopover";
 
 function BasemapIcon() {
-  // A 2x2 of map tiles. Sized 16px on purpose: at that size the 1.5 stroke in
-  // a 24 viewBox is exactly one device pixel and every centerline lands on a
-  // half-pixel, so the tiles stay crisp (18px and 24px do not).
+  // A 2x2 of map tiles (the ArcGIS basemap-gallery glyph). Authored at 1:1:
+  // an 18px viewBox rendered at 18px with 2px strokes on integer coordinates,
+  // so every stroke edge lands on a device pixel and the weight holds its own
+  // next to maplibre's solid zoom glyphs.
   return (
     <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      viewBox="0 0 18 18"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
+      strokeWidth="2"
       strokeLinejoin="round"
       aria-hidden="true"
       focusable="false"
     >
-      <path d="M2.25 2.25h7.5v7.5h-7.5zM14.25 2.25h7.5v7.5h-7.5zM2.25 14.25h7.5v7.5h-7.5zM14.25 14.25h7.5v7.5h-7.5z" />
-      <path d="M3 6.75h6M15 6.75h6M3 17.25h6M15 17.25h6" />
+      <rect x="2" y="2" width="5" height="5" rx="1" />
+      <rect x="11" y="2" width="5" height="5" rx="1" />
+      <rect x="2" y="11" width="5" height="5" rx="1" />
+      <rect x="11" y="11" width="5" height="5" rx="1" />
     </svg>
   );
 }
@@ -52,10 +54,11 @@ export function BasemapPicker({ basemap, status }: { basemap: BasemapId; status:
   }, [open]);
 
   // applyBasemap's USGS branch is synchronous and never reports "loading", so
-  // a loading status while USGS is active means an abandoned Esri swap.
+  // a loading status while USGS is showing means an abandoned Esri swap.
   const busy = status === "loading" && basemap !== "usgs";
-  // With a two-basemap registry a failure always reverts to the other one.
-  // (A third basemap would need basemapStatus to carry the id.)
+  // With a two-basemap registry a failure always reverts to the other one
+  // (un-persisted — see revertBasemap; a third basemap would need
+  // basemapStatus to carry the id).
   const failed = BASEMAPS[basemap === "usgs" ? "esri" : "usgs"];
   const active = BASEMAPS[basemap];
 
@@ -81,14 +84,11 @@ export function BasemapPicker({ basemap, status }: { basemap: BasemapId; status:
         aria-expanded={open}
         aria-controls="basemap-panel"
         aria-label={triggerLabel}
+        title={triggerLabel}
         onClick={() => setOpen(!open)}
       >
         <span className="basemap-icon">
           <BasemapIcon />
-        </span>
-        <span className="basemap-name">{active.shortLabel}</span>
-        <span className="basemap-caret" aria-hidden="true">
-          ▾
         </span>
       </button>
       {open && (

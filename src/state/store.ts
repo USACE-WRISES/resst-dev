@@ -10,21 +10,42 @@ import type { TabId } from "../config/tabs";
 
 export type OverlayStatus = "loading" | "ready" | "error";
 
+/** Armed map-selection tool. The HUC tool ids double as overlay keys
+    (overlays.ts), so arming one can switch its boundary layer on. */
+export type MapTool = "none" | "box" | "polygon" | "huc2" | "huc4" | "huc6" | "huc8" | "river";
+
 export type BasemapId = "usgs" | "esri";
+/** The boot default — the original app's Esri Topographic look (docs/PARITY.md row 2). */
+export const DEFAULT_BASEMAP: BasemapId = "esri";
 /** Unknown/legacy persisted values fall back to the default basemap. */
-export const parseBasemapId = (raw: string | null): BasemapId => (raw === "esri" ? "esri" : "usgs");
+export const parseBasemapId = (raw: string | null): BasemapId =>
+  raw === "usgs" || raw === "esri" ? raw : DEFAULT_BASEMAP;
+
+export const TABLE_ROW_MIN = 0.15;
+export const TABLE_ROW_MAX = 0.85;
+/** Persisted table height — a fraction of the center stack. Unparseable
+    values fall back to the responsive stylesheet default (null); numbers
+    clamp into the draggable range. */
+export const parseTableHeight = (raw: string | null): number | null => {
+  if (raw == null || raw.trim() === "") return null;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return null;
+  return Math.min(TABLE_ROW_MAX, Math.max(TABLE_ROW_MIN, n));
+};
 
 export interface AppState {
   filters: FilterState;
-  /** Selected sites — one from a click, several from the box-select tool. */
+  /** Selected sites — one from a click, several from the map Select tools. */
   selectedSiteIds: string[];
   activeTab: TabId;
   /** Per-tab quick-search text. */
   tabSearch: Partial<Record<TabId, string>>;
   /** Table option: show only rows belonging to the selection. */
   showSelectionOnly: boolean;
-  /** Box-select tool armed on the map. */
-  boxSelectActive: boolean;
+  /** Which map-selection tool is armed. */
+  mapTool: MapTool;
+  /** "Near a river" buffer distance in miles (session-only). */
+  riverDistanceMiles: number;
   /** Reference overlay visibility by overlay key (all off by default). */
   overlays: Record<string, boolean>;
   /** Per-overlay fetch status (entries exist only while an overlay is on and fetchable). */
@@ -38,6 +59,11 @@ export interface AppState {
   /** Desktop-only side-panel collapse (the drawers take over on narrow screens). */
   filtersCollapsed: boolean;
   detailsCollapsed: boolean;
+  /** Results-table split: fraction of the center stack given to the table
+      (null = the responsive stylesheet default — 46%, 52% on phones). */
+  tableHeightFrac: number | null;
+  /** Results table collapsed to the half-pill tab (all breakpoints). */
+  tableCollapsed: boolean;
   helpOpen: boolean;
   downloadsOpen: boolean;
   welcomeOpen: boolean;
@@ -52,20 +78,35 @@ let state: AppState = {
   activeTab: "sites",
   tabSearch: {},
   showSelectionOnly: false,
-  boxSelectActive: false,
+  mapTool: "none",
+  riverDistanceMiles: 10,
   overlays: {},
   overlayStatus: {},
   basemap: (() => {
     try {
       return parseBasemapId(localStorage.getItem("resst.basemap"));
     } catch {
-      return "usgs" as BasemapId;
+      return DEFAULT_BASEMAP;
     }
   })(),
   basemapStatus: null,
   mobilePanel: null,
   filtersCollapsed: false,
   detailsCollapsed: false,
+  tableHeightFrac: (() => {
+    try {
+      return parseTableHeight(localStorage.getItem("resst.tableHeight"));
+    } catch {
+      return null;
+    }
+  })(),
+  tableCollapsed: (() => {
+    try {
+      return localStorage.getItem("resst.tableCollapsed") === "1";
+    } catch {
+      return false;
+    }
+  })(),
   helpOpen: false,
   downloadsOpen: false,
   welcomeOpen: (() => {
@@ -119,9 +160,10 @@ export const actions = {
   selectSite(siteId: string | null): void {
     set({ selectedSiteIds: siteId ? [siteId] : [], showSelectionOnly: siteId ? state.showSelectionOnly : false });
   },
-  /** Multi-selection from the box-select tool. */
+  /** Multi-selection from the map Select tools. Pure: dedupes and touches
+      nothing else — tool sessions disarm explicitly via setMapTool. */
   selectSites(siteIds: string[]): void {
-    set({ selectedSiteIds: [...new Set(siteIds)], boxSelectActive: false });
+    set({ selectedSiteIds: [...new Set(siteIds)] });
   },
   clearSelection(): void {
     set({ selectedSiteIds: [], showSelectionOnly: false });
@@ -129,15 +171,18 @@ export const actions = {
   setShowSelectionOnly(on: boolean): void {
     set({ showSelectionOnly: on });
   },
-  setBoxSelectActive(on: boolean): void {
-    set({ boxSelectActive: on });
+  setMapTool(tool: MapTool): void {
+    if (state.mapTool === tool) return; // re-arming the armed tool is a no-op
+    set({ mapTool: tool });
+  },
+  setRiverDistanceMiles(mi: number): void {
+    if (!Number.isFinite(mi)) return;
+    const next = Math.min(300, Math.max(1, mi));
+    if (state.riverDistanceMiles === next) return;
+    set({ riverDistanceMiles: next });
   },
   setOverlay(key: string, on: boolean): void {
     set({ overlays: { ...state.overlays, [key]: on } });
-  },
-  /** Apply a saved map view's overlay set (the caller also fits the extent). */
-  setOverlays(overlays: Record<string, boolean>): void {
-    set({ overlays });
   },
   /** Written by the overlay fetch pipeline; null clears the entry. */
   setOverlayStatus(key: string, status: OverlayStatus | null): void {
@@ -156,6 +201,17 @@ export const actions = {
     } catch {
       /* storage unavailable — the choice lasts for this session only */
     }
+    set({ basemap: id });
+  },
+  /** Failure revert: show `id` WITHOUT persisting it, and forget the stored
+      choice so the next visit retries the default basemap. */
+  revertBasemap(id: BasemapId): void {
+    try {
+      localStorage.removeItem("resst.basemap");
+    } catch {
+      /* storage unavailable — nothing was persisted anyway */
+    }
+    if (state.basemap === id) return;
     set({ basemap: id });
   },
   /** Written by the basemap swap in map/basemaps.ts; null clears it. */
@@ -177,6 +233,28 @@ export const actions = {
   },
   setPanelCollapsed(panel: "filters" | "details", collapsed: boolean): void {
     set(panel === "filters" ? { filtersCollapsed: collapsed } : { detailsCollapsed: collapsed });
+  },
+  /** Drag/keyboard resize of the results table; null restores the responsive default. */
+  setTableHeight(frac: number | null): void {
+    const next = frac == null ? null : Math.min(TABLE_ROW_MAX, Math.max(TABLE_ROW_MIN, frac));
+    if (state.tableHeightFrac === next) return; // no-op guard
+    try {
+      if (next == null) localStorage.removeItem("resst.tableHeight");
+      else localStorage.setItem("resst.tableHeight", next.toFixed(4));
+    } catch {
+      /* storage unavailable — the size lasts for this session only */
+    }
+    set({ tableHeightFrac: next });
+  },
+  setTableCollapsed(collapsed: boolean): void {
+    if (state.tableCollapsed === collapsed) return; // no-op guard
+    try {
+      if (collapsed) localStorage.setItem("resst.tableCollapsed", "1");
+      else localStorage.removeItem("resst.tableCollapsed");
+    } catch {
+      /* storage unavailable — persists for this session only */
+    }
+    set({ tableCollapsed: collapsed });
   },
   setDownloadsOpen(open: boolean): void {
     set({ downloadsOpen: open });

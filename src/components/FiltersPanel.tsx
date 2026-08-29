@@ -104,16 +104,6 @@ export function FiltersPanel({ data, filters, derived }: { data: AppData; filter
               Clear all
             </button>
           )}
-          <button
-            type="button"
-            className="panel-collapse-btn"
-            aria-expanded={true}
-            aria-controls="filters-panel"
-            aria-label="Collapse Data Filters panel"
-            onClick={() => actions.setPanelCollapsed("filters", true)}
-          >
-            <span aria-hidden="true">«</span>
-          </button>
         </span>
       </div>
       {GROUPS.map((g) => {

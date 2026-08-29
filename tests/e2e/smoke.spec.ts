@@ -1,8 +1,10 @@
 // End-to-end smoke + parity checks against the production build.
 // Baselines come from the live Experience Builder capture (assessment §4).
 import { test, expect, type Page } from "@playwright/test";
+import { stubEsri, waitForBasemap } from "./helpers/esriStub";
 
 async function openApp(page: Page): Promise<void> {
+  await stubEsri(page); // the default basemap boots from Esri endpoints — keep CI hermetic
   await page.goto("./");
   await page.getByRole("button", { name: "OK" }).click(); // welcome dialog
 }
@@ -14,11 +16,9 @@ test("loads with the verified counters and a rendered map", async ({ page }) => 
   await expect(counts).toContainText("Site Literature: 1,192");
   await expect(counts).toContainText("General Literature: 214");
 
-  // The map style must fully load and render site circles.
-  await page.waitForFunction(() => {
-    const m = (window as any).__resstMap;
-    return m && m.isStyleLoaded() && m.loaded();
-  }, undefined, { timeout: 30_000 });
+  // The map must settle on the Esri default (the bare loaded() wait can catch
+  // the interim USGS boot style, racing the swap) and render site circles.
+  await waitForBasemap(page, true);
   const rendered = await page.evaluate(() =>
     (window as any).__resstMap.queryRenderedFeatures({ layers: ["sites-circles"] }).length,
   );
@@ -67,23 +67,20 @@ test("exports download the filtered rows", async ({ page }) => {
   expect(download.suggestedFilename()).toMatch(/^resst-sites-\d{4}-\d{2}-\d{2}\.csv$/);
 });
 
-test("help overlay shows the five ported workflows", async ({ page }) => {
+test("help overlay shows the five workflows in the dense layout", async ({ page }) => {
   await openApp(page);
   await page.getByRole("button", { name: "Help" }).click();
   const pills = page.locator(".help-pills .pill");
   await expect(pills).toHaveText(["About", "By Reservoir", "By HUC", "By River", "By Category"]);
   await pills.nth(1).click();
-  await expect(page.locator(".help-text")).toContainText("Targeted Reservoir Analysis");
+  await expect(page.locator(".help-title")).toContainText("Targeted Reservoir Analysis");
   await expect(page.locator(".help-image")).toBeVisible();
+  // Regression guards for the old overflow bug: the dialog fits the viewport…
+  const box = await page.locator(".help-dialog").boundingBox();
+  expect(box!.height).toBeLessThanOrEqual(page.viewportSize()!.height);
+  // …and the last step stays reachable (the body scrolls when a tab overflows).
+  const last = page.locator(".help-steps li").last();
+  await last.scrollIntoViewIfNeeded();
+  await expect(last).toBeVisible();
   await page.keyboard.press("Escape");
-});
-
-test("map views apply overlay sets", async ({ page }) => {
-  await openApp(page);
-  await page.getByRole("button", { name: "Views" }).click();
-  await page.locator(".view-card", { hasText: "USGS HUC2" }).click();
-  await page.getByRole("button", { name: "Layers" }).click();
-  await expect(
-    page.locator(".layers-list .value-option", { hasText: "HUC 2" }).locator("input"),
-  ).toBeChecked();
 });

@@ -44,17 +44,24 @@ button { font: inherit; color: inherit; }
 .header-tools { display: flex; gap: 8px; }
 .toolbar-btn {
   background: rgba(255, 255, 255, 0.12); color: #fff; border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 4px; padding: 5px 12px; cursor: pointer; text-decoration: none; font-size: 13px;
+  border-radius: 4px; padding: 5px 12px; cursor: pointer; font-size: 13px;
 }
 .toolbar-btn:hover { background: rgba(255, 255, 255, 0.22); }
 
 .app-main {
   flex: 1 1 auto; min-height: 0; min-width: 0; height: 0; display: grid;
   grid-template-columns: 270px minmax(0, 1fr) 320px;
+  position: relative; /* offset parent for the side collapse pills */
 }
 .center-stack {
+  --table-row: 46%; /* results-table share; drag/collapse override it inline */
   display: grid;
-  grid-template-rows: minmax(0, 1fr) minmax(0, 46%);
+  /* Middle row = the resizer: height 0 (its grip and pill are absolutely
+     positioned), so the map/table split math matches the 2-row grid the
+     camera-geometry e2e was calibrated against. Rows stay minmax(0,…)-bounded:
+     content must never be able to size the map row (the ResizeObserver
+     runaway, commit 2cb90e7). */
+  grid-template-rows: minmax(0, 1fr) auto minmax(0, var(--table-row));
   /* Explicit column: without it the implicit track auto-sizes to the table's
      max-content width and the map/table overflow the grid over the details
      panel (and MapLibre inflates its canvas to match). */
@@ -125,9 +132,17 @@ button { font: inherit; color: inherit; }
 
 /* ---------- map ---------- */
 .map-panel-wrap { position: relative; min-height: 0; }
-.map-panel { position: absolute; inset: 0; }
+/* #e8ede9 = both basemap styles' background layer: if the canvas ever shows a
+   cleared/unrendered gap (context lost, pre-style-load resize), it reads as
+   map ground, never white. */
+.map-panel { position: absolute; inset: 0; background: #e8ede9; }
 .map-panel .maplibregl-map { position: absolute; inset: 0; }
-.map-toolbar { position: absolute; top: 10px; left: 10px; z-index: 5; display: flex; gap: 8px; align-items: flex-start; }
+.map-toolbar {
+  position: absolute; top: 10px; left: 10px; z-index: 5;
+  display: flex; flex-wrap: wrap; gap: 8px; row-gap: 6px; align-items: flex-start;
+  max-width: calc(100% - 20px); pointer-events: none; /* the row is a layout frame — only its children take clicks */
+}
+.map-toolbar > * { pointer-events: auto; }
 .map-tool {
   background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 6px 10px;
   cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.15); font-size: 13px;
@@ -137,21 +152,97 @@ button { font: inherit; color: inherit; }
   position: absolute; display: none; border: 2px dashed var(--select);
   background: rgba(0, 160, 176, 0.12); pointer-events: none; z-index: 6;
 }
+
+/* ---------- Select menu + armed-mode hint bar ---------- */
+.map-hint-bar {
+  flex-basis: 100%; /* wraps onto the toolbar's second row while a tool is armed */
+  display: flex; align-items: center; gap: 10px; max-width: 620px;
+  background: var(--paper); border: 1px solid var(--line); border-radius: 4px;
+  padding: 5px 10px; font-size: 12.5px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+.map-hint-bar [role="status"] { flex: 1 1 auto; }
+.map-hint-bar[data-kind="error"] [role="status"] { color: #b3261e; }
+.map-hint-bar[data-kind="empty"] [role="status"] { color: var(--ink-2); }
+.hint-btn {
+  font-size: 12px; padding: 2px 10px; border: 1px solid var(--line);
+  border-radius: 4px; background: var(--paper); cursor: pointer; white-space: nowrap;
+}
+.hint-btn:hover { background: var(--accent-soft); }
+.hint-distance { display: inline-flex; gap: 5px; align-items: center; white-space: nowrap; }
+.hint-distance input { width: 62px; border: 1px solid var(--line); border-radius: 4px; padding: 2px 6px; font: inherit; }
+.select-menu { display: flex; flex-direction: column; gap: 2px; min-width: 260px; }
+.select-item {
+  text-align: left; background: none; border: 0; border-radius: 4px;
+  padding: 6px 8px; cursor: pointer; display: flex; flex-direction: column; gap: 1px; font-size: 13px;
+}
+.select-item:hover:not(:disabled) { background: var(--accent-soft); }
+.select-item:disabled { color: var(--ink-3); cursor: default; }
+.select-item[aria-pressed="true"] { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
+.select-item span { font-size: 11.5px; color: var(--ink-3); }
+.select-group { padding: 4px 8px; display: flex; flex-direction: column; gap: 5px; }
+.select-group-label { font-size: 11.5px; color: var(--ink-3); }
+.select-huc-row { display: flex; gap: 6px; }
+.select-huc {
+  font-size: 12px; padding: 3px 9px; border: 1px solid var(--line);
+  border-radius: 4px; background: var(--paper); cursor: pointer;
+}
+.select-huc:hover { background: var(--accent-soft); }
+.select-huc[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+.select-menu-sep { border-top: 1px solid var(--line); margin: 4px 0; }
 .map-search { position: relative; }
 .map-search input {
   border: 1px solid var(--line); border-radius: 4px; padding: 6px 10px; width: 230px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.15); background: var(--paper);
 }
-.map-search-results {
+.map-search-pop {
   position: absolute; top: calc(100% + 4px); left: 0; width: 300px; max-height: 300px; overflow-y: auto;
   background: var(--paper); border: 1px solid var(--line); border-radius: 4px; box-shadow: 0 4px 14px rgba(0,0,0,0.18);
-  list-style: none; margin: 0; padding: 4px; z-index: 7;
+  padding: 4px; z-index: 7;
 }
-.map-search-results li { padding: 6px 8px; border-radius: 3px; cursor: pointer; }
-.map-search-results li.hl { background: var(--accent-soft); }
+.map-search-results { list-style: none; margin: 0; padding: 0; }
+.map-search-group-label {
+  display: block; padding: 4px 8px 2px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; color: var(--ink-3);
+}
+.map-search-results [role="option"] { padding: 6px 8px; border-radius: 3px; cursor: pointer; }
+.map-search-results [role="option"].hl { background: var(--accent-soft); }
+/* --ink-3 muted text sits at 4.17:1 on the --accent-soft highlight (axe
+   color-contrast, AA needs 4.5) — the highlighted row uses the darker ink. */
+.map-search-results [role="option"].hl .muted { color: var(--ink-2); }
+.map-search-note { margin: 0; padding: 6px 8px; font-size: 12.5px; }
 .site-popup h3 { margin: 0 0 6px; font-size: 14px; }
 .popup-row { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; padding: 1px 0; }
 .popup-row span { color: var(--ink-3); }
+
+/* ---------- map/table resizer ---------- */
+/* A zero-height grid row between map and table. The visible hairline stays on
+   .table-panel's border-top; collapsed, the pill is the only affordance. */
+.table-resizer { position: relative; height: 0; z-index: 9; }
+.table-resizer-grip {
+  position: absolute; left: 0; right: 0; top: -4px; height: 9px;
+  cursor: row-resize; background: transparent;
+  touch-action: none; /* pointer-event drags would otherwise scroll on touch */
+}
+.table-resizer-grip:hover,
+.table-resizer-grip[data-dragging] { background: var(--accent-soft); }
+.table-collapse-tab {
+  position: absolute; left: 50%; top: 0; transform: translate(-50%, -100%);
+  width: 60px; height: 15px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--paper); border: 1px solid var(--line);
+  border-radius: 92px 92px 0 0; /* the original app's half-pill */
+  color: var(--ink); cursor: pointer;
+}
+.table-collapse-tab:hover { background: var(--accent-soft); }
+.table-collapse-tab svg { display: block; transition: transform 0.15s; }
+.center-stack.table-collapsed .table-collapse-tab svg { transform: rotate(180deg); }
+/* Collapsed: the table row is 0px (inline --table-row from App). visibility —
+   not display:none — keeps the virtualizer's scroll element measurable and
+   #results-table present for aria-controls, while removing the subtree from
+   hit-testing and the tab order. The overflowing hidden toolbar is swallowed
+   by .app-shell { overflow: hidden }. */
+.center-stack.table-collapsed { overflow: hidden; }
+.center-stack.table-collapsed .table-panel { visibility: hidden; }
 
 /* ---------- table ---------- */
 .table-panel { display: flex; flex-direction: column; min-height: 0; min-width: 0; border-top: 1px solid var(--line); }
@@ -202,20 +293,13 @@ button { font: inherit; color: inherit; }
 .pager-btn { background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 3px 10px; cursor: pointer; }
 .pager-btn:disabled { opacity: 0.4; cursor: default; }
 
-/* map tool popovers (Views / Layers / Legend) */
+/* map tool popovers (Select / Layers / Legend) */
 .tool-popover { position: relative; }
 .tool-popover-panel {
   position: absolute; top: calc(100% + 6px); left: 0; z-index: 8; min-width: 240px; max-width: 330px;
   background: var(--paper); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 6px 20px rgba(0,0,0,0.18);
   padding: 10px;
 }
-.views-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.view-card {
-  display: flex; flex-direction: column; gap: 4px; background: var(--panel); border: 1px solid var(--line);
-  border-radius: 5px; padding: 5px; cursor: pointer; font-size: 12.5px;
-}
-.view-card:hover { border-color: var(--accent); }
-.view-card img { width: 100%; height: 60px; object-fit: cover; border-radius: 3px; }
 .layers-list { display: flex; flex-direction: column; gap: 4px; }
 .swatch { width: 13px; height: 13px; border-radius: 3px; display: inline-block; flex: 0 0 auto; }
 .gate-note { font-size: 12px; margin: 6px 0 0; }
@@ -224,17 +308,10 @@ button { font: inherit; color: inherit; }
 .legend-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid; display: inline-block; }
 .legend-line { width: 16px; height: 3px; display: inline-block; border-radius: 2px; }
 
-/* help + downloads */
-.help-dialog { max-width: 900px; width: calc(100% - 60px); max-height: calc(100% - 60px); display: flex; flex-direction: column; }
+/* downloads (the Download Data dialog borrows .help-head for its title row;
+   the help dialog's own styles live below the dialog block so they win the
+   cascade over .dialog p) */
 .help-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
-.help-pills { display: flex; gap: 6px; flex-wrap: wrap; }
-.pill { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 4px 12px; cursor: pointer; font-size: 13px; }
-.pill.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-.help-body { overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
-.help-image { max-width: 100%; border: 1px solid var(--line); border-radius: 6px; }
-.help-text { line-height: 1.55; }
-.help-text p { margin: 0 0 10px; }
-.help-foot { display: flex; justify-content: center; align-items: center; gap: 14px; padding-top: 12px; }
 .download-list { list-style: none; margin: 0 0 14px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .download-list a { display: block; border: 1px solid var(--line); border-radius: 6px; padding: 9px 12px; text-decoration: none; color: var(--ink); }
 .download-list a:hover { border-color: var(--accent); background: var(--accent-soft); }
@@ -249,6 +326,72 @@ button { font: inherit; color: inherit; }
 .btn-primary { background: var(--accent); color: #fff; border: none; border-radius: 4px; padding: 8px 22px; cursor: pointer; font-weight: 600; }
 .btn-primary:hover { filter: brightness(1.1); }
 
+/* ---------- help dialog ---------- */
+.help-dialog {
+  max-width: min(1060px, calc(100vw - 48px));
+  width: calc(100% - 48px);
+  /* Viewport units, not a percentage: a % max-height never resolves against
+     the scrim's auto-sized grid row, which is how the old dialog could grow
+     past the viewport with no way to scroll. */
+  max-height: calc(100vh - 48px);
+  max-height: calc(100dvh - 48px);
+  display: flex; flex-direction: column;
+  overflow: hidden; /* the head stays put; .help-body owns the scroll */
+}
+.help-dialog .help-head { border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+.help-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.pill { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 4px 12px; cursor: pointer; font-size: 13px; }
+.pill.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.help-body { overflow-y: auto; min-height: 0; display: flex; flex-direction: column; gap: 14px; }
+.help-body:focus-visible { outline-offset: -2px; } /* keyboard-scroll ring stays inside the dialog */
+.help-title { margin: 0; font-size: 17px; }
+/* Intro band: the short facet block and the capped screenshot sit side by
+   side so their heights overlap instead of stacking; the steps get the full
+   width below. */
+.help-band { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 420px); gap: 10px 20px; align-items: start; }
+.help-band-main { display: flex; flex-direction: column; gap: 10px; }
+.help-band-main p { margin: 0; }
+.help-image {
+  width: 100%; height: auto; max-height: 280px; object-fit: contain; object-position: top;
+  border: 1px solid var(--line); border-radius: 6px;
+}
+.help-facets { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 7px 14px; }
+.help-facets > div { display: contents; } /* keyed dt/dd pair wrappers join the grid */
+.help-facets dt {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--accent); white-space: nowrap; padding-top: 2px;
+}
+.help-facets dd { margin: 0; }
+.help-steps { list-style: none; margin: 0; padding: 0; counter-reset: help-step; column-gap: 32px; }
+.help-steps li { counter-increment: help-step; break-inside: avoid; position: relative; padding-left: 34px; margin: 0 0 10px; }
+.help-steps li::before {
+  content: counter(help-step);
+  position: absolute; left: 0; top: -1px; width: 23px; height: 23px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 700;
+}
+.step-title { font-weight: 600; margin: 0 0 2px; }
+.step-body { margin: 0; }
+.step-note { margin: 3px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--ink-3); }
+.step-note b { color: var(--ink-2); }
+.help-credits { border-top: 1px solid var(--line); padding-top: 10px; font-size: 12.5px; color: var(--ink-3); }
+.help-credits h3 {
+  margin: 0 0 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--ink-2);
+}
+.help-credits p { margin: 0 0 4px; }
+@media (min-width: 980px) {
+  .help-steps { columns: 2; }
+}
+@media (max-width: 760px) {
+  .help-dialog { width: calc(100% - 16px); max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); padding: 14px 16px; }
+  .help-band { grid-template-columns: minmax(0, 1fr); } /* image drops between intro and steps */
+  .help-image { max-height: 220px; }
+}
+@media (max-width: 480px) {
+  .help-facets { grid-template-columns: 1fr; gap: 2px 0; }
+}
+
 /* ---------- skip link ---------- */
 .skip-link {
   position: absolute; left: 8px; top: -48px; z-index: 40; background: var(--accent); color: #fff;
@@ -262,8 +405,7 @@ button { font: inherit; color: inherit; }
 .drawer-scrim { display: none; }
 /* Collapse affordances exist only on wide screens (see the min-width block);
    narrow screens use the drawers instead. */
-.panel-rail { display: none; }
-.panel-collapse-btn { display: none; }
+.side-collapse-tab { display: none; }
 .panel-title-tools { display: flex; align-items: center; gap: 8px; }
 
 @media (max-width: 1100px) {
@@ -290,35 +432,42 @@ button { font: inherit; color: inherit; }
 
   /* Collapsible side panels. These rules MUST stay inside this media block:
      .app-main.filters-collapsed (0,2,0) would out-specify the narrow-screen
-     .app-main grid overrides (0,1,0) and wreck the drawer layouts. */
-  .panel-collapse-btn {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 22px; height: 22px; padding: 0; background: none;
-    border: 1px solid var(--line); border-radius: 4px; cursor: pointer; color: var(--ink-2);
+     .app-main grid overrides (0,1,0) and wreck the drawer layouts.
+     The toggles are the original app's edge half-pills (15×60, rounded toward
+     the map), vertically centered on the panel boundary; a collapsed panel
+     disappears completely (column 0) and the pill slides to the app edge. */
+  .side-collapse-tab {
+    display: flex; align-items: center; justify-content: center;
+    position: absolute; top: 50%; transform: translateY(-50%); z-index: 9;
+    width: 15px; height: 60px; padding: 0;
+    background: var(--paper); border: 1px solid var(--line);
+    color: var(--ink); cursor: pointer;
   }
-  .panel-collapse-btn:hover { background: var(--accent-soft); }
+  .side-collapse-tab:hover { background: var(--accent-soft); }
+  .side-collapse-tab svg { display: block; transition: transform 0.15s; }
+  .side-tab-filters { left: 270px; border-radius: 0 92px 92px 0; }
+  .side-tab-filters svg { transform: rotate(90deg); } /* chevron points LEFT — the collapse direction */
+  .app-main.filters-collapsed .side-tab-filters { left: 0; }
+  .app-main.filters-collapsed .side-tab-filters svg { transform: rotate(-90deg); }
+  .side-tab-details { right: 320px; border-radius: 92px 0 0 92px; }
+  .side-tab-details svg { transform: rotate(-90deg); } /* chevron points RIGHT */
+  .app-main.details-collapsed .side-tab-details { right: 0; }
+  .app-main.details-collapsed .side-tab-details svg { transform: rotate(90deg); }
 
-  .app-main.filters-collapsed { grid-template-columns: 28px minmax(0, 1fr) 320px; }
-  .app-main.details-collapsed { grid-template-columns: 270px minmax(0, 1fr) 28px; }
-  .app-main.filters-collapsed.details-collapsed { grid-template-columns: 28px minmax(0, 1fr) 28px; }
-  .app-main.filters-collapsed .filters-panel { display: none; }
-  .app-main.details-collapsed .details-panel { display: none; }
-  .app-main.filters-collapsed .rail-filters { display: flex; }
-  .app-main.details-collapsed .rail-details { display: flex; }
-
-  .panel-rail {
-    flex-direction: column; align-items: center; gap: 8px; padding: 12px 0;
-    background: var(--panel); border: none; cursor: pointer;
-    color: var(--ink-2); font-size: 12px;
-  }
-  .rail-filters { border-right: 1px solid var(--line); }
-  .rail-details { border-left: 1px solid var(--line); }
-  .panel-rail:hover { background: var(--accent-soft); }
-  .rail-text { writing-mode: vertical-rl; text-transform: uppercase; letter-spacing: 0.05em; }
+  .app-main.filters-collapsed { grid-template-columns: 0px minmax(0, 1fr) 320px; }
+  .app-main.details-collapsed { grid-template-columns: 270px minmax(0, 1fr) 0px; }
+  .app-main.filters-collapsed.details-collapsed { grid-template-columns: 0px minmax(0, 1fr) 0px; }
+  /* visibility, NOT display:none: the panel must stay a grid item — there is
+     no rail placeholder any more, and removing the item would slide
+     center-stack into the 0px track via auto-placement. Hidden, it paints
+     nothing, leaves the a11y tree and tab order, and overflows its 0px track
+     invisibly (fixed tracks never grow for content). */
+  .app-main.filters-collapsed .filters-panel { visibility: hidden; }
+  .app-main.details-collapsed .details-panel { visibility: hidden; }
 }
 @media (max-width: 760px) {
   .app-main { grid-template-columns: minmax(0, 1fr); }
-  .center-stack { grid-template-rows: minmax(0, 1fr) minmax(0, 52%); }
+  .center-stack { --table-row: 52%; } /* the row template itself never changes */
   /* Filters becomes a left-side drawer too — full function on phones (D8). */
   .panel-slot.filters { display: block; position: fixed; top: var(--header-h); bottom: var(--footer-h); left: 0;
     width: min(320px, 92vw); transform: translateX(-100%); transition: transform 0.2s ease; z-index: 25; }
@@ -358,9 +507,12 @@ button { font: inherit; color: inherit; }
 /* ---------- basemap picker (maplibre ctrl under the zoom buttons) ---------- */
 /* The host keeps maplibre's `maplibregl-ctrl` class (that is what turns pointer
    events back on inside the corner slot and stacks it under the zoom group) but
-   not `maplibregl-ctrl-group`, so maplibre's 29px button box and its
-   `outline: none` never reach us. The font is restated because .maplibregl-map
-   sets `font: 12px/20px Helvetica Neue,...` across its whole subtree. */
+   NOT `maplibregl-ctrl-group`, whose button rules would force display:block and
+   outline:none and swap our focus/hover treatment for maplibre's. Instead the
+   trigger restates the group look itself — white, 4px radius, 2px ring shadow,
+   29px box — so it pixel-matches the zoom stack above. The font is restated
+   because .maplibregl-map sets `font: 12px/20px Helvetica Neue,...` across its
+   whole subtree. */
 .basemap-picker {
   position: relative;
   font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
@@ -368,36 +520,46 @@ button { font: inherit; color: inherit; }
 }
 .basemap-trigger {
   position: relative;
-  display: flex; align-items: center; gap: 8px;
-  width: 130px; height: 30px; padding: 0 10px;
-  background: var(--paper); border: 1px solid var(--line); border-radius: 4px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
-  text-align: left; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  width: 29px; height: 29px; padding: 0;
+  background: var(--paper); border: none; border-radius: 4px;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1); /* = .maplibregl-ctrl-group ring */
+  cursor: pointer;
 }
-.basemap-trigger:hover { background: var(--accent-soft); }
-/* Declared after :hover at equal specificity, so an open trigger stays filled. */
-.basemap-trigger[aria-expanded="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
-/* The global focus ring sits 1px outside the button, i.e. over map imagery —
-   this keeps a white edge between the accent ring and whatever is underneath. */
-.basemap-trigger:focus-visible { box-shadow: 0 1px 4px rgba(0,0,0,0.15), 0 0 0 1px var(--paper); }
-.basemap-icon { position: relative; flex: 0 0 auto; width: 16px; height: 16px; }
+/* maplibre's `.maplibregl-ctrl button:not(:disabled):hover` (and its :active
+   twin) paints translucent rgba(0,0,0,.05) at specificity (0,3,1), turning the
+   button see-through over map tiles. The :not(:disabled) below is a specificity
+   shim: it lifts these to (0,4,0)/(0,5,0) so they win on specificity, not
+   import order. */
+.basemap-picker .basemap-trigger:not(:disabled):hover,
+.basemap-picker .basemap-trigger:not(:disabled):active {
+  background: var(--accent-soft);
+}
+.basemap-picker .basemap-trigger[aria-expanded="true"],
+.basemap-picker .basemap-trigger[aria-expanded="true"]:not(:disabled):hover,
+.basemap-picker .basemap-trigger[aria-expanded="true"]:not(:disabled):active {
+  background: var(--accent);
+  color: #fff;
+}
+.basemap-icon { position: relative; display: block; width: 18px; height: 18px; }
 .basemap-icon svg { display: block; }
-/* Shared by the trigger and the option rows: fill the row, truncate rather
-   than blow the box out. */
+/* Option rows in the panel (the trigger no longer carries a name span): fill
+   the row, truncate rather than blow the box out. */
 .basemap-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.basemap-caret { flex: 0 0 auto; font-size: 10px; line-height: 1; opacity: 0.7; }
 
 .basemap-picker[data-status="loading"] .basemap-trigger { cursor: progress; }
 .basemap-picker[data-status="loading"] .basemap-icon svg { opacity: 0.25; }
 .basemap-picker[data-status="loading"] .basemap-icon::after {
-  content: ""; position: absolute; inset: 2px; border-radius: 50%;
+  content: ""; position: absolute; inset: 1px; border-radius: 50%;
   border: 2px solid var(--line); border-top-color: var(--accent);
   animation: ov-spin 0.8s linear infinite;
 }
 .basemap-picker[data-status="error"] .basemap-icon::after {
-  content: "!"; position: absolute; top: -3px; right: -4px;
+  content: "!"; position: absolute; top: -4px; right: -4px;
   color: #b3261e; font-weight: 700; font-size: 12px; line-height: 1;
 }
+/* Declared last among the ::after rules — equal specificity, so an open
+   trigger recolors the spinner/badge for the accent background. */
 .basemap-trigger[aria-expanded="true"] .basemap-icon::after {
   border-color: rgba(255,255,255,0.35); border-top-color: #fff; color: #fff;
 }
@@ -432,19 +594,3 @@ button { font: inherit; color: inherit; }
 .basemap-error { color: #b3261e; }
 .basemap-error span { flex: 1 1 auto; min-width: 0; }
 .basemap-error .ov-retry { flex: 0 0 auto; padding: 3px 10px; color: var(--ink); }
-
-/* ---------- basemap picker, phone ---------- */
-/* Must stay after the rules above: media queries add no specificity, so the
-   file's earlier max-width block would lose to them. The map toolbar spans
-   almost the full width at this size, so the trigger drops to an icon square.
-   The name is hidden the sr-only way, not display:none, which would delete the
-   button's accessible name — and scoped to the trigger, since .basemap-name is
-   shared with the option rows in the panel. */
-@media (max-width: 760px) {
-  .basemap-trigger { width: 30px; padding: 0; gap: 0; justify-content: center; }
-  .basemap-trigger .basemap-name {
-    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
-  }
-  .basemap-caret { display: none; }
-}

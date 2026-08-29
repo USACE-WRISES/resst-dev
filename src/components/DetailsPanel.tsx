@@ -46,22 +46,13 @@ export function DetailsPanel({ derived }: { derived: Derived }) {
               Clear
             </button>
           )}
-          <button
-            type="button"
-            className="panel-collapse-btn"
-            aria-expanded={true}
-            aria-controls="details-panel"
-            aria-label="Collapse Selected Data panel"
-            onClick={() => actions.setPanelCollapsed("details", true)}
-          >
-            <span aria-hidden="true">»</span>
-          </button>
         </span>
       </div>
       {selected.length === 0 ? (
         <p className="muted empty-note">
-          Select a site on the map or in the Sites table — or drag a box with the map's Select tool — to see site
-          details, literature, and National Inventory of Dams records here.
+          Select a site on the map or in the Sites table — or use the map's Select menu to pick sites by box, drawn
+          polygon, watershed (HUC), or distance from a river — to see site details, literature, and National Inventory
+          of Dams records here.
         </p>
       ) : (
         <>
