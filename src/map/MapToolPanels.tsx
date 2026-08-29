@@ -1,28 +1,17 @@
 // The map's Views / Layers / Legend controls — popover panels on the map
 // toolbar, porting the Bookmark Views, Map Layers, and Legend widgets.
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { MAP_VIEWS } from "../config/mapViews.generated";
 import { OVERLAYS } from "./overlays";
 import { actions, type AppState } from "../state/store";
 import { mapCommands } from "./mapBus";
+import { useDismissPopover } from "./useDismissPopover";
 
 function ToolPopover({ label, children, ariaLabel }: { label: string; children: ReactNode; ariaLabel: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
+  useDismissPopover(open, ref, () => setOpen(false));
   return (
     <div className="tool-popover" ref={ref}>
       <button type="button" className={open ? "map-tool active" : "map-tool"} aria-expanded={open} onClick={() => setOpen(!open)}>

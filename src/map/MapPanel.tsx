@@ -8,6 +8,7 @@
 // panel, tables, popup, and highlight rings.
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Map as MlMap,
   Popup,
@@ -29,6 +30,7 @@ import { MapToolPanels } from "./MapToolPanels";
 import { installOverlays, updateOverlays, scheduleOverlayRefresh, retryOverlay, disposeOverlays } from "./overlays";
 import { applyBasemap, buildUsgsStyle } from "./basemaps";
 import { BasemapControl } from "./BasemapControl";
+import { BasemapPicker } from "./BasemapPicker";
 
 // Initial view = the app's "Default" map view (the captured CONUS extent).
 const DEFAULT_VIEW = MAP_VIEWS[0];
@@ -78,9 +80,18 @@ export function MapPanel({ sites, allSites, siteById, state }: {
   const basemapRef = useRef(state.basemap);
   basemapRef.current = state.basemap;
   const [zoomTick, setZoomTick] = useState(4);
+  // The basemap picker is React, but maplibre places it: we own the element,
+  // maplibre parents it in the top-right stack, and React portals into it.
+  const basemapHostRef = useRef<HTMLDivElement | null>(null);
+  if (!basemapHostRef.current) {
+    const el = document.createElement("div");
+    el.className = "maplibregl-ctrl"; // never maplibregl-ctrl-group — see BasemapControl
+    basemapHostRef.current = el;
+  }
 
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
+    const basemapHost = basemapHostRef.current;
+    if (!containerRef.current || mapRef.current || !basemapHost) return;
     const map = new MlMap({
       container: containerRef.current,
       style: buildUsgsStyle(),
@@ -93,7 +104,7 @@ export function MapPanel({ sites, allSites, siteById, state }: {
     // Read-only handle for the e2e suite (and console debugging).
     (window as unknown as { __resstMap?: MlMap }).__resstMap = map;
     map.addControl(new NavigationControl({ showCompass: false }), "top-right");
-    map.addControl(new BasemapControl(), "top-right"); // stacks directly under the zoom buttons
+    map.addControl(new BasemapControl(basemapHost), "top-right"); // stacks directly under the zoom buttons
     map.addControl(new ScaleControl({ unit: "imperial" }), "bottom-left");
 
     registerMapCommands({
@@ -323,6 +334,7 @@ export function MapPanel({ sites, allSites, siteById, state }: {
         </button>
         <MapToolPanels state={state} zoom={zoomTick} />
       </div>
+      {createPortal(<BasemapPicker basemap={state.basemap} status={state.basemapStatus} />, basemapHostRef.current)}
     </div>
   );
 }

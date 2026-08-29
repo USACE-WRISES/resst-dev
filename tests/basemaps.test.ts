@@ -13,7 +13,7 @@ import {
   fixupEsriStyle,
   mergeAppLayers,
 } from "../src/map/basemaps";
-import { actions, getState, parseBasemapId } from "../src/state/store";
+import { actions, getState, parseBasemapId, subscribe } from "../src/state/store";
 
 // Miniature stand-in for Esri's root.json: a VectorTileServer source `url`
 // (not TileJSON), a sprite path containing "/../", and a layer id that
@@ -63,6 +63,22 @@ describe("parseBasemapId", () => {
     expect(parseBasemapId("usgs")).toBe("usgs");
     expect(parseBasemapId("mars")).toBe("usgs");
     expect(parseBasemapId(null)).toBe("usgs");
+  });
+});
+
+describe("setBasemap", () => {
+  it("ignores a set to the already-active id", () => {
+    let emits = 0;
+    const unsubscribe = subscribe(() => {
+      emits += 1;
+    });
+    actions.setBasemap("usgs"); // already active — no emit, no storage write
+    expect(emits).toBe(0);
+    actions.setBasemap("esri");
+    expect(emits).toBe(1);
+    actions.setBasemap("usgs"); // leave the store on the default for later tests
+    expect(emits).toBe(2);
+    unsubscribe();
   });
 });
 

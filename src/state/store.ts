@@ -150,6 +150,7 @@ export const actions = {
   },
   /** Basemap choice persists per-browser (like the welcome dismissal). */
   setBasemap(id: BasemapId): void {
+    if (state.basemap === id) return; // re-picking the active basemap is a no-op
     try {
       localStorage.setItem("resst.basemap", id);
     } catch {
