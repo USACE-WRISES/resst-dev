@@ -39,7 +39,7 @@ button { font: inherit; color: inherit; }
   background: var(--accent); color: #fff;
 }
 .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.brand-mark { font-size: 22px; }
+.brand-mark { display: flex; align-items: center; }
 .app-header h1 { font-size: 16px; font-weight: 600; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .header-tools { display: flex; gap: 8px; }
 .toolbar-btn {
