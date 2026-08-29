@@ -28,7 +28,7 @@ difference.
 | # | Difference | Why |
 |---|---|---|
 | 1 | ArcGIS/Survey123 authoring replaced by repo CSVs + pull requests | Decision D2 — the repo is the database; Edit Data panel and the five embedded Survey123 forms are retired |
-| 2 | Esri Topographic basemap → USGS National Map topo | D4 — no API key, public domain |
+| 2 | Default basemap is USGS National Map topo; a toggle under the zoom control restores the original Esri Topographic basemap (World Topographic Map vector tiles over World Hillshade, the same public keyless endpoints the old web map referenced) | D4 chose USGS (no API key, public domain); owner later asked for the original's crisper look as an option. Esri's sanctioned custom-app route is an API key — if the anonymous endpoints are ever gated, the Esri option shows a retryable error and USGS is unaffected. The Esri basemap's worldwide labels lack RTL shaping (no RTL plugin) and it stays crisp past z16 where the USGS raster overscales |
 | 3 | Esri geocoder search → attribute search over site names | D4; the address geocoder was Esri-bound |
 | 4 | Site Literature tab shows the 1,192 site-linked view | D8 — the old app's tab showed all 1,410 while its counter said 1,192 (latent inconsistency) |
 | 5 | Global "Clear all" filters control added | D8 |

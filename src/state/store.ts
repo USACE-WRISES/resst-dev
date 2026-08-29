@@ -10,6 +10,10 @@ import type { TabId } from "../config/tabs";
 
 export type OverlayStatus = "loading" | "ready" | "error";
 
+export type BasemapId = "usgs" | "esri";
+/** Unknown/legacy persisted values fall back to the default basemap. */
+export const parseBasemapId = (raw: string | null): BasemapId => (raw === "esri" ? "esri" : "usgs");
+
 export interface AppState {
   filters: FilterState;
   /** Selected sites — one from a click, several from the box-select tool. */
@@ -25,6 +29,10 @@ export interface AppState {
   overlays: Record<string, boolean>;
   /** Per-overlay fetch status (entries exist only while an overlay is on and fetchable). */
   overlayStatus: Record<string, OverlayStatus>;
+  /** Active basemap (persisted per-browser). */
+  basemap: BasemapId;
+  /** Esri basemap swap status — null when idle or complete. */
+  basemapStatus: "loading" | "error" | null;
   /** Which side panel is open as a drawer on narrow screens. */
   mobilePanel: "filters" | "details" | null;
   /** Desktop-only side-panel collapse (the drawers take over on narrow screens). */
@@ -47,6 +55,14 @@ let state: AppState = {
   boxSelectActive: false,
   overlays: {},
   overlayStatus: {},
+  basemap: (() => {
+    try {
+      return parseBasemapId(localStorage.getItem("resst.basemap"));
+    } catch {
+      return "usgs" as BasemapId;
+    }
+  })(),
+  basemapStatus: null,
   mobilePanel: null,
   filtersCollapsed: false,
   detailsCollapsed: false,
@@ -131,6 +147,20 @@ export const actions = {
     if (status === null) delete next[key];
     else next[key] = status;
     set({ overlayStatus: next });
+  },
+  /** Basemap choice persists per-browser (like the welcome dismissal). */
+  setBasemap(id: BasemapId): void {
+    try {
+      localStorage.setItem("resst.basemap", id);
+    } catch {
+      /* storage unavailable — the choice lasts for this session only */
+    }
+    set({ basemap: id });
+  },
+  /** Written by the basemap swap in map/basemaps.ts; null clears it. */
+  setBasemapStatus(status: "loading" | "error" | null): void {
+    if (state.basemapStatus === status) return; // no-op guard, matches setOverlayStatus
+    set({ basemapStatus: status });
   },
   setActiveTab(tab: TabId): void {
     set({ activeTab: tab });

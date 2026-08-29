@@ -1,10 +1,11 @@
 // The interactive map: USGS National Map topo basemap (public domain, no API
-// key — decision D4) with the filtered Sites layer rendered in the current
-// app's symbology: red circles, yellow outline, blue site-name labels above
-// (ported from the service drawingInfo + web-map labelingInfo). Clicking a
-// point selects the site; the Select tool drags a box to select several;
-// the search box matches site names. Selection drives the details panel,
-// tables, popup, and highlight rings.
+// key — decision D4; a control under the zoom buttons toggles to the original
+// app's Esri Topographic basemap) with the filtered Sites layer rendered in
+// the current app's symbology: red circles, yellow outline, blue site-name
+// labels above (ported from the service drawingInfo + web-map labelingInfo).
+// Clicking a point selects the site; the Select tool drags a box to select
+// several; the search box matches site names. Selection drives the details
+// panel, tables, popup, and highlight rings.
 
 import { useEffect, useRef, useState } from "react";
 import {
@@ -15,7 +16,6 @@ import {
   LngLatBounds,
   type GeoJSONSource,
   type MapLayerMouseEvent,
-  type StyleSpecification,
 } from "maplibre-gl";
 import type { FeatureCollection } from "geojson";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -27,29 +27,11 @@ import { registerMapCommands } from "./mapBus";
 import { SearchControl } from "./SearchControl";
 import { MapToolPanels } from "./MapToolPanels";
 import { installOverlays, updateOverlays, scheduleOverlayRefresh, retryOverlay, disposeOverlays } from "./overlays";
+import { applyBasemap, buildUsgsStyle } from "./basemaps";
+import { BasemapControl } from "./BasemapControl";
 
 // Initial view = the app's "Default" map view (the captured CONUS extent).
 const DEFAULT_VIEW = MAP_VIEWS[0];
-
-const BASE_STYLE: StyleSpecification = {
-  version: 8,
-  // Self-hosted glyph PBFs (public/fonts) — no third-party font dependency.
-  glyphs: `${location.origin}${import.meta.env.BASE_URL}fonts/{fontstack}/{range}.pbf`,
-  sources: {
-    usgsTopo: {
-      type: "raster",
-      tiles: ["https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}"],
-      tileSize: 256,
-      maxzoom: 16,
-      attribution:
-        "USGS The National Map: National Boundaries Dataset, 3DEP Elevation Program, Geographic Names Information System, National Hydrography Dataset, National Land Cover Database, National Structures Dataset, and National Transportation Dataset",
-    },
-  },
-  layers: [
-    { id: "background", type: "background", paint: { "background-color": "#e8ede9" } },
-    { id: "usgs-topo", type: "raster", source: "usgsTopo" },
-  ],
-};
 
 function sitesToGeoJSON(sites: Site[]): FeatureCollection {
   return {
@@ -93,13 +75,15 @@ export function MapPanel({ sites, allSites, siteById, state }: {
   const selectedIds = state.selectedSiteIds;
   const overlaysRef = useRef(state.overlays);
   overlaysRef.current = state.overlays;
+  const basemapRef = useRef(state.basemap);
+  basemapRef.current = state.basemap;
   const [zoomTick, setZoomTick] = useState(4);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     const map = new MlMap({
       container: containerRef.current,
-      style: BASE_STYLE,
+      style: buildUsgsStyle(),
       bounds: DEFAULT_VIEW.bounds,
       // Same padding the Views cards use, so picking "Default" reproduces this view.
       fitBoundsOptions: { padding: 20 },
@@ -109,6 +93,7 @@ export function MapPanel({ sites, allSites, siteById, state }: {
     // Read-only handle for the e2e suite (and console debugging).
     (window as unknown as { __resstMap?: MlMap }).__resstMap = map;
     map.addControl(new NavigationControl({ showCompass: false }), "top-right");
+    map.addControl(new BasemapControl(), "top-right"); // stacks directly under the zoom buttons
     map.addControl(new ScaleControl({ unit: "imperial" }), "bottom-left");
 
     registerMapCommands({
@@ -203,6 +188,9 @@ export function MapPanel({ sites, allSites, siteById, state }: {
       setZoomTick(Math.round(map.getZoom() * 10) / 10);
       (map.getSource("sites") as GeoJSONSource).setData(sitesToGeoJSON(sitesRef.current));
       updateOverlays(map, overlaysRef.current);
+      // A persisted Esri choice applies after install; the constructor always
+      // starts from the USGS style so an offline start still renders a map.
+      if (basemapRef.current !== "usgs") void applyBasemap(map, basemapRef.current);
     });
 
     // Keep the canvas sized to the grid cell (panels collapse, drawers open,
@@ -227,6 +215,13 @@ export function MapPanel({ sites, allSites, siteById, state }: {
     if (!map || !loadedRef.current) return;
     updateOverlays(map, state.overlays);
   }, [state.overlays]);
+
+  // Basemap toggles → swap styles; app sources/layers ride across the swap.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !loadedRef.current) return;
+    void applyBasemap(map, state.basemap);
+  }, [state.basemap]);
 
   // Keep the source in sync with the filtered sites.
   const sitesRef = useRef(sites);
