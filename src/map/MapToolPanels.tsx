@@ -3,7 +3,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { MAP_VIEWS } from "../config/mapViews.generated";
-import { OVERLAYS, gatedOverlays } from "./overlays";
+import { OVERLAYS } from "./overlays";
 import { actions, type AppState } from "../state/store";
 import { mapCommands } from "./mapBus";
 
@@ -39,7 +39,6 @@ function ToolPopover({ label, children, ariaLabel }: { label: string; children: 
 
 export function MapToolPanels({ state, zoom }: { state: AppState; zoom: number }) {
   const visibleOverlays = OVERLAYS.filter((d) => state.overlays[d.key]);
-  const gated = gatedOverlays(zoom, state.overlays);
 
   return (
     <>
@@ -64,20 +63,39 @@ export function MapToolPanels({ state, zoom }: { state: AppState; zoom: number }
 
       <ToolPopover label="Layers" ariaLabel="Reference layers">
         <div className="layers-list">
-          {OVERLAYS.map((d) => (
-            <label key={d.key} className="value-option">
-              <input
-                type="checkbox"
-                checked={!!state.overlays[d.key]}
-                onChange={(e) => actions.setOverlay(d.key, e.target.checked)}
-              />
-              <span className="swatch" style={{ background: d.color }} aria-hidden="true" />
-              <span>{d.label}</span>
-            </label>
-          ))}
-          {gated.length > 0 && (
-            <p className="muted gate-note">Zoom in to see: {gated.join(", ")}</p>
-          )}
+          {OVERLAYS.map((d) => {
+            const on = !!state.overlays[d.key];
+            const status = state.overlayStatus[d.key];
+            const gated = on && zoom < d.minZoom;
+            return (
+              <div key={d.key} className="layer-row">
+                <label className="value-option">
+                  <input
+                    type="checkbox"
+                    checked={on}
+                    onChange={(e) => actions.setOverlay(d.key, e.target.checked)}
+                  />
+                  <span className="swatch" style={{ background: d.color }} aria-hidden="true" />
+                  <span>{d.label}</span>
+                </label>
+                {on && (
+                  <span className="ov-status" role="status" data-status={gated ? "gated" : status ?? "idle"}>
+                    {gated ? "zoom in to load" : status === "loading" ? "loading…" : status === "error" ? "failed" : ""}
+                  </span>
+                )}
+                {on && !gated && status === "error" && (
+                  <button
+                    type="button"
+                    className="ov-retry"
+                    aria-label={`Retry loading ${d.label}`}
+                    onClick={() => mapCommands()?.refreshOverlay(d.key)}
+                  >
+                    Retry
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       </ToolPopover>
 

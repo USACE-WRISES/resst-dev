@@ -8,6 +8,8 @@ import { FILTER_DEFS } from "../config/filters.generated";
 import { emptyItemState } from "../filters/engine";
 import type { TabId } from "../config/tabs";
 
+export type OverlayStatus = "loading" | "ready" | "error";
+
 export interface AppState {
   filters: FilterState;
   /** Selected sites — one from a click, several from the box-select tool. */
@@ -21,6 +23,8 @@ export interface AppState {
   boxSelectActive: boolean;
   /** Reference overlay visibility by overlay key (all off by default). */
   overlays: Record<string, boolean>;
+  /** Per-overlay fetch status (entries exist only while an overlay is on and fetchable). */
+  overlayStatus: Record<string, OverlayStatus>;
   /** Which side panel is open as a drawer on narrow screens. */
   mobilePanel: "filters" | "details" | null;
   /** Desktop-only side-panel collapse (the drawers take over on narrow screens). */
@@ -42,6 +46,7 @@ let state: AppState = {
   showSelectionOnly: false,
   boxSelectActive: false,
   overlays: {},
+  overlayStatus: {},
   mobilePanel: null,
   filtersCollapsed: false,
   detailsCollapsed: false,
@@ -117,6 +122,15 @@ export const actions = {
   /** Apply a saved map view's overlay set (the caller also fits the extent). */
   setOverlays(overlays: Record<string, boolean>): void {
     set({ overlays });
+  },
+  /** Written by the overlay fetch pipeline; null clears the entry. */
+  setOverlayStatus(key: string, status: OverlayStatus | null): void {
+    const cur = state.overlayStatus[key] ?? null;
+    if (cur === status) return; // no-op guard: moveend churn must not emit
+    const next = { ...state.overlayStatus };
+    if (status === null) delete next[key];
+    else next[key] = status;
+    set({ overlayStatus: next });
   },
   setActiveTab(tab: TabId): void {
     set({ activeTab: tab });
