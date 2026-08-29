@@ -23,16 +23,19 @@ import { actions, getState, type BasemapId } from "../state/store";
 
 export interface BasemapDef {
   id: BasemapId;
-  /** Footer credit ("Basemap: <label>"). */
+  /** Footer credit ("Basemap: <label>") — the full attribution wording. */
   label: string;
-  /** Toggle-control wording ("Switch basemap to <switchLabel>"). */
-  switchLabel: string;
+  /** Picker wording — the trigger button and the option rows. */
+  shortLabel: string;
 }
 
 export const BASEMAPS: Record<BasemapId, BasemapDef> = {
-  usgs: { id: "usgs", label: "USGS The National Map", switchLabel: "USGS Topo" },
-  esri: { id: "esri", label: "Esri World Topographic Map", switchLabel: "Topographic (Esri)" },
+  usgs: { id: "usgs", label: "USGS The National Map", shortLabel: "USGS Topo" },
+  esri: { id: "esri", label: "Esri World Topographic Map", shortLabel: "Esri Topo" },
 };
+
+/** Display order in the picker (Record iteration order is incidental). */
+export const BASEMAP_ORDER: readonly BasemapId[] = ["usgs", "esri"];
 
 export const DEFAULT_BASEMAP: BasemapId = "usgs";
 
