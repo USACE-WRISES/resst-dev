@@ -5,6 +5,7 @@
 // where the management knowledge lives.
 
 import { useEffect, useState } from "react";
+import type { AppData } from "../../lib/types";
 import { useAppState } from "../../state/store";
 import { ensureCore, getCore } from "../../sediment/data";
 import { formatKm2, formatVolumeAcft } from "../../sediment/format";
@@ -14,8 +15,9 @@ import { ProvBadge, ProvNote } from "./Provenance";
 import { SustainabilitySection } from "./SustainabilitySection";
 import { EvidenceSection, evidenceBadgeFor } from "./EvidenceSection";
 import { NetworkSection } from "./NetworkSection";
+import { ComparablesSection } from "./ComparablesSection";
 
-export function ReservoirDetails({ shortId }: { shortId: string }) {
+export function ReservoirDetails({ shortId, data }: { shortId: string; data: AppData }) {
   useAppState(); // sedimentStamp re-render
   const [error, setError] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
@@ -84,6 +86,9 @@ export function ReservoirDetails({ shortId }: { shortId: string }) {
       </CollapsibleSection>
       <CollapsibleSection id="net" title="Reservoir Network" badge={<ProvBadge kind="network" />}>
         <NetworkSection row={row} />
+      </CollapsibleSection>
+      <CollapsibleSection id="sim" title="Comparable Reservoirs" defaultOpen={false}>
+        <ComparablesSection row={row} data={data} />
       </CollapsibleSection>
     </>
   );

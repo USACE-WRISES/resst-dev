@@ -7,6 +7,7 @@
 // Counters total across the whole selection.
 
 import { useEffect, useState } from "react";
+import type { AppData } from "../lib/types";
 import type { Derived, SelectedSite } from "../state/derive";
 import { NID_DETAIL_FIELDS, SITE_FIELD_LABELS, SITE_ID_FIELDS, SITE_MGMT_FIELDS } from "../config/fields";
 import { actions, type AppState } from "../state/store";
@@ -17,6 +18,7 @@ import { SustainabilitySection } from "./details/SustainabilitySection";
 import { EvidenceSection, evidenceBadgeFor } from "./details/EvidenceSection";
 import { NetworkSection } from "./details/NetworkSection";
 import { ReservoirDetails } from "./details/ReservoirDetails";
+import { ComparablesSection } from "./details/ComparablesSection";
 
 function FieldList({ rows }: { rows: Array<{ label: string; value: string }> }) {
   return (
@@ -39,7 +41,7 @@ function FieldList({ rows }: { rows: Array<{ label: string; value: string }> }) 
   );
 }
 
-function SiteDetails({ current }: { current: SelectedSite }) {
+function SiteDetails({ current, data }: { current: SelectedSite; data: AppData }) {
   const mgmtRows = SITE_MGMT_FIELDS.map((f) => ({
     label: SITE_FIELD_LABELS[f] ?? f,
     value: String(current.site[f] ?? ""),
@@ -107,6 +109,9 @@ function SiteDetails({ current }: { current: SelectedSite }) {
           <CollapsibleSection id="net" title="Reservoir Network" badge={<ProvBadge kind="network" />}>
             <NetworkSection row={current.reservoirRow} />
           </CollapsibleSection>
+          <CollapsibleSection id="sim" title="Comparable Reservoirs" defaultOpen={false}>
+            <ComparablesSection row={current.reservoirRow} data={data} />
+          </CollapsibleSection>
         </>
       ) : (
         <p className="muted sediment-note">
@@ -132,7 +137,7 @@ function SiteDetails({ current }: { current: SelectedSite }) {
   );
 }
 
-export function DetailsPanel({ derived, state }: { derived: Derived; state: AppState }) {
+export function DetailsPanel({ derived, state, data }: { derived: Derived; state: AppState; data: AppData }) {
   const selected = derived.selection.sites;
   const selectedReservoir = state.selectedReservoirId;
   const [page, setPage] = useState(0);
@@ -152,7 +157,7 @@ export function DetailsPanel({ derived, state }: { derived: Derived; state: AppS
         </span>
       </div>
       {selected.length === 0 && selectedReservoir ? (
-        <ReservoirDetails shortId={selectedReservoir} />
+        <ReservoirDetails shortId={selectedReservoir} data={data} />
       ) : selected.length === 0 ? (
         <p className="muted empty-note">
           Select a site on the map or in the Sites table — or use the map's Select menu to pick sites by box, drawn
@@ -186,7 +191,7 @@ export function DetailsPanel({ derived, state }: { derived: Derived; state: AppS
               </button>
             </div>
           )}
-          {current && <SiteDetails current={current} />}
+          {current && <SiteDetails current={current} data={data} />}
         </>
       )}
       <div className="selected-counts" aria-live="polite">
