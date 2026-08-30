@@ -9,13 +9,14 @@
 import { useEffect, useState } from "react";
 import type { Derived, SelectedSite } from "../state/derive";
 import { NID_DETAIL_FIELDS, SITE_FIELD_LABELS, SITE_ID_FIELDS, SITE_MGMT_FIELDS } from "../config/fields";
-import { actions } from "../state/store";
+import { actions, type AppState } from "../state/store";
 import { PROVENANCE } from "../sediment/types";
 import { CollapsibleSection } from "./details/CollapsibleSection";
 import { ProvBadge, ProvNote } from "./details/Provenance";
 import { SustainabilitySection } from "./details/SustainabilitySection";
-import { EvidenceSection, evidenceBadge } from "./details/EvidenceSection";
+import { EvidenceSection, evidenceBadgeFor } from "./details/EvidenceSection";
 import { NetworkSection } from "./details/NetworkSection";
+import { ReservoirDetails } from "./details/ReservoirDetails";
 
 function FieldList({ rows }: { rows: Array<{ label: string; value: string }> }) {
   return (
@@ -84,10 +85,24 @@ function SiteDetails({ current }: { current: SelectedSite }) {
       {current.sedimentLink ? (
         <>
           <CollapsibleSection id="sust" title="Reservoir Sustainability" badge={<ProvBadge kind="modeled" />}>
-            <SustainabilitySection selected={current} />
+            <SustainabilitySection
+              name={current.site.site_name}
+              row={current.reservoirRow}
+              link={current.sedimentLink}
+              hasSurveys={current.sedimentLink.has_surveys}
+            />
           </CollapsibleSection>
-          <CollapsibleSection id="evid" title="Evidence" defaultOpen={false} badge={evidenceBadge(current.sedimentLink)}>
-            <EvidenceSection selected={current} />
+          <CollapsibleSection
+            id="evid"
+            title="Evidence"
+            defaultOpen={false}
+            badge={evidenceBadgeFor(current.sedimentLink.has_surveys, current.sedimentLink.latest_survey_year)}
+          >
+            <EvidenceSection
+              row={current.reservoirRow}
+              hasSurveys={current.sedimentLink.has_surveys}
+              latestYear={current.sedimentLink.latest_survey_year}
+            />
           </CollapsibleSection>
           <CollapsibleSection id="net" title="Reservoir Network" badge={<ProvBadge kind="network" />}>
             <NetworkSection row={current.reservoirRow} />
@@ -117,8 +132,9 @@ function SiteDetails({ current }: { current: SelectedSite }) {
   );
 }
 
-export function DetailsPanel({ derived }: { derived: Derived }) {
+export function DetailsPanel({ derived, state }: { derived: Derived; state: AppState }) {
   const selected = derived.selection.sites;
+  const selectedReservoir = state.selectedReservoirId;
   const [page, setPage] = useState(0);
   useEffect(() => setPage(0), [selected.length && selected[0]?.site.site_id]);
   const current = selected[Math.min(page, selected.length - 1)];
@@ -128,14 +144,16 @@ export function DetailsPanel({ derived }: { derived: Derived }) {
       <div className="panel-title-row">
         <h2>Selected Data</h2>
         <span className="panel-title-tools">
-          {selected.length > 0 && (
+          {(selected.length > 0 || selectedReservoir) && (
             <button type="button" className="linklike" onClick={() => actions.clearSelection()}>
               Clear
             </button>
           )}
         </span>
       </div>
-      {selected.length === 0 ? (
+      {selected.length === 0 && selectedReservoir ? (
+        <ReservoirDetails shortId={selectedReservoir} />
+      ) : selected.length === 0 ? (
         <p className="muted empty-note">
           Select a site on the map or in the Sites table — or use the map's Select menu to pick sites by box, drawn
           polygon, watershed (HUC), or distance from a river — to see site details, literature, and National Inventory

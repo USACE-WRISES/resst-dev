@@ -1,37 +1,43 @@
 // "How certain are we?" — separates what was MEASURED (RESSED bathymetric
 // surveys) from what is MODELED (everything in the Sustainability section).
-// The section badge classifies the evidence even while collapsed.
+// Works for crosswalked sites (badge year known at boot) and national-layer
+// reservoirs (badge year fills in once the survey slice loads). The section
+// badge classifies the evidence even while collapsed.
 
-import { useEffect, useState } from "react";
-import type { SelectedSite } from "../../state/derive";
+import { useEffect, useState, type ReactNode } from "react";
 import { useAppState } from "../../state/store";
 import { ensureSurveys, surveysForRow } from "../../sediment/data";
 import { formatVolumeAcft } from "../../sediment/format";
-import { PROVENANCE, type SiteSedimentLink } from "../../sediment/types";
+import { PROVENANCE } from "../../sediment/types";
 import { ProvBadge, ProvNote } from "./Provenance";
 
-/** Section-header badge — renders from boot data, before any lazy load. */
-export function evidenceBadge(link: SiteSedimentLink) {
-  if (!link.has_surveys) return <ProvBadge kind="modeled" label="Modeled only" />;
-  return <ProvBadge kind="measured" label={link.latest_survey_year ? `Measured · ${link.latest_survey_year}` : "Measured"} />;
+/** Section-header badge — renders before any lazy load when latestYear is known. */
+export function evidenceBadgeFor(hasSurveys: boolean, latestYear: number | null | undefined): ReactNode {
+  if (!hasSurveys) return <ProvBadge kind="modeled" label="Modeled only" />;
+  return <ProvBadge kind="measured" label={latestYear ? `Measured · ${latestYear}` : "Measured"} />;
 }
 
-export function EvidenceSection({ selected }: { selected: SelectedSite }) {
-  const link = selected.sedimentLink;
-  const row = selected.reservoirRow;
+export function EvidenceSection({
+  row,
+  hasSurveys,
+  latestYear,
+}: {
+  row: number | null;
+  hasSurveys: boolean;
+  /** Most recent survey year when known at render time (site links carry it). */
+  latestYear?: number | null;
+}) {
   useAppState(); // re-render on sedimentStamp
   const [error, setError] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
-    if (!link?.has_surveys) return;
+    if (!hasSurveys) return;
     setError(false);
     ensureSurveys().catch(() => setError(true));
-  }, [link, retryKey]);
+  }, [hasSurveys, retryKey]);
 
-  if (!link) return null;
-
-  if (!link.has_surveys) {
+  if (!hasSurveys) {
     return (
       <>
         <p className="muted">
@@ -44,10 +50,8 @@ export function EvidenceSection({ selected }: { selected: SelectedSite }) {
   }
 
   const surveys = row != null ? surveysForRow(row) : null;
-  const recency =
-    link.latest_survey_year != null && link.latest_survey_year >= 2000
-      ? "a relatively recent measured survey"
-      : "older measured surveys";
+  const newest = latestYear ?? (surveys?.length ? surveys[surveys.length - 1].year : null);
+  const recency = newest != null && newest >= 2000 ? "a relatively recent measured survey" : "older measured surveys";
   return (
     <>
       <p className="evidence-intro">

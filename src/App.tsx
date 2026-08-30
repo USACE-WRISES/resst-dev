@@ -94,12 +94,18 @@ export default function App() {
           className={state.tableCollapsed ? "center-stack table-collapsed" : "center-stack"}
           style={tableRowStyle}
         >
-          <MapPanel sites={derived.sites} allSites={data.sites} siteById={data.siteById} state={state} />
+          <MapPanel
+            sites={derived.sites}
+            allSites={data.sites}
+            siteById={data.siteById}
+            siteByShortId={data.siteByShortId}
+            state={state}
+          />
           <TableResizer collapsed={state.tableCollapsed} heightFrac={state.tableHeightFrac} />
           <TablePanel derived={derived} state={state} />
         </div>
         <div className={state.mobilePanel === "details" ? "panel-slot details open" : "panel-slot details"}>
-          <DetailsPanel derived={derived} />
+          <DetailsPanel derived={derived} state={state} />
         </div>
         {/* Desktop-only edge pills (the original app's sidebar toggles) — the
             drawers own the narrow-screen experience, so CSS hides these ≤1100px. */}
