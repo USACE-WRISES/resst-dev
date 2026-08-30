@@ -7,6 +7,7 @@ import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { stubEsri } from "./helpers/esriStub";
 import { stubSediment } from "./helpers/sedimentFixtures";
+import { openDetailSection } from "./helpers/sections";
 
 async function openWithLayer(page: Page) {
   await stubEsri(page);
@@ -73,6 +74,7 @@ test("clicking an undocumented dam opens ReservoirDetails; a documented dam rout
   await expect(details).toContainText("Lone Reservoir");
   await expect(details).toContainText("no documented RESST sediment-management record");
   await expect(details).toContainText("Reservoir Sustainability");
+  await openDetailSection(page, "Reservoir Sustainability");
   await expect(details.locator("#detail-sec-sust")).toContainText("Est. capacity lost (2025)");
   await expect(details).toContainText("Reservoir Network");
   await expect(details.locator("#detail-sec-lit")).toHaveCount(0); // no literature section for reservoirs

@@ -7,6 +7,7 @@ import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { stubEsri } from "./helpers/esriStub";
 import { stubSediment } from "./helpers/sedimentFixtures";
+import { openDetailSection } from "./helpers/sections";
 
 const PHONE = { width: 390, height: 844 };
 
@@ -38,6 +39,7 @@ test("phone: a site's sediment sections render inside the details drawer", async
   await expect(details).toBeVisible();
   await expect(details).toContainText("Sediment Management");
   await expect(details).toContainText("Reservoir Sustainability");
+  await openDetailSection(page, "Reservoir Sustainability");
   const svg = details.locator(".traj-chart svg");
   await svg.scrollIntoViewIfNeeded();
   await expect(svg).toBeVisible();
@@ -47,7 +49,7 @@ test("phone: a site's sediment sections render inside the details drawer", async
   expect(box.x + box.width).toBeLessThanOrEqual(PHONE.width + 1);
   const results = await new AxeBuilder({ page }).exclude(".maplibregl-canvas").analyze();
   const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
-  expect(serious.map((v) => `${v.id}: ${v.nodes.length} nodes`)).toEqual([]);
+  expect(serious.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`)).toEqual([]);
 });
 
 test("phone: tapping a national reservoir counts on the bar and opens ReservoirDetails", async ({ page }) => {

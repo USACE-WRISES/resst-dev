@@ -2,6 +2,7 @@
 // Baselines come from the live Experience Builder capture (assessment §4).
 import { test, expect, type Page } from "@playwright/test";
 import { stubEsri, waitForBasemap } from "./helpers/esriStub";
+import { openDetailSection } from "./helpers/sections";
 
 async function openApp(page: Page): Promise<void> {
   await stubEsri(page); // the default basemap boots from Esri endpoints — keep CI hermetic
@@ -53,7 +54,8 @@ test("selecting Tuttle Creek shows its literature and NID record", async ({ page
   await page.locator(".data-table tbody tr", { hasText: "Tuttle Creek" }).first().click();
   const details = page.locator(".details-panel");
   await expect(details).toContainText("Tuttle Creek");
-  await expect(details).toContainText("Site Literature (6)");
+  await expect(details).toContainText("Site Literature (6)"); // header (with count) reads while collapsed
+  await openDetailSection(page, "Site Literature");
   await expect(details).toContainText("Tuttle Creek Dam - Blue Rapids Levee");
   await expect(details).toContainText("Selected Sites: 1");
 });
