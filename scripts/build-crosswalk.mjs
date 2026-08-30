@@ -46,12 +46,16 @@ const resnet = (await readCsvFile("data/resnet/database/ResNet.csv"))
   }));
 const byNid = new Map(resnet.map((r) => [r.nid, r]));
 
-// Preserve curated rows from a previous run.
+// Preserve curated rows from a previous run — and keep the notes column on
+// auto rows too: notes are curation metadata (review hints, duplicate-pair
+// annotations), not derived data, so a regeneration must not erase them.
 let preserved = [];
+const priorNotes = new Map();
 try {
   await access(OUT);
   const existing = await readCsvFile(OUT);
   preserved = existing.filter((r) => r.status !== "auto" || r.method === "manual");
+  for (const r of existing) if (r.status === "auto" && r.notes) priorNotes.set(r.site_id, r.notes);
 } catch {
   /* first run — nothing to preserve */
 }
@@ -96,7 +100,7 @@ for (const site of sites) {
         distance_m: d,
         name_score: "",
         status: "auto",
-        notes: "",
+        notes: priorNotes.get(site.site_id) ?? "",
       });
       counts.nid++;
       continue;
@@ -143,7 +147,7 @@ for (const site of sites) {
     distance_m: Math.round(best.d),
     name_score: best.score.toFixed(2),
     status: "auto",
-    notes: "",
+    notes: priorNotes.get(site.site_id) ?? "",
   });
 }
 
