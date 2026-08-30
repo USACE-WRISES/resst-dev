@@ -71,9 +71,16 @@ test("help overlay shows the five workflows in the dense layout", async ({ page 
   await openApp(page);
   await page.getByRole("button", { name: "Help" }).click();
   const pills = page.locator(".help-pills .pill");
-  await expect(pills).toHaveText(["About", "By Reservoir", "By HUC", "By River", "By Category"]);
+  await expect(pills).toHaveText([
+    "About",
+    "Assess a Reservoir",
+    "Find Analogs",
+    "Screen Nationally",
+    "By Region & River",
+    "By Category",
+  ]);
   await pills.nth(1).click();
-  await expect(page.locator(".help-title")).toContainText("Targeted Reservoir Analysis");
+  await expect(page.locator(".help-title")).toContainText("Reservoir Sediment Assessment");
   await expect(page.locator(".help-image")).toBeVisible();
   // Regression guards for the old overflow bug: the dialog fits the viewport…
   const box = await page.locator(".help-dialog").boundingBox();

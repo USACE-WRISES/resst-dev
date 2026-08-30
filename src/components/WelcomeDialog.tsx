@@ -1,6 +1,7 @@
 // Welcome dialog — text ported verbatim from the current application's
 // splash (captured live 2026-08-28), with the same "Don't show this again"
-// behavior implemented via localStorage.
+// behavior implemented via localStorage. One sentence was appended for the
+// sedimentation expansion (PARITY row 26).
 
 import { useState } from "react";
 import { actions } from "../state/store";
@@ -19,7 +20,9 @@ export function WelcomeDialog() {
           intended to support reservoir managers and environmental engineers by providing a centralized, searchable
           resource to explore precedent projects, sediment management strategies, ecological concerns, and analytical
           methods across sites and regions. ReSST allows users to interact with an interactive map, apply keyword-based
-          filters, review sites and general literature, and export results for analysis. Workflow examples are available
+          filters, review sites and general literature, and export results for analysis. ReSST also places the
+          documented sites in national context: modeled reservoir sedimentation (RATTES), measured surveys (RESSED),
+          and the connected dam network (ResNet) for more than 57,000 U.S. reservoirs. Workflow examples are available
           in the Help button on the toolbar.
         </p>
         <div className="dialog-actions">

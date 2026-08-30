@@ -101,13 +101,52 @@ async function main() {
       await shoot(page, "about");
     }
 
-    console.log("by-reservoir — Tuttle Creek selected with popup and details");
+    console.log("assess — Big Tujunga with the trajectory chart and measured surveys in view");
     {
       const page = await openApp(browser);
+      await page.locator(".table-panel input").first().fill("Big Tujunga");
+      await page.locator(".data-table tbody tr", { hasText: "Big Tujunga" }).first().click();
+      await page.locator(".maplibregl-popup").waitFor();
+      await page.locator(".traj-chart svg").waitFor({ timeout: 60_000 }); // chunk + surveys resident
+      await page.locator(".traj-survey").first().waitFor(); // measured dots plotted
+      await page.evaluate(() => document.querySelector(".traj-chart")?.scrollIntoView({ block: "center" }));
+      await mapSettled(page); // the flyTo lands
+      await shoot(page, "assess");
+    }
+
+    console.log("analogs — Tuttle Creek's comparable reservoirs");
+    {
+      const page = await openApp(browser);
+      await page.locator(".table-panel input").first().fill("Tuttle");
       await page.locator(".data-table tbody tr", { hasText: "Tuttle Creek" }).first().click();
       await page.locator(".maplibregl-popup").waitFor();
-      await mapSettled(page); // the flyTo lands
-      await shoot(page, "by-reservoir");
+      await page.locator(".detail-sec-head", { hasText: "Comparable Reservoirs" }).click();
+      await page.getByRole("button", { name: "Find similar reservoirs" }).click();
+      await page.locator(".sim-list .sim-row").first().waitFor({ timeout: 60_000 });
+      await page.evaluate(() => document.querySelector(".sim-group")?.scrollIntoView({ block: "start" }));
+      await mapSettled(page);
+      await shoot(page, "analogs");
+    }
+
+    console.log("screen — the national layer with a gap-analysis preset applied");
+    {
+      const page = await openApp(browser);
+      await page.getByRole("button", { name: "Layers" }).click();
+      await page.getByRole("checkbox", { name: /All modeled reservoirs/ }).check();
+      await page.waitForFunction(
+        async () => {
+          const src = window.__resstMap.getSource("nat-reservoirs");
+          return !!src && (await src.getData()).features.length > 50_000;
+        },
+        undefined,
+        { timeout: 60_000 },
+      );
+      await page.keyboard.press("Escape");
+      await page.getByRole("button", { name: /^Screening/ }).click();
+      await page.getByRole("button", { name: "Undocumented + high sedimentation" }).click();
+      await page.locator(".screen-count").getByText(/of .* modeled reservoirs match/).waitFor();
+      await mapSettled(page);
+      await shoot(page, "screen");
     }
 
     console.log("by-huc — a HUC-4 basin selected by click");
@@ -120,44 +159,6 @@ async function main() {
       await page.locator(".details-panel .selected-counts").getByText(/Selected Sites: [1-9]/).waitFor({ timeout: 60_000 });
       await mapSettled(page);
       await shoot(page, "by-huc");
-    }
-
-    console.log("by-river — sites within 10 miles of a clicked river");
-    {
-      const page = await openApp(browser);
-      await jumpTo(page, [-94.9, 39.7], 6.5); // the Missouri River bend — sites line its banks
-      await armTool(page, /^Near a river/);
-      await overlayReady(page, "rivers");
-      // Click an actual fetched vertex of the Missouri River itself (fall back
-      // to whichever named river is nearest center), so the shot shows a
-      // corridor that catches sites.
-      const target = await page.evaluate(() => {
-        const m = window.__resstMap;
-        const data = m.getSource("ov-rivers").serialize().data;
-        const c = m.getCenter();
-        let best = null;
-        let bestD = Infinity;
-        for (const f of data.features) {
-          const name = String(f.properties?.NameEn ?? "").trim();
-          if (!name) continue;
-          const preferred = name === "Missouri River";
-          for (const part of f.geometry.coordinates) {
-            for (const [lon, lat] of part) {
-              const d = ((lon - c.lng) ** 2 + (lat - c.lat) ** 2) * (preferred ? 1e-6 : 1);
-              if (d < bestD) {
-                bestD = d;
-                best = [lon, lat];
-              }
-            }
-          }
-        }
-        return best;
-      });
-      if (!target) throw new Error("no named river in view — adjust the by-river camera");
-      await clickLngLat(page, target[0], target[1]);
-      await page.locator(".map-hint-bar").getByText(/\d+ sites? within 10 mi of/).waitFor({ timeout: 60_000 });
-      await mapSettled(page);
-      await shoot(page, "by-river");
     }
 
     console.log("by-category — filtered to Sediment Release = Dam Removal");
