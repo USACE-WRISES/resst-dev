@@ -1,7 +1,7 @@
 {
   "counts": {
-    "surveyReservoirs": 1861,
-    "surveys": 6813,
+    "surveyReservoirs": 2051,
+    "surveys": 7643,
     "siteLinks": 364,
     "inventory": 57452,
     "trajectories": 57307,
@@ -9,7 +9,7 @@
     "capXRows": 28
   },
   "sha256": {
-    "inventory.json": "1a75ab3990eea872",
+    "inventory.json": "204a1a03e51bc2f2",
     "trajectories/traj-00.json": "c5a8be77be0c13a0",
     "trajectories/traj-01.json": "fa6b8392a5eab0f7",
     "trajectories/traj-02.json": "fedcff41b964a446",
@@ -74,7 +74,7 @@
     "trajectories/traj-61.json": "b2a50f37d0802a13",
     "trajectories/traj-62.json": "100bcc3086264c85",
     "trajectories/traj-63.json": "7f765e1df29d3070",
-    "surveys.json": "6c2842615865897a",
-    "sites.json": "9bbab936d42c9de3"
+    "surveys.json": "ea460e046cc2f48f",
+    "sites.json": "0325e475f3d518ed"
   }
 }

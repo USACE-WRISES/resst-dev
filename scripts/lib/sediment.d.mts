@@ -39,7 +39,9 @@ export interface RessedReservoir {
 }
 export function normalizeRessed(json: unknown): {
   reservoirs: RessedReservoir[];
-  dropped: { badYear: number; emptySurvey: number };
+  dropped: { badYear: number };
+  /** Surveys kept with a date but no public stat values. */
+  dateOnly: number;
 };
 export function dedupeRessedNids(reservoirs: readonly RessedReservoir[]): Map<string, number>;
 

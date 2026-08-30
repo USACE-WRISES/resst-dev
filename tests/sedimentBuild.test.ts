@@ -125,7 +125,7 @@ describe("normalizeRessed", () => {
         },
       ]),
     );
-    expect(dropped).toEqual({ badYear: 0, emptySurvey: 0 });
+    expect(dropped).toEqual({ badYear: 0 });
     expect(reservoirs).toHaveLength(1);
     const r = reservoirs[0];
     expect(r.nid).toBe("ID00279");
@@ -136,8 +136,8 @@ describe("normalizeRessed", () => {
     expect(r.surveys[0].area).toBeNull();
   });
 
-  it("drops artifact years, stat-less surveys, and keeps first duplicate stat", () => {
-    const { reservoirs, dropped } = normalizeRessed(
+  it("drops artifact years, keeps stat-less surveys as date-only evidence, keeps first duplicate stat", () => {
+    const { reservoirs, dropped, dateOnly } = normalizeRessed(
       wrap([
         {
           reservoir_id: "9",
@@ -157,9 +157,11 @@ describe("normalizeRessed", () => {
         },
       ]),
     );
-    expect(dropped).toEqual({ badYear: 1, emptySurvey: 1 });
-    expect(reservoirs[0].surveys).toHaveLength(1);
-    expect(reservoirs[0].surveys[0].cap).toBeCloseTo(100 * ACFT_TO_M3, 6);
+    expect(dropped).toEqual({ badYear: 1 });
+    expect(dateOnly).toBe(1); // the 1960 survey has no workhorse stat but keeps its date
+    expect(reservoirs[0].surveys).toHaveLength(2);
+    expect(reservoirs[0].surveys[0].cap).toBeCloseTo(100 * ACFT_TO_M3, 6); // 1950 first (date-sorted)
+    expect(reservoirs[0].surveys[1]).toMatchObject({ year: 1960, cap: null, area: null, sedTot: null, dryWt: null });
   });
 });
 

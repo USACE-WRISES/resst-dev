@@ -70,7 +70,9 @@ export const NID_DETAIL_FIELDS: Array<{ field: string; label: string }> = [
   { field: "website_url", label: "Website" },
 ];
 
-/** Site popup / detail fields, ported from the web map popupInfo. */
+/** Site popup / detail fields, ported from the web map popupInfo. The map
+ *  popup keeps this full unsplit list (parity); the details panel splits it
+ *  into the two groups below. */
 export const SITE_DETAIL_FIELDS = [
   "site_name",
   "nid_id",
@@ -82,3 +84,9 @@ export const SITE_DETAIL_FIELDS = [
   "ecological_concern",
   "analysis",
 ] as const;
+
+/** Identity/location attributes — the panel's first section. */
+export const SITE_ID_FIELDS = ["nid_id", "responsible_districtagency", "address", "city", "site_type"] as const;
+
+/** Team-documented management keywords — the panel's Sediment Management section. */
+export const SITE_MGMT_FIELDS = ["sediment_release", "ecological_concern", "analysis"] as const;

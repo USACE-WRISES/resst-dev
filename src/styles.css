@@ -12,6 +12,9 @@
   --line: #d8e0e6;
   --accent: #17607a;
   --accent-soft: #d9e9ef;
+  /* trajectory chart series (see src/sediment/chartGeom.ts + TrajectoryChart) */
+  --chart-capacity: #17607a;
+  --chart-sediment: #7a6a52;
   --select: #00a0b0;
   --danger: #a4373a;
   --header-h: 52px;
@@ -129,6 +132,73 @@ button { font: inherit; color: inherit; }
 .lit-doi { font-size: 12px; word-break: break-all; }
 .empty-note { padding: 4px 2px; }
 .muted { color: var(--ink-3); }
+
+/* ---------- sedimentation sections (details panel) ---------- */
+.sec-h { margin: 0; }
+.detail-sec-head { display: flex; align-items: center; gap: 6px; width: 100%; background: none; border: 0; padding: 0; font: inherit; font-size: 14px; font-weight: 600; color: var(--ink); cursor: pointer; text-align: left; }
+.detail-sec-head:hover .sec-title { text-decoration: underline; }
+.sec-caret { color: var(--ink-3); font-size: 11px; width: 11px; flex: none; }
+.sec-title { min-width: 0; }
+.detail-sec-head .prov-badge { margin-left: auto; }
+.sec-body { margin-top: 8px; }
+.sec-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-3); margin: 8px 0 0; }
+.sec-status[data-status="loading"]::before { content: ""; flex: none; width: 10px; height: 10px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: ov-spin 1s linear infinite; }
+.sec-status[data-status="error"] { color: #b3261e; }
+.sediment-note { font-size: 12px; padding: 2px 2px 0; }
+
+/* provenance labeling — the measured-vs-modeled rule as components */
+.prov-badge { display: inline-block; padding: 1px 7px; border-radius: 9px; font-size: 10.5px; font-weight: 600; letter-spacing: .02em; white-space: nowrap; background: var(--panel); color: var(--ink-2); border: 1px solid var(--line); }
+.prov-badge[data-type="modeled"] { background: #efe7f5; border-color: #d9c7e8; color: #53386e; }
+.prov-badge[data-type="measured"] { background: #e3efe3; border-color: #c8dfc8; color: #2b552d; }
+.prov-badge[data-type="network"] { background: var(--accent-soft); border-color: #bcd9e4; color: #144d61; }
+.prov-badge[data-type="reported"] { background: #fdf3e0; border-color: #ecd9b0; color: #6d511a; }
+.prov-note { margin: 8px 0 0; font-size: 11.5px; color: var(--ink-3); }
+.prov-info { position: relative; display: inline-block; margin-left: 4px; }
+.prov-info-btn { border: 0; background: none; color: var(--accent); cursor: pointer; font-size: 12px; padding: 0 2px; line-height: 1; }
+.prov-pop { position: absolute; right: 0; bottom: calc(100% + 4px); z-index: 30; width: 240px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 6px 18px rgba(16, 42, 67, .18); padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink); }
+.prov-pop a { word-break: break-all; }
+
+/* sustainability headline stats */
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; margin: 0 0 6px; }
+.stat-cell { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.stat-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-3); }
+.stat-value { font-size: 13px; font-weight: 600; color: var(--ink); }
+.stat-big .stat-value { font-size: 20px; }
+
+/* trajectory chart */
+.traj-chart { margin: 6px 0 0; }
+.traj-chart svg { width: 100%; height: auto; display: block; }
+.traj-projected { fill: var(--panel); }
+.traj-grid { stroke: var(--line); stroke-width: .5; }
+.traj-tick { font-size: 8.5px; fill: var(--ink-3); }
+.traj-unit { font-style: italic; }
+.traj-cap { fill: none; stroke: var(--chart-capacity); stroke-width: 2; stroke-linejoin: round; }
+.traj-cap.dashed { stroke-dasharray: 4 3; }
+.traj-sed-area { fill: var(--chart-sediment); opacity: .22; }
+.traj-sed-line { fill: none; stroke: var(--chart-sediment); stroke-width: 1.25; stroke-dasharray: 1.5 2.2; }
+.traj-orig { stroke: var(--ink-3); stroke-width: .75; stroke-dasharray: 5 3; }
+.traj-whisker line { stroke: var(--chart-capacity); stroke-width: 1; }
+.traj-survey { fill: var(--ink); stroke: #fff; stroke-width: 1.5; }
+.traj-projlabel { font-size: 8px; fill: var(--ink-3); }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 4px 0 0; font-size: 11px; color: var(--ink-2); }
+.chart-legend i { display: inline-block; vertical-align: -1px; margin-right: 4px; }
+.chart-legend .lg-cap { width: 14px; height: 0; border-top: 2px solid var(--chart-capacity); vertical-align: 3px; }
+.lg-sed { width: 12px; height: 8px; background: rgba(122, 106, 82, .25); border: 1px dotted var(--chart-sediment); }
+.lg-survey { width: 7px; height: 7px; border-radius: 50%; background: var(--ink); border: 1.5px solid #fff; box-shadow: 0 0 0 1px var(--line); }
+.chart-data { margin-top: 4px; }
+.chart-data summary { cursor: pointer; color: var(--accent); font-size: 11.5px; }
+.chart-data table { border-collapse: collapse; margin-top: 4px; width: 100%; }
+.chart-data th, .chart-data td { text-align: right; padding: 2px 6px; border-bottom: 1px solid var(--panel); font-size: 11px; font-variant-numeric: tabular-nums; }
+.chart-data th:first-child, .chart-data td:first-child { text-align: left; }
+.chart-data p { margin: 4px 0 0; font-size: 10.5px; }
+
+/* evidence */
+.evidence-intro { margin: 0 0 6px; font-size: 12.5px; }
+.survey-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; max-height: 220px; overflow-y: auto; }
+.survey-list li { border-bottom: 1px solid var(--panel); padding-bottom: 3px; }
+
+.footer-vintage { color: var(--ink-3); }
+@media (max-width: 760px) { .footer-vintage { display: none; } }
 
 /* ---------- map ---------- */
 .map-panel-wrap { position: relative; min-height: 0; }

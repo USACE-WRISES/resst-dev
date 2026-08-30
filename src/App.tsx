@@ -157,6 +157,7 @@ export default function App() {
         <span>
           Data as of {new Date(data.manifest.generated).toLocaleDateString()} · {data.sites.length.toLocaleString()} sites ·{" "}
           {data.entries.length.toLocaleString()} literature entries
+          <span className="footer-vintage"> · RATTES v1.2 (2026) · ResNet v1 (2025) · RESSED (2013)</span>
         </span>
         <span>Basemap: {BASEMAPS[state.basemap].label}</span>
       </footer>

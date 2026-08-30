@@ -105,7 +105,11 @@ export interface SiteSedimentLink {
   cap2025_m3: number | null;
   sed2025_m3: number | null;
   sed2015_m3: number | null;
+  cap2050_m3: number | null;
+  sed2050_m3: number | null;
   has_surveys: boolean;
+  /** Most recent RESSED survey year (null when has_surveys is false). */
+  latest_survey_year: number | null;
 }
 
 export type ProvenanceType =

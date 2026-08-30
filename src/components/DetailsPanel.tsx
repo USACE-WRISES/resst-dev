@@ -1,13 +1,20 @@
 // The Selected Data panel (right side): pages through the selected sites —
 // one at a time with Previous/Next, mirroring the Experience Builder
-// feature-info pager — showing each site's attributes, linked literature
-// entries, and its National Inventory of Dams record from the repo snapshot
-// (decisions D6/D8). Counters total across the whole selection.
+// feature-info pager. Section order puts the team-collected data first
+// (attributes → Sediment Management → Site Literature), then the modeled
+// national context for crosswalked sites (Reservoir Sustainability →
+// Evidence), then the NID reference record (collapsed by default).
+// Counters total across the whole selection.
 
 import { useEffect, useState } from "react";
-import type { Derived } from "../state/derive";
-import { NID_DETAIL_FIELDS, SITE_DETAIL_FIELDS, SITE_FIELD_LABELS } from "../config/fields";
+import type { Derived, SelectedSite } from "../state/derive";
+import { NID_DETAIL_FIELDS, SITE_FIELD_LABELS, SITE_ID_FIELDS, SITE_MGMT_FIELDS } from "../config/fields";
 import { actions } from "../state/store";
+import { PROVENANCE } from "../sediment/types";
+import { CollapsibleSection } from "./details/CollapsibleSection";
+import { ProvBadge, ProvNote } from "./details/Provenance";
+import { SustainabilitySection } from "./details/SustainabilitySection";
+import { EvidenceSection, evidenceBadge } from "./details/EvidenceSection";
 
 function FieldList({ rows }: { rows: Array<{ label: string; value: string }> }) {
   return (
@@ -27,6 +34,82 @@ function FieldList({ rows }: { rows: Array<{ label: string; value: string }> }) 
           </div>
         ))}
     </dl>
+  );
+}
+
+function SiteDetails({ current }: { current: SelectedSite }) {
+  const mgmtRows = SITE_MGMT_FIELDS.map((f) => ({
+    label: SITE_FIELD_LABELS[f] ?? f,
+    value: String(current.site[f] ?? ""),
+  }));
+  return (
+    <>
+      <section className="detail-section">
+        <h3>{current.site.site_name}</h3>
+        <FieldList
+          rows={SITE_ID_FIELDS.map((f) => ({
+            label: SITE_FIELD_LABELS[f] ?? f,
+            value: String(current.site[f] ?? ""),
+          }))}
+        />
+      </section>
+      <CollapsibleSection id="mgmt" title="Sediment Management" badge={<ProvBadge kind="reported" />}>
+        {mgmtRows.every((r) => r.value === "") ? (
+          <p className="muted">No sediment management keywords are recorded for this site.</p>
+        ) : (
+          <FieldList rows={mgmtRows} />
+        )}
+        <ProvNote text="Documented by the RESST team from project records and literature" group={PROVENANCE.resst} />
+      </CollapsibleSection>
+      <CollapsibleSection id="lit" title={`Site Literature (${current.entries.length})`}>
+        {current.entries.length === 0 ? (
+          <p className="muted">No literature entries are linked to this site.</p>
+        ) : (
+          <ul className="lit-list">
+            {current.entries.map((e) => (
+              <li key={e.entry_id}>
+                <span className="lit-title">{e.title || "(untitled)"}</span>
+                <span className="lit-meta">{[e.author, e.year, e.document_type].filter(Boolean).join(" · ")}</span>
+                {e.doi && /^https?:\/\//i.test(e.doi) && (
+                  <a className="lit-doi" href={e.doi} target="_blank" rel="noopener noreferrer">
+                    {e.doi}
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </CollapsibleSection>
+      {current.sedimentLink ? (
+        <>
+          <CollapsibleSection id="sust" title="Reservoir Sustainability" badge={<ProvBadge kind="modeled" />}>
+            <SustainabilitySection selected={current} />
+          </CollapsibleSection>
+          <CollapsibleSection id="evid" title="Evidence" defaultOpen={false} badge={evidenceBadge(current.sedimentLink)}>
+            <EvidenceSection selected={current} />
+          </CollapsibleSection>
+        </>
+      ) : (
+        <p className="muted sediment-note">
+          National sedimentation modeling (RATTES/ResNet) covers large CONUS dams; this site is not linked to a
+          modeled reservoir.
+        </p>
+      )}
+      <CollapsibleSection id="nid" title="National Inventory of Dams" defaultOpen={false}>
+        {!current.site.nid_id ? (
+          <p className="muted">This site has no NID ID recorded.</p>
+        ) : !current.nid ? (
+          <p className="muted">No NID record found for ID “{current.site.nid_id}”.</p>
+        ) : (
+          <FieldList
+            rows={NID_DETAIL_FIELDS.map((f) => ({
+              label: f.label,
+              value: current.nid![f.field as keyof typeof current.nid] ?? "",
+            }))}
+          />
+        )}
+      </CollapsibleSection>
+    </>
   );
 }
 
@@ -81,54 +164,7 @@ export function DetailsPanel({ derived }: { derived: Derived }) {
               </button>
             </div>
           )}
-          {current && (
-            <>
-              <section className="detail-section">
-                <h3>{current.site.site_name}</h3>
-                <FieldList
-                  rows={SITE_DETAIL_FIELDS.filter((f) => f !== "site_name").map((f) => ({
-                    label: SITE_FIELD_LABELS[f] ?? f,
-                    value: String(current.site[f] ?? ""),
-                  }))}
-                />
-              </section>
-              <section className="detail-section">
-                <h3>Site Literature ({current.entries.length})</h3>
-                {current.entries.length === 0 ? (
-                  <p className="muted">No literature entries are linked to this site.</p>
-                ) : (
-                  <ul className="lit-list">
-                    {current.entries.map((e) => (
-                      <li key={e.entry_id}>
-                        <span className="lit-title">{e.title || "(untitled)"}</span>
-                        <span className="lit-meta">{[e.author, e.year, e.document_type].filter(Boolean).join(" · ")}</span>
-                        {e.doi && /^https?:\/\//i.test(e.doi) && (
-                          <a className="lit-doi" href={e.doi} target="_blank" rel="noopener noreferrer">
-                            {e.doi}
-                          </a>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-              <section className="detail-section">
-                <h3>National Inventory of Dams</h3>
-                {!current.site.nid_id ? (
-                  <p className="muted">This site has no NID ID recorded.</p>
-                ) : !current.nid ? (
-                  <p className="muted">No NID record found for ID “{current.site.nid_id}”.</p>
-                ) : (
-                  <FieldList
-                    rows={NID_DETAIL_FIELDS.map((f) => ({
-                      label: f.label,
-                      value: current.nid![f.field as keyof typeof current.nid] ?? "",
-                    }))}
-                  />
-                )}
-              </section>
-            </>
-          )}
+          {current && <SiteDetails current={current} />}
         </>
       )}
       <div className="selected-counts" aria-live="polite">
