@@ -24,9 +24,9 @@ test("opening screening enables the layer; a gap preset filters and counts", asy
   await expect
     .poll(() => page.evaluate(() => (window as any).__resstMap.getLayoutProperty("nat-circles", "visibility")))
     .toBe("visible");
-  // Wording guardrails: opportunities language plus the explicit disclaimer.
-  await expect(page.locator(".screen-intro")).toContainText("warranting further evaluation");
-  await expect(page.locator(".screen-intro")).toContainText("not a statement that a reservoir needs intervention");
+  // The intro is short and factual; the research-use disclaimer lives on the
+  // welcome dialog now (smoke.spec) and the guardrail phrasing in Help (helpContent.test).
+  await expect(page.locator(".screen-intro")).toContainText("with transparent criteria");
   await expect(page.locator(".screen-intro")).toContainText("3 modeled reservoirs"); // fixture dam count, mouths excluded
 
   await page.getByRole("button", { name: "Undocumented + high sedimentation" }).click();

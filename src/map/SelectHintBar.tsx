@@ -9,7 +9,7 @@ import { selectSessionCommands, type ToolMsg } from "./selectTools";
 
 const DEFAULT_HINT: Record<Exclude<MapTool, "none">, string> = {
   box: "Drag a box around sites. Shift adds to the selection. Esc cancels.",
-  polygon: "Click the map to add corners — double-click, Enter, or Finish selects. Shift adds. Esc cancels.",
+  polygon: "Click the map to add corners; double-click, Enter, or Finish selects. Shift adds. Esc cancels.",
   huc2: "Click a HUC-2 basin to select its sites. Shift adds. Esc cancels.",
   huc4: "Click a HUC-4 basin to select its sites. Shift adds. Esc cancels.",
   huc6: "Click a HUC-6 basin to select its sites. Shift adds. Esc cancels.",
@@ -34,7 +34,7 @@ export function SelectHintBar({ tool, msg, distance, overlayLoading }: {
     <div className="map-hint-bar" data-kind={msg?.kind ?? "hint"}>
       <span role="status">
         {msg?.text ??
-          (overlayLoading ? "Map data is downloading — the layer appears in a moment. Esc cancels." : DEFAULT_HINT[tool])}
+          (overlayLoading ? "Map data is downloading; the layer appears in a moment. Esc cancels." : DEFAULT_HINT[tool])}
       </span>
       {tool === "river" && (
         <label className="hint-distance">

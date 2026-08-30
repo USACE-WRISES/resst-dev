@@ -72,7 +72,7 @@ test("clicking an undocumented dam opens ReservoirDetails; a documented dam rout
   await clickDam(page, -96.45, 39.05);
   const details = page.locator(".details-panel");
   await expect(details).toContainText("Lone Reservoir");
-  await expect(details).toContainText("no documented RESST sediment-management record");
+  await expect(details).toContainText("No documented RESST sediment-management record");
   await expect(details).toContainText("Reservoir Sustainability");
   await openDetailSection(page, "Reservoir Sustainability");
   await expect(details.locator("#detail-sec-sust")).toContainText("Est. capacity lost (2025)");

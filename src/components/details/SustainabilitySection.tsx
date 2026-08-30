@@ -141,7 +141,7 @@ export function SustainabilitySection({
       )}
       {link?.method === "spatial_name" && (
         <p className="prov-note">
-          Linked to ResNet dam {link.nid} by location/name ({link.confidence} confidence) — see
+          Linked to ResNet dam {link.nid} by location/name ({link.confidence} confidence); see
           data/site_resnet_crosswalk.csv.
         </p>
       )}

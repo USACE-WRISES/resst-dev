@@ -162,9 +162,9 @@ export function DetailsPanel({ derived, state, data }: { derived: Derived; state
         <ReservoirDetails shortId={selectedReservoir} data={data} />
       ) : selected.length === 0 ? (
         <p className="muted empty-note">
-          Select a site on the map or in the Sites table — or use the map's Select menu to pick sites by box, drawn
-          polygon, watershed (HUC), or distance from a river — to see site details, literature, and National Inventory
-          of Dams records here.
+          Select a site on the map or in the Sites table to see site details, literature, and National Inventory of
+          Dams records here. The map's Select menu picks sites by box, drawn polygon, watershed (HUC), or distance
+          from a river.
         </p>
       ) : (
         <>

@@ -71,7 +71,7 @@ test("phone: tapping a national reservoir counts on the bar and opens ReservoirD
   await bar.click();
   const details = page.locator(".details-panel");
   await expect(details).toContainText("Lone Reservoir");
-  await expect(details).toContainText("no documented RESST sediment-management record");
+  await expect(details).toContainText("No documented RESST sediment-management record");
 });
 
 test("phone: the screening popover pins inside the viewport and works", async ({ page }) => {

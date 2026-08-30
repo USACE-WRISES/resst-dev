@@ -161,7 +161,7 @@ function startBox(ctx: SessionCtx): () => void {
     const features = map.queryRenderedFeatures([sw, ne], { layers: ["sites-circles"] });
     const ids = [...new Set(features.map((f) => f.properties?.site_id as string).filter(Boolean))];
     if (!ids.length) {
-      ctx.setMsg({ kind: "empty", text: "No sites in that box — drag again, or press Esc to stop." });
+      ctx.setMsg({ kind: "empty", text: "No sites in that box. Drag again, or press Esc to stop." });
       return;
     }
     applySelection(ctx, ids, { additive: e.shiftKey, disarm: true, highlight: null });
@@ -216,7 +216,7 @@ function startPolygon(ctx: SessionCtx): () => void {
       if (Math.hypot(a.x - b.x, a.y - b.y) < 6) ring.pop();
     }
     if (ring.length < 3) {
-      ctx.setMsg({ kind: "empty", text: "A polygon needs at least 3 corners — keep clicking." });
+      ctx.setMsg({ kind: "empty", text: "A polygon needs at least 3 corners; keep clicking." });
       return;
     }
     const ids = matchSites(ctx.sites(), (p) => pointInRings(p, [ring]));
@@ -224,7 +224,7 @@ function startPolygon(ctx: SessionCtx): () => void {
       verts.length = 0;
       cursor = null;
       draw();
-      ctx.setMsg({ kind: "empty", text: "No sites inside that polygon — draw again, or press Esc to stop." });
+      ctx.setMsg({ kind: "empty", text: "No sites inside that polygon. Draw again, or press Esc to stop." });
       return;
     }
     applySelection(ctx, ids, {
@@ -281,21 +281,21 @@ function startHuc(tool: "huc2" | "huc4" | "huc6" | "huc8", ctx: SessionCtx): () 
       const st = getState().overlayStatus[tool];
       ctx.setMsg(
         st === "error"
-          ? { kind: "error", text: `The ${level} boundaries failed to load — use Layers → Retry, then click again.` }
-          : { kind: "busy", text: `The ${level} boundaries are still loading — try again in a moment.` },
+          ? { kind: "error", text: `The ${level} boundaries failed to load. Use Layers → Retry, then click again.` }
+          : { kind: "busy", text: `The ${level} boundaries are still loading; try again in a moment.` },
       );
       return;
     }
     const hit = findHucAt(index, [wrapLon(e.lngLat.lng), e.lngLat.lat]);
     if (!hit) {
-      ctx.setMsg({ kind: "empty", text: `That point is outside every ${level} basin — click inside a boundary.` });
+      ctx.setMsg({ kind: "empty", text: `That point is outside every ${level} basin. Click inside a boundary.` });
       return;
     }
     const ids = matchSites(ctx.sites(), (p) => pointInRings(p, hit.rings));
     if (!ids.length) {
       ctx.setMsg({
         kind: "empty",
-        text: `No sites shown in ${hit.name || hit.id} — try another basin or loosen the filters.`,
+        text: `No sites shown in ${hit.name || hit.id}. Try another basin or loosen the filters.`,
       });
       return;
     }
@@ -329,10 +329,10 @@ function startRiver(ctx: SessionCtx): () => void {
       const st = getState().overlayStatus.rivers;
       ctx.setMsg(
         st === "loading" || !fc
-          ? { kind: "busy", text: "River lines are still loading — try again in a moment." }
+          ? { kind: "busy", text: "River lines are still loading; try again in a moment." }
           : st === "error"
-            ? { kind: "error", text: "The river layer failed to load — use Layers → Retry, then click again." }
-            : { kind: "empty", text: "No river there — click directly on a blue line." },
+            ? { kind: "error", text: "The river layer failed to load. Use Layers → Retry, then click again." }
+            : { kind: "empty", text: "No river there. Click directly on a blue line." },
       );
       return;
     }
@@ -341,7 +341,7 @@ function startRiver(ctx: SessionCtx): () => void {
     // partsNearSeed), the feature's own complete parts otherwise.
     const parts = hit.name ? partsNearSeed(riverPartsByName(fc!, hit.name), click) : hit.parts;
     if (!parts.length) {
-      ctx.setMsg({ kind: "error", text: "Could not trace that river's course — click it again." });
+      ctx.setMsg({ kind: "error", text: "Could not trace that river's course. Click it again." });
       return;
     }
     ctx.riverRef.current = {
@@ -379,7 +379,7 @@ export function recomputeRiver(ctx: SessionCtx): void {
     kind: "river",
     text: ids.length
       ? `${ids.length} site${ids.length === 1 ? "" : "s"} within ${mi} mi of ${pick.name}.`
-      : `No sites within ${mi} mi of ${pick.name} — increase the distance.`,
+      : `No sites within ${mi} mi of ${pick.name}. Increase the distance.`,
   });
 }
 

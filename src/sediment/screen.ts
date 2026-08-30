@@ -50,7 +50,7 @@ export const GAP_PRESETS: Array<{ key: string; label: string; hint: string; appl
   {
     key: "managed-high",
     label: "Documented + high sedimentation",
-    hint: "Potential case studies — management underway where modeled losses are large",
+    hint: "Potential case studies: management underway where modeled losses are large",
     apply: { documented: "documented", pctLost2025Min: 25 },
   },
   {
