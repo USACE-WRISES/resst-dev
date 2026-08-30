@@ -136,7 +136,7 @@ export const PROVENANCE: Record<"rattes" | "resnet" | "ressed" | "resst", Proven
     version: "v1.2, silt scenario",
     doi: "10.1038/s41467-026-76986-3",
     type: "statistical prediction",
-    note: "Modeled estimate — survey-constrained at 904 reservoirs, statistically predicted elsewhere. Not a measurement.",
+    note: "Modeled estimate. Survey-constrained at 924 reservoirs, statistically predicted elsewhere. Not a measurement.",
   },
   resnet: {
     source: "ResNet routed dam network (Hurst, Foster & Eckland, Scientific Data 12:2044)",

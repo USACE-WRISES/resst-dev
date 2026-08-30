@@ -150,14 +150,14 @@ export function SearchControl({ sites }: { sites: Site[] }) {
       {item.kind === "site" ? (
         <>
           <span>{item.site.site_name}</span>
-          {item.site.city && <span className="muted"> — {item.site.city}</span>}
+          {item.site.city && <span className="muted"> · {item.site.city}</span>}
         </>
       ) : (
         <>
           <span>{item.place.name}</span>
           <span className="muted">
             {" "}
-            — {item.place.classLabel} · {item.place.state}
+            · {item.place.classLabel} · {item.place.state}
             {item.place.county ? `, ${item.place.county}` : ""}
           </span>
         </>

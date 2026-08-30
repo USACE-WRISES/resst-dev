@@ -122,7 +122,7 @@ export function ScreeningPanel({ state, siteByShortId }: { state: AppState; site
         type="button"
         className={open ? "map-tool active" : "map-tool"}
         aria-expanded={open}
-        aria-label={s.active ? "Screening (active — criteria are filtering the national layer)" : "Screening"}
+        aria-label={s.active ? "Screening (active: criteria are filtering the national layer)" : "Screening"}
         onClick={() => setOpen(!open)}
       >
         Screening{s.active ? " ●" : ""} ▾
@@ -130,9 +130,7 @@ export function ScreeningPanel({ state, siteByShortId }: { state: AppState; site
       {open && (
         <div className="tool-popover-panel screening-panel" role="group" aria-label="National screening">
           <p className="screen-intro">
-            Combine transparent criteria over the {totalDams.toLocaleString("en-US")} modeled reservoirs. Results are
-            <b> potential sediment-management opportunities warranting further evaluation</b> — not a statement that a
-            reservoir needs intervention.
+            Filter the {totalDams.toLocaleString("en-US")} modeled reservoirs with transparent criteria.
           </p>
           <div className="screen-presets" role="group" aria-label="Gap-analysis presets">
             {GAP_PRESETS.map((p) => (

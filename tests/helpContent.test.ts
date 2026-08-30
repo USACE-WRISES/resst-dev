@@ -33,6 +33,10 @@ describe("help content", () => {
     expect(allText).toContain("schematic, not the river course");
   });
 
+  it("uses no em dashes in help prose (owner's copy rule, round 3)", () => {
+    expect(allText).not.toContain("—");
+  });
+
   it("credits cite RATTES, ResNet, and RESSED with DOIs", () => {
     const credits = HELP_VIEWS[0].credits!.join(" ");
     expect(credits).toContain("RATTES v1.2");

@@ -37,7 +37,7 @@ export function DownloadPanel({ manifest }: { manifest: DataManifest }) {
         </div>
         <p className="muted">
           Complete datasets, regenerated automatically whenever the data changes. Data as of{" "}
-          {new Date(manifest.generated).toLocaleDateString()} — {manifest.counts["sites.json"]?.toLocaleString()} sites,{" "}
+          {new Date(manifest.generated).toLocaleDateString()}: {manifest.counts["sites.json"]?.toLocaleString()} sites,{" "}
           {manifest.counts["literature.json"]?.toLocaleString()} literature surveys,{" "}
           {manifest.counts["literature_entries.json"]?.toLocaleString()} literature entries.
         </p>
@@ -46,7 +46,7 @@ export function DownloadPanel({ manifest }: { manifest: DataManifest }) {
             <li key={f.name}>
               <a href={`${RELEASE_BASE}/${f.name}`}>
                 <b>{f.label}</b>
-                <span className="muted"> — {f.note}</span>
+                <span className="muted"> · {f.note}</span>
               </a>
             </li>
           ))}
@@ -57,7 +57,7 @@ export function DownloadPanel({ manifest }: { manifest: DataManifest }) {
         </p>
         <p className="muted">
           The data and application live at <a href={REPO} target="_blank" rel="noopener noreferrer">USACE-WRISES/resst-dev</a>.
-          Corrections and additions are welcome as pull requests — see the repository's data-editing guide.
+          Corrections and additions are welcome as pull requests; see the repository's data-editing guide.
         </p>
       </div>
     </div>

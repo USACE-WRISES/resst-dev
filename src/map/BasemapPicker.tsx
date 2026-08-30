@@ -73,7 +73,7 @@ export function BasemapPicker({ basemap, status }: { basemap: BasemapId; status:
   };
 
   const triggerLabel =
-    status === "error" ? `Basemap: ${active.shortLabel} — ${failed.shortLabel} failed to load` : `Basemap: ${active.shortLabel}`;
+    status === "error" ? `Basemap: ${active.shortLabel} (${failed.shortLabel} failed to load)` : `Basemap: ${active.shortLabel}`;
 
   return (
     <div className="basemap-picker" ref={rootRef} data-status={busy ? "loading" : (status ?? "idle")}>

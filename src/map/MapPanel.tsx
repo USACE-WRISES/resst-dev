@@ -83,7 +83,7 @@ function reservoirPopupHtml(core: SedimentCore, row: number): string {
     lost != null ? `<div class="popup-row"><span>Est. capacity lost (2025)</span><b>${esc(formatPct(lost))}</b></div>` : "",
     `<div class="popup-row"><span>Evidence</span><b>${core.flags[row] & FLAG.HAS_SURVEYS ? "Measured surveys (RESSED)" : "Modeled only"}</b></div>`,
   ].join("");
-  return `<div class="site-popup"><h3>${esc(name)}</h3>${rows}<p class="popup-note">No documented RESST sediment-management record — details in the panel.</p></div>`;
+  return `<div class="site-popup"><h3>${esc(name)}</h3>${rows}<p class="popup-note">No documented RESST sediment-management record; details in the panel.</p></div>`;
 }
 
 export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: {

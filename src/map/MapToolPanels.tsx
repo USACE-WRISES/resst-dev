@@ -78,7 +78,7 @@ export function MapToolPanels({ state, zoom, siteByShortId }: { state: AppState;
           {state.nationalLayer.on && state.screening.active && (
             <p className="nat-screen-note" role="status">
               Screening is filtering this layer
-              {screenSummary ? ` — ${screenSummary.matches.toLocaleString("en-US")} of ${screenSummary.total.toLocaleString("en-US")} shown` : ""}
+              {screenSummary ? `: ${screenSummary.matches.toLocaleString("en-US")} of ${screenSummary.total.toLocaleString("en-US")} shown` : ""}
               .{" "}
               <button type="button" className="linklike" onClick={() => actions.clearScreening()}>
                 Clear

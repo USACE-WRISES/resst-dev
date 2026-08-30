@@ -25,6 +25,12 @@ export function WelcomeDialog() {
           and the connected dam network (ResNet) for more than 57,000 U.S. reservoirs. Workflow examples are available
           in the Help button on the toolbar.
         </p>
+        <p className="welcome-note">
+          <strong>
+            Note: Results are for data collection and research purposes only. Any sediment-management opportunities
+            identified should be further evaluated before decision-making.
+          </strong>
+        </p>
         <div className="dialog-actions">
           <label className="dont-show">
             <input type="checkbox" checked={dontShow} onChange={(e) => setDontShow(e.target.checked)} />

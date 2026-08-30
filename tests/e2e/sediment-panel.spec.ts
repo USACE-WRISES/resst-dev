@@ -77,7 +77,7 @@ test("evidence section: badge from boot data, measured surveys after the lazy lo
   await expect(ev).toContainText("measured capacity");
   await expect(ev).toContainText("RESSED");
   // The RATTES model-class line (fixture Tuttle is evd=1, survey-constrained).
-  await expect(ev.locator(".rattes-class")).toContainText("survey-constrained sediment-yield component");
+  await expect(ev.locator(".rattes-class")).toContainText("calibrates this reservoir's estimate");
 });
 
 test("a site without a crosswalk degrades to one honest note", async ({ page }) => {

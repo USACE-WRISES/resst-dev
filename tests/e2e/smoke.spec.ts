@@ -10,6 +10,18 @@ async function openApp(page: Page): Promise<void> {
   await page.getByRole("button", { name: "OK" }).click(); // welcome dialog
 }
 
+test("the welcome dialog leads with the research-use note", async ({ page }) => {
+  await stubEsri(page);
+  await page.goto("./");
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.locator(".welcome-note")).toContainText(
+    "Results are for data collection and research purposes only",
+  );
+  await expect(dialog.locator(".welcome-note")).toContainText("further evaluated before decision-making");
+  await page.getByRole("button", { name: "OK" }).click();
+  await expect(dialog).toHaveCount(0);
+});
+
 test("loads with the verified counters and a rendered map", async ({ page }) => {
   await openApp(page);
   const counts = page.locator(".filtered-counts");

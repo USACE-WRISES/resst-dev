@@ -129,8 +129,8 @@ export function buildNetworkSentences(core: SedimentCore, row: number): string[]
   const out: string[] = [];
   out.push(
     s.upCount === 0
-      ? "No mapped reservoirs upstream — this is a headwater dam."
-      : `${s.upCount.toLocaleString("en-US")} upstream reservoir${s.upCount === 1 ? "" : "s"} influence sediment delivery to this reservoir.`,
+      ? "No mapped reservoirs upstream; this is a headwater dam."
+      : `${s.upCount.toLocaleString("en-US")} upstream reservoir${s.upCount === 1 ? " influences" : "s influence"} sediment delivery to this reservoir.`,
   );
   const mouthName = s.mouthRow != null ? core.names[s.mouthRow] : null;
   if (mouthName) {

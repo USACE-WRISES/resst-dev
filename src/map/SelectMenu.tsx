@@ -52,7 +52,7 @@ export function SelectMenu({ tool, distance, hasSelection }: {
             <span>Click corners; double-click or Enter finishes</span>
           </button>
           <div className="select-group" role="group" aria-label="By watershed unit (HUC)">
-            <span className="select-group-label">By watershed — click a basin</span>
+            <span className="select-group-label">By watershed: click a basin</span>
             <div className="select-huc-row">
               {(["huc2", "huc4", "huc6", "huc8"] as const).map((t) => (
                 <button key={t} type="button" className="select-huc" aria-pressed={tool === t} onClick={() => pick(t)}>
@@ -63,7 +63,7 @@ export function SelectMenu({ tool, distance, hasSelection }: {
           </div>
           <button type="button" className="select-item" aria-pressed={tool === "river"} onClick={() => pick("river")}>
             <b>Near a river</b>
-            <span>Click a river — sites within {distance} miles</span>
+            <span>Click a river; sites within {distance} miles</span>
           </button>
           <div className="select-menu-sep" role="presentation" />
           <button

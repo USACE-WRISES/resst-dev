@@ -29,10 +29,7 @@ export function ComparablesSection({ row, data }: { row: number | null; data: Ap
   if (!requested) {
     return (
       <>
-        <p className="muted">
-          Rank the national inventory by physical similarity (storage, drainage area, age, modeled capacity lost,
-          sedimentation rate, purpose, region) and surface the closest analogs — documented RESST sites first.
-        </p>
+        <p className="muted">Find the most physically similar reservoirs nationwide, documented RESST sites first.</p>
         <button type="button" className="nw-btn" onClick={run}>
           Find similar reservoirs
         </button>
@@ -104,7 +101,7 @@ export function ComparablesSection({ row, data }: { row: number | null; data: Ap
         <ul className="sim-list">{results.overall.map((m) => rowFor(m, false))}</ul>
       )}
       <ProvNote
-        text="Similarity is a relative index over ResNet/RATTES attributes — a screening aid, not a hydrologic equivalence"
+        text="Similarity compares storage, drainage area, age, modeled capacity lost, sedimentation rate, purpose, and region. It is a relative screening aid, not a hydrologic equivalence"
         group={PROVENANCE.resnet}
       />
     </>

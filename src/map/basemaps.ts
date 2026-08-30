@@ -44,7 +44,7 @@ export const BASEMAP_ORDER: readonly BasemapId[] = ["esri", "usgs"];
 export const ESRI_STYLE_URL =
   "https://cdn.arcgis.com/sharing/rest/content/items/27e89eb03c1e4341a1d75e597f0291e6/resources/styles/root.json";
 const ESRI_ATTRIBUTION =
-  "Powered by Esri — Esri, TomTom, Garmin, FAO, NOAA, USGS, © OpenStreetMap contributors, and the GIS User Community";
+  "Powered by Esri | Esri, TomTom, Garmin, FAO, NOAA, USGS, © OpenStreetMap contributors, and the GIS User Community";
 const HILLSHADE_TILES =
   "https://services.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}";
 

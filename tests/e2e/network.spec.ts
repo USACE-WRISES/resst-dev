@@ -36,7 +36,7 @@ test("network section reports stats, sentences, and the terminal chip", async ({
   await expect(net.locator(".stat-cell", { hasText: "Drains to" })).toContainText("Big River");
   await expect(net.locator(".nw-chips")).toContainText("Terminal dam");
   await expect(net).toContainText("This is the last dam before the river reaches its mouth (Big River).");
-  await expect(net).toContainText("1 upstream reservoir influence"); // singular count, plural verb reads fine in context
+  await expect(net).toContainText("1 upstream reservoir influences"); // singular verb agreement (round-3 copy fix)
   // The connectivity bar states the ResNet SCA semantic, not sediment delivery.
   await expect(net.locator(".conn-caption")).toContainText("without first passing another dam");
   await expect(net).toContainText("ResNet v1");

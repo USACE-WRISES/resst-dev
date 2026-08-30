@@ -19,17 +19,16 @@ function RattesClassLine({ row }: { row: number | null }) {
   if (cls === 1) {
     return (
       <p className="rattes-class">
-        <ProvBadge kind="measured" label="Survey-constrained" /> RATTES models this reservoir with its
-        survey-constrained sediment-yield component — it has qualifying repeat sedimentation surveys in the model's
-        compilation (Supplementary Data 1).
+        <ProvBadge kind="measured" label="Survey-constrained" /> RATTES calibrates this reservoir's estimate to its
+        repeat sedimentation surveys (Supplementary Data 1).
       </p>
     );
   }
   if (cls === 2) {
     return (
       <p className="rattes-class">
-        <ProvBadge kind="modeled" label="Statistical prediction" /> RATTES models this reservoir with its statistical
-        (regression) component — no qualifying repeat-survey history in the model's compilation.
+        <ProvBadge kind="modeled" label="Statistical prediction" /> RATTES estimates this reservoir statistically; it
+        has no qualifying repeat surveys in the model's compilation.
       </p>
     );
   }
@@ -76,13 +75,8 @@ export function EvidenceSection({
   }
 
   const surveys = row != null ? surveysForRow(row) : null;
-  const newest = latestYear ?? (surveys?.length ? surveys[surveys.length - 1].year : null);
-  const recency = newest != null && newest >= 2000 ? "a relatively recent measured survey" : "older measured surveys";
   return (
     <>
-      <p className="evidence-intro">
-        This reservoir has {recency} on record — measured values below, modeled estimates in Reservoir Sustainability.
-      </p>
       {error ? (
         <p className="sec-status" data-status="error">
           Surveys failed to load.{" "}
@@ -102,10 +96,10 @@ export function EvidenceSection({
             {surveys.map((s, i) => (
               <li key={`${s.year}-${i}`}>
                 <b>{s.year}</b>
-                {s.capM3 != null && <> — measured capacity {formatVolumeAcft(s.capM3)}</>}
+                {s.capM3 != null && <> · measured capacity {formatVolumeAcft(s.capM3)}</>}
                 {s.sedTotM3 != null && <> · interval sediment {formatVolumeAcft(s.sedTotM3)}</>}
                 {s.capM3 == null && s.sedTotM3 == null && (
-                  <span className="muted"> — survey conducted; values not in the public compilation</span>
+                  <span className="muted"> · survey date on record; no measured values in the public 2013 export</span>
                 )}
                 {s.pool && <span className="muted"> · pool {s.pool}</span>}
               </li>

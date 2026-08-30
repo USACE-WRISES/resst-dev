@@ -26,7 +26,7 @@ test("finds analogs on demand and routes clicks into the selection flow", async 
   await expect(sim).toContainText("No documented RESST site ranks as a close analog."); // self excluded
   const rows = sim.locator(".sim-list .sim-row");
   await expect(rows).toHaveCount(2); // Upstream Dam + Lone Reservoir
-  await expect(sim).toContainText("relative index"); // the not-hydrologic-equivalence caveat renders
+  await expect(sim).toContainText("relative screening aid"); // the not-hydrologic-equivalence caveat renders
 
   // Click-through selects the reservoir (mutual exclusivity clears the site).
   const first = rows.first();
@@ -34,6 +34,6 @@ test("finds analogs on demand and routes clicks into the selection flow", async 
   await first.click();
   const details = page.locator(".details-panel");
   await expect(details).toContainText(name!);
-  await expect(details).toContainText("no documented RESST sediment-management record");
+  await expect(details).toContainText("No documented RESST sediment-management record");
   await expect(details).toContainText("Selected Sites: 0");
 });

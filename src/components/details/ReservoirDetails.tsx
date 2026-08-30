@@ -64,7 +64,7 @@ export function ReservoirDetails({ shortId, data }: { shortId: string; data: App
       <section className="detail-section">
         <h3>{name}</h3>
         <p className="muted reservoir-kicker">
-          National-inventory reservoir — no documented RESST sediment-management record.
+          National-inventory reservoir. No documented RESST sediment-management record.
         </p>
         <dl className="field-list">
           {idRows

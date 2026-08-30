@@ -70,8 +70,8 @@ test("typing shows grouped site and place results with class/state metadata", as
   await expect(listbox(page).locator("#map-search-grp-sites")).toHaveText("Sites");
   await expect(listbox(page).locator("#map-search-grp-places")).toHaveText("Places (USGS GNIS)");
   await expect(listbox(page).getByRole("option", { name: /Tuttle Creek/ }).first()).toBeVisible();
-  await expect(listbox(page).getByRole("option", { name: /Platte River — Stream · NE, Platte/ })).toBeVisible();
-  await expect(listbox(page).getByRole("option", { name: /Platteville — City · CO, Weld/ })).toBeVisible();
+  await expect(listbox(page).getByRole("option", { name: /Platte River · Stream · NE, Platte/ })).toBeVisible();
+  await expect(listbox(page).getByRole("option", { name: /Platteville · City · CO, Weld/ })).toBeVisible();
 });
 
 test("keyboard spans groups; Enter on a place flies the map and drops a pin", async ({ page }) => {
