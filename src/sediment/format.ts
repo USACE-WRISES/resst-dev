@@ -3,7 +3,7 @@
 // panel section already speaks and US reservoir practice expects (owner
 // decision). Pure module: unit-tested in Node.
 
-import { M3_PER_ACFT } from "./types";
+import { M3_PER_ACFT, SURVEY_METHOD_LABELS, SURVEY_SUBTYPE_LABELS, type SurveyObs } from "./types";
 
 export const m3ToAcft = (m3: number): number => m3 / M3_PER_ACFT;
 
@@ -63,3 +63,20 @@ export function formatKm2(km2: number | null | undefined): string {
 
 /** Insert spaces into synthetic CamelCase names ("SacramentoRiver" → "Sacramento River"). */
 export const prettifyName = (s: string): string => s.replace(/([a-z])([A-Z])/g, "$1 $2");
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** Month name from a RESSED survey date; Jan-1 dates are year-only placeholders and yield "". */
+export function surveyMonthLabel(date: string): string {
+  const m = /^\d{4}-(\d{2})-(\d{2})/.exec(date);
+  if (!m || (m[1] === "01" && m[2] === "01")) return "";
+  return MONTHS[Number(m[1]) - 1] ?? "";
+}
+
+/** "range and contour survey, detailed" from the DS434 codes; unknown codes show verbatim. */
+export function surveyMethodText(s: Pick<SurveyObs, "method" | "sub">): string {
+  const method = s.method ? (SURVEY_METHOD_LABELS[s.method] ?? `survey type ${s.method}`) : "";
+  const scope = s.sub ? (SURVEY_SUBTYPE_LABELS[s.sub] ?? "") : "";
+  if (method && scope) return `${method}, ${scope}`;
+  return method || (scope ? `${scope} survey` : "");
+}

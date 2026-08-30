@@ -31,7 +31,7 @@ export function toGeoJSON(records: Array<Record<string, unknown>>, columns: Arra
   };
 }
 
-function saveBlob(blob: Blob, filename: string): void {
+export function saveBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -42,7 +42,7 @@ function saveBlob(blob: Blob, filename: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
-const stamp = () => new Date().toISOString().slice(0, 10);
+export const stamp = () => new Date().toISOString().slice(0, 10);
 
 export function exportCsv(records: Array<Record<string, unknown>>, columns: Array<{ field: string; label: string }>, name: string): void {
   saveBlob(new Blob([toCsv(records, columns)], { type: "text/csv;charset=utf-8" }), `resst-${name}-${stamp()}.csv`);

@@ -1,0 +1,178 @@
+/* The Dam Report's document stylesheet — ONE source consumed two ways:
+   ReportModal renders it in a <style> tag, and reportHtml.ts embeds the same
+   string into the downloaded self-contained file. Everything is scoped under
+   .report-doc and the token values are re-declared here (copied from
+   styles.css) so the standalone file needs nothing from the app. The .traj-*
+   chart rules are a scoped copy of the styles.css chart block for the same
+   reason — keep both in sync when the chart design changes. Print page-flow
+   rules live at the bottom so the file prints identically to the modal. */
+
+.report-doc {
+  --ink: #1c2733;
+  --ink-2: #4a5b6a;
+  --ink-3: #5c6f7c;
+  --paper: #ffffff;
+  --panel: #f4f6f8;
+  --line: #d8e0e6;
+  --accent: #17607a;
+  --accent-soft: #d9e9ef;
+  --chart-capacity: #17607a;
+  --chart-sediment: #7a6a52;
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+  font-size: 13.5px;
+  line-height: 1.5;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 18px 22px 30px;
+}
+.report-doc * { box-sizing: border-box; }
+.report-doc a { color: var(--accent); }
+
+/* ---------- header ---------- */
+.report-doc .rpt-kicker {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.report-doc h1 { margin: 2px 0 2px; font-size: 24px; line-height: 1.2; }
+.report-doc .rpt-meta { margin: 0 0 4px; font-size: 12px; color: var(--ink-3); }
+
+/* ---------- sections ---------- */
+.report-doc section { margin-top: 18px; }
+.report-doc h2 {
+  margin: 0 0 6px;
+  padding-bottom: 3px;
+  font-size: 15px;
+  color: var(--accent);
+  border-bottom: 1px solid var(--line);
+}
+.report-doc .muted { color: var(--ink-3); }
+.report-doc .rpt-note { font-size: 12px; color: var(--ink-3); margin: 6px 0 0; }
+
+/* ---------- field tables (identity, management, NID) ---------- */
+.report-doc .field-list { margin: 0; }
+.report-doc .field-row {
+  display: grid;
+  grid-template-columns: 38% 62%;
+  gap: 6px;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--panel);
+}
+.report-doc .field-row dt { color: var(--ink-3); font-size: 12.5px; }
+.report-doc .field-row dd { margin: 0; word-break: break-word; }
+
+/* ---------- provenance badges ---------- */
+.report-doc .prov-badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 9px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  background: var(--panel);
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  vertical-align: 1px;
+  margin-left: 6px;
+}
+.report-doc .prov-badge[data-type="modeled"] { background: #efe7f5; border-color: #d9c7e8; color: #53386e; }
+.report-doc .prov-badge[data-type="measured"] { background: #e3efe3; border-color: #c8dfc8; color: #2b552d; }
+.report-doc .prov-badge[data-type="network"] { background: var(--accent-soft); border-color: #bcd9e4; color: #144d61; }
+.report-doc .prov-badge[data-type="reported"] { background: #fdf3e0; border-color: #ecd9b0; color: #6d511a; }
+
+/* ---------- sustainability stats ---------- */
+.report-doc .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px 12px; margin: 0 0 8px; }
+.report-doc .stat-cell { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.report-doc .stat-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-3); }
+.report-doc .stat-value { font-size: 13.5px; font-weight: 600; }
+.report-doc .stat-big .stat-value { font-size: 21px; }
+
+/* ---------- literature / surveys / comparables lists ---------- */
+.report-doc .rpt-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.report-doc .rpt-list li { border-bottom: 1px solid var(--panel); padding-bottom: 5px; }
+.report-doc .lit-title { font-weight: 600; display: block; }
+.report-doc .lit-meta { color: var(--ink-3); font-size: 12.5px; }
+.report-doc .lit-doi { font-size: 12px; word-break: break-all; display: block; }
+.report-doc .survey-line { font-size: 12.5px; }
+.report-doc .sim-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.report-doc .sim-table th,
+.report-doc .sim-table td { text-align: left; padding: 3px 8px 3px 0; border-bottom: 1px solid var(--panel); vertical-align: top; }
+.report-doc .sim-table th { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-3); font-weight: 600; }
+.report-doc .sim-score { font-variant-numeric: tabular-nums; }
+
+/* ---------- network ---------- */
+.report-doc .nw-sentence { margin: 6px 0 0; font-size: 12.5px; }
+.report-doc .conn-bar { height: 8px; border-radius: 4px; background: var(--panel); overflow: hidden; margin-top: 6px; }
+.report-doc .conn-fill { height: 100%; background: var(--accent); }
+.report-doc .conn-caption { margin: 3px 0 0; font-size: 11.5px; color: var(--ink-3); }
+
+/* ---------- map figure ---------- */
+.report-doc .report-map-figure { margin: 10px 0 0; }
+.report-doc .report-map,
+.report-doc .report-map-fallback {
+  width: 100%;
+  height: 380px;
+  border: 1px solid var(--line);
+  background: #e8ede9;
+  display: block;
+}
+.report-doc img.report-map { object-fit: cover; height: auto; max-height: 420px; }
+.report-doc .report-map-fallback { display: grid; place-content: center; color: var(--ink-3); font-size: 13px; }
+.report-doc .map-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 6px 0 0; font-size: 11.5px; color: var(--ink-2); }
+.report-doc .map-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; border: 1px solid #fff; box-shadow: 0 0 0 1px var(--line); }
+.report-doc .map-legend .lg-line { width: 16px; height: 0; border-radius: 0; border: none; border-top: 2px dashed #1b7837; box-shadow: none; vertical-align: 3px; }
+.report-doc figcaption { margin-top: 4px; font-size: 11px; color: var(--ink-3); }
+
+/* ---------- references ---------- */
+.report-doc .rpt-refs { margin: 0; padding-left: 18px; font-size: 12px; }
+.report-doc .rpt-refs li { margin-bottom: 5px; }
+
+/* ---------- trajectory chart (scoped copy of the styles.css chart block) ---------- */
+.report-doc .traj-chart { margin: 6px 0 0; max-width: 560px; }
+.report-doc .traj-chart svg { width: 100%; height: auto; display: block; }
+.report-doc .traj-projected { fill: var(--panel); }
+.report-doc .traj-grid { stroke: var(--line); stroke-width: 0.5; }
+.report-doc .traj-tick { font-size: 8.5px; fill: var(--ink-3); }
+.report-doc .traj-unit { font-style: italic; }
+.report-doc .traj-cap { fill: none; stroke: var(--chart-capacity); stroke-width: 2; stroke-linejoin: round; }
+.report-doc .traj-cap.dashed { stroke-dasharray: 4 3; }
+.report-doc .traj-sed-area { fill: var(--chart-sediment); opacity: 0.22; }
+.report-doc .traj-sed-line { fill: none; stroke: var(--chart-sediment); stroke-width: 1.25; stroke-dasharray: 1.5 2.2; }
+.report-doc .traj-orig { stroke: var(--ink-3); stroke-width: 0.75; stroke-dasharray: 5 3; }
+.report-doc .traj-whisker line { stroke: var(--chart-capacity); stroke-width: 1; }
+.report-doc .traj-survey { fill: var(--ink); stroke: #fff; stroke-width: 1.5; }
+.report-doc .traj-projlabel { font-size: 8px; fill: var(--ink-3); }
+.report-doc .chart-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 4px 0 0; font-size: 11px; color: var(--ink-2); }
+.report-doc .chart-legend i { display: inline-block; vertical-align: -1px; margin-right: 4px; }
+.report-doc .chart-legend .lg-cap { width: 14px; height: 0; border-top: 2px solid var(--chart-capacity); vertical-align: 3px; }
+.report-doc .lg-sed { width: 12px; height: 8px; background: rgba(122, 106, 82, 0.25); border: 1px dotted var(--chart-sediment); }
+.report-doc .lg-survey { width: 7px; height: 7px; border-radius: 50%; background: var(--ink); border: 1.5px solid #fff; box-shadow: 0 0 0 1px var(--line); }
+.report-doc .chart-data { margin-top: 4px; }
+.report-doc .chart-data summary { cursor: pointer; color: var(--accent); font-size: 11.5px; }
+.report-doc .chart-data table { border-collapse: collapse; margin-top: 4px; width: 100%; max-width: 560px; }
+.report-doc .chart-data th,
+.report-doc .chart-data td { text-align: right; padding: 2px 6px; border-bottom: 1px solid var(--panel); font-size: 11px; font-variant-numeric: tabular-nums; }
+.report-doc .chart-data th:first-child,
+.report-doc .chart-data td:first-child { text-align: left; }
+.report-doc .chart-data p { margin: 4px 0 0; font-size: 10.5px; }
+
+/* ---------- print flow (applies in the modal print path AND the file) ---------- */
+@page { margin: 14mm; }
+@media print {
+  .report-doc { max-width: none; padding: 0; font-size: 11.5pt; }
+  .report-doc a { color: var(--ink); text-decoration: none; }
+  .report-doc section { break-inside: auto; }
+  .report-doc .field-list,
+  .report-doc .stat-grid,
+  .report-doc .report-map-figure,
+  .report-doc .traj-chart,
+  .report-doc .rpt-list li,
+  .report-doc .sim-table tr { break-inside: avoid; }
+  .report-doc h2 { break-after: avoid; }
+}

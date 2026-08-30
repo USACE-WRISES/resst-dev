@@ -10,7 +10,7 @@ import { compact, m3ToAcft } from "../../sediment/format";
 
 const acft = (m3: number | null | undefined) => (m3 == null || !Number.isFinite(m3) ? "—" : compact(m3ToAcft(m3)));
 
-export function TrajectoryChart(props: TrajectoryChartInput) {
+export function TrajectoryChart(props: TrajectoryChartInput & { tableOpen?: boolean }) {
   const g = buildTrajectoryGeometry(props);
   if (!g) return <p className="muted">No modeled trajectory is available for this reservoir.</p>;
   const surveys = (props.surveys ?? []).filter((s) => s.capM3 != null);
@@ -77,7 +77,8 @@ export function TrajectoryChart(props: TrajectoryChartInput) {
           </span>
         )}
       </figcaption>
-      <details className="chart-data">
+      {/* The report renders the table expanded so it serializes and prints visible. */}
+      <details className="chart-data" open={props.tableOpen || undefined}>
         <summary>View data table</summary>
         <table>
           <caption className="sr-only">Modeled storage trajectory, acre-feet</caption>

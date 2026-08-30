@@ -10,15 +10,8 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useAppState } from "../../state/store";
 import { ensureSurveys, getCore, surveyProvenanceForRow, surveysForRow } from "../../sediment/data";
-import { formatVolumeAcft } from "../../sediment/format";
-import {
-  PROVENANCE,
-  SURVEY_METHOD_LABELS,
-  SURVEY_POOL_LABELS,
-  SURVEY_SUBTYPE_LABELS,
-  ressedDatasheetUrl,
-  type SurveyObs,
-} from "../../sediment/types";
+import { formatVolumeAcft, surveyMethodText, surveyMonthLabel } from "../../sediment/format";
+import { PROVENANCE, SURVEY_POOL_LABELS, ressedDatasheetUrl } from "../../sediment/types";
 import { useDismissPopover } from "../../map/useDismissPopover";
 import { ProvBadge, ProvNote } from "./Provenance";
 
@@ -50,24 +43,6 @@ function RattesClassLine({ row }: { row: number | null }) {
 export function evidenceBadgeFor(hasSurveys: boolean, latestYear: number | null | undefined): ReactNode {
   if (!hasSurveys) return <ProvBadge kind="modeled" label="Modeled only" />;
   return <ProvBadge kind="measured" label={latestYear ? `Measured · ${latestYear}` : "Measured"} />;
-}
-
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-/** Month name from the export date; Jan-1 dates are year-only placeholders and show nothing. */
-function surveyMonth(date: string): string {
-  const m = /^\d{4}-(\d{2})-(\d{2})/.exec(date);
-  if (!m || (m[1] === "01" && m[2] === "01")) return "";
-  const idx = Number(m[1]) - 1;
-  return MONTHS[idx] ?? "";
-}
-
-/** "range and contour survey, detailed" from the DS434 codes; unknown codes show verbatim. */
-function methodText(s: SurveyObs): string {
-  const method = s.method ? (SURVEY_METHOD_LABELS[s.method] ?? `survey type ${s.method}`) : "";
-  const scope = s.sub ? (SURVEY_SUBTYPE_LABELS[s.sub] ?? "") : "";
-  if (method && scope) return `${method}, ${scope}`;
-  return method || (scope ? `${scope} survey` : "");
 }
 
 /** Glossary for the export's survey codes; the honest wording is the contract. */
@@ -185,8 +160,8 @@ export function EvidenceSection({
         <>
           <ul className="survey-list">
             {surveys.map((s, i) => {
-              const month = surveyMonth(s.date);
-              const method = methodText(s);
+              const month = surveyMonthLabel(s.date);
+              const method = surveyMethodText(s);
               return (
                 <li key={`${s.year}-${i}`}>
                   <b>{s.year}</b>

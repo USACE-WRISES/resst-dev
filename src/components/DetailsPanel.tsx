@@ -16,6 +16,8 @@ import { actions, type AppState } from "../state/store";
 import { PROVENANCE } from "../sediment/types";
 import { CollapsibleSection } from "./details/CollapsibleSection";
 import { PanelResizer } from "./PanelResizer";
+import { ReportModal } from "../report/ReportModal";
+import type { ReportTarget } from "../report/reportModel";
 import { ProvBadge, ProvNote } from "./details/Provenance";
 import { SustainabilitySection } from "./details/SustainabilitySection";
 import { EvidenceSection, evidenceBadgeFor } from "./details/EvidenceSection";
@@ -146,6 +148,17 @@ export function DetailsPanel({ derived, state, data }: { derived: Derived; state
   const [page, setPage] = useState(0);
   useEffect(() => setPage(0), [selected.length && selected[0]?.site.site_id]);
   const current = selected[Math.min(page, selected.length - 1)];
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
+  // The report targets exactly what the panel displays: the pager's current
+  // site, or the selected national reservoir.
+  const openReport = () =>
+    setReportTarget(
+      current
+        ? { kind: "site", site: current.site, entries: current.entries, nid: current.nid ?? null, link: current.sedimentLink ?? null }
+        : selectedReservoir
+          ? { kind: "reservoir", shortId: Number(selectedReservoir) }
+          : null,
+    );
 
   return (
     <aside className="details-panel" id="details-panel" aria-label="Selected data">
@@ -153,6 +166,11 @@ export function DetailsPanel({ derived, state, data }: { derived: Derived; state
       <div className="panel-title-row">
         <h2>Selected Data</h2>
         <span className="panel-title-tools">
+          {(current || selectedReservoir) && (
+            <button type="button" className="linklike" onClick={openReport} aria-label="Open the dam report">
+              Report
+            </button>
+          )}
           {(selected.length > 0 || selectedReservoir) && (
             <button type="button" className="linklike" onClick={() => actions.clearSelection()}>
               Clear
@@ -160,6 +178,7 @@ export function DetailsPanel({ derived, state, data }: { derived: Derived; state
           )}
         </span>
       </div>
+      {reportTarget && <ReportModal target={reportTarget} data={data} onClose={() => setReportTarget(null)} />}
       {selected.length === 0 && selectedReservoir ? (
         <ReservoirDetails shortId={selectedReservoir} data={data} />
       ) : selected.length === 0 ? (

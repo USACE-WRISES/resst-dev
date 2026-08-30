@@ -37,6 +37,80 @@ body { color: var(--ink); background: var(--paper); font-size: 14px; line-height
 button { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
+/* ---------- dam report modal (round 3) ----------
+   EASI's document-viewer pattern: one xl dialog, the body is the ONLY scroll
+   region, the head is pinned, and the footer scrolls with the article. The
+   modal portals to document.body so the print block below can isolate it
+   from the app shell (whose overflow:hidden would clip multi-page output). */
+.report-dialog {
+  width: min(1180px, 96vw);
+  height: calc(100vh - 1.5rem);
+  height: calc(100dvh - 1.5rem);
+  background: var(--paper);
+  border-radius: 8px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.report-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.report-head h2 { margin: 0; font-size: 15px; }
+.report-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; background: var(--paper); }
+.report-body:focus-visible { outline-offset: -2px; }
+.report-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  border-top: 1px solid var(--line);
+  margin: 0 auto;
+  padding: 12px 22px 20px;
+  width: min(760px, 100%);
+}
+.btn-outline {
+  background: var(--paper);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.btn-outline:hover:not(:disabled) { background: var(--accent-soft); }
+.btn-outline:disabled { opacity: 0.5; cursor: default; }
+@media (max-width: 760px) {
+  .report-dialog { width: 100vw; height: 100vh; height: 100dvh; border-radius: 0; }
+}
+/* Print: only the report article. The html reset is unconditional (a body
+   class cannot select html); printing this map app without the report open
+   was never useful. */
+@media print {
+  html { height: auto; }
+  body.report-open { height: auto; overflow: visible; }
+  body.report-open #root { display: none !important; }
+  body.report-open .report-scrim { position: static; display: block; padding: 0; background: none; }
+  body.report-open .report-dialog {
+    position: static;
+    width: auto;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    box-shadow: none;
+    border-radius: 0;
+    display: block;
+  }
+  body.report-open .report-body { overflow: visible; }
+  body.report-open .report-head,
+  body.report-open .report-footer { display: none; }
+}
+
 /* The welcome dialog's research-use note: front and center, per the owner. */
 .welcome-note {
   margin: 12px 0 0; padding: 9px 12px;

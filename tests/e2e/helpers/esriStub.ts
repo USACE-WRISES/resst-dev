@@ -77,6 +77,14 @@ export async function stubEsri(page: Page, opts: { failRoot?: boolean } = {}): P
   };
 }
 
+/** Stub the USGS National Map raster tiles (the report's snapshot map uses
+    buildUsgsStyle; uniform 1px tiles make its 'idle' fire fast and hermetic). */
+export async function stubUsgsTiles(page: Page): Promise<void> {
+  await page.route(/basemap\.nationalmap\.gov\/.+/, (route) =>
+    route.fulfill({ body: PNG_1PX, contentType: "image/png" }),
+  );
+}
+
 /** Wait until the requested basemap's layers are active and tiles settled.
     With the Esri default the boot path is USGS style → post-load swap, so
     `waitForBasemap(page, true)` is the "finished booting onto the default"

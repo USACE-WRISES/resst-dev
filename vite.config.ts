@@ -11,5 +11,8 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
+    // The report embeds report.css via ?inline; without this vitest resolves
+    // CSS imports to empty strings and reportHtml.test.ts would go vacuous.
+    css: true,
   },
 });
