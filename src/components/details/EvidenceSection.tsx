@@ -6,10 +6,35 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { useAppState } from "../../state/store";
-import { ensureSurveys, surveysForRow } from "../../sediment/data";
+import { ensureSurveys, getCore, surveysForRow } from "../../sediment/data";
 import { formatVolumeAcft } from "../../sediment/format";
 import { PROVENANCE } from "../../sediment/types";
 import { ProvBadge, ProvNote } from "./Provenance";
+
+/** The RATTES component that modeled this reservoir (null until the core loads). */
+function RattesClassLine({ row }: { row: number | null }) {
+  const core = getCore();
+  if (!core || row == null) return null;
+  const cls = core.evd[row];
+  if (cls === 1) {
+    return (
+      <p className="rattes-class">
+        <ProvBadge kind="measured" label="Survey-constrained" /> RATTES models this reservoir with its
+        survey-constrained sediment-yield component — it has qualifying repeat sedimentation surveys in the model's
+        compilation (Supplementary Data 1).
+      </p>
+    );
+  }
+  if (cls === 2) {
+    return (
+      <p className="rattes-class">
+        <ProvBadge kind="modeled" label="Statistical prediction" /> RATTES models this reservoir with its statistical
+        (regression) component — no qualifying repeat-survey history in the model's compilation.
+      </p>
+    );
+  }
+  return null;
+}
 
 /** Section-header badge — renders before any lazy load when latestYear is known. */
 export function evidenceBadgeFor(hasSurveys: boolean, latestYear: number | null | undefined): ReactNode {
@@ -44,6 +69,7 @@ export function EvidenceSection({
           No measured sedimentation surveys are on record for this reservoir in RESSED (2013 compilation). The
           Reservoir Sustainability values are model estimates only.
         </p>
+        <RattesClassLine row={row} />
         <ProvNote text="Evidence check: USGS RESSED, 2013 public export" group={PROVENANCE.ressed} />
       </>
     );
@@ -93,6 +119,7 @@ export function EvidenceSection({
           )}
         </>
       )}
+      <RattesClassLine row={row} />
       <ProvNote text="Measured surveys: USGS RESSED, 2013 public export (survey methods and datums vary)" group={PROVENANCE.ressed} />
     </>
   );

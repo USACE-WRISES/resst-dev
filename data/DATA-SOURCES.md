@@ -73,6 +73,26 @@ Quirks:
 
 The pipeline reads only the six `v1.2` **silt** files.
 
+### Supplementary files (`supp/`, added 2026-08-30)
+
+| File | Bytes | SHA-256/16 | Source |
+|---|---:|---|---|
+| `supp/41467_2026_76986_MOESM3_ESM.xlsx` | 175,252 | 44d6e80be6de9e35 | Supplementary Data 1 from the article page (CC BY 4.0) — the surveyed-site compilation appended to ResNet |
+| `supp/ResNetInput_SitesCanada_052225.csv` | 19,022,443 | 83f4226f83e1710f | The RATTES model's actual input table, from the code repo's Git-LFS storage (`media.githubusercontent.com/media/abbyeckland/rattes-naturecomms/main/ResNet1_2026_RATTES_Apr26_Matlab/RATTES_final/SYModel_MLRinput_RATTES_1/…`); hash matches the LFS pointer's oid |
+
+These feed the **tracked** `data/rattes_survey_sites.csv` (924 rows): the
+reservoirs with qualifying repeat surveys (`yr1`/`yr2` present, interval ≥ 10
+years) per Supplementary Data 1's own criteria — cross-verified as exactly the
+same 924 ShortIDs carrying `yr1`/`yr2` pairs in the model input file. The
+paper reports **904** survey-constrained reservoirs; the 20-row difference is
+internal to the published model run and not reproducible from the public
+files, so the app labels these sites "repeat surveys in the RATTES
+compilation" rather than claiming the 904 count. `build-sediment.mjs` turns
+the list into the inventory's `evd` column (1 = survey-constrained,
+2 = statistical prediction). Re-derive with `openpyxl`: header row 15 of the
+xlsx; keep rows with numeric `yr1` and `yr2` and `yr2 − yr1 ≥ 10`; emit
+`short_id, dam_name, survey_yr1, survey_yr2` sorted by `short_id` (CRLF).
+
 ## ResNet — routed national dam network
 
 - Paper: Hurst, A.A., Foster, M.A., Eckland, A.C. (2025). *The ResNet network of dams
@@ -153,9 +173,8 @@ Access `.mdb` is superseded. Quirks:
 
 ## Acquisition TODOs
 
-- **RATTES Supplementary Data 1** (survey-constrained 904-site list) from the article
-  page — populates the `evd` (SY vs MLR evidence class) column via a data-only rebuild.
-  Until then `evd` is all zeros and the app classifies evidence from the RESSED join.
-- Optional: re-fetch the RATTES-vintage ResNet inputs (`ResNetInput_SitesCanada_052225.csv`,
-  run notes) from Zenodo 10.5281/zenodo.20789549 to confirm the `data/resnet/` copy
-  matches the RATTES run (ShortID sets already match exactly, so risk is low).
+- ~~RATTES Supplementary Data 1~~ — **done 2026-08-30** (see the `supp/` table above):
+  `evd` now ships 1/2 from the tracked `data/rattes_survey_sites.csv`.
+- ~~Re-fetch the RATTES-vintage ResNet input~~ — **done 2026-08-30**: the model's own
+  `ResNetInput_SitesCanada_052225.csv` was retrieved from the code repo's LFS storage
+  (hash matches the pointer) and confirms the survey-site set exactly.

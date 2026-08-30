@@ -50,6 +50,11 @@ const RESNET_CSV = "data/resnet/database/ResNet.csv";
 const RATTES_DIR = "data/rattes/v1.2";
 const RESSED_JSON = "data/ressed/2013_database/json/ressed_export_20130404.json/ressed_export_20130404.json";
 const CROSSWALK_CSV = "data/site_resnet_crosswalk.csv";
+// Tracked distillation of RATTES Supplementary Data 1 (the 924 reservoirs
+// with qualifying repeat surveys — the survey-constrained SY component's
+// candidate set, cross-verified against the model's own input file; the
+// paper's "904" is a downstream model-run count). See data/DATA-SOURCES.md.
+const SURVEY_SITES_CSV = "data/rattes_survey_sites.csv";
 const OUT = "public/sediment";
 
 const TRAJ_CHUNKS = 64;
@@ -292,6 +297,23 @@ console.log(
     `${joined} joined to ResNet by NID (${((100 * joined) / ressed.length).toFixed(0)}%)`,
 );
 
+// ------------------------------------------ 4b. RATTES evidence class ------
+
+const surveySites = await readCsvFile(SURVEY_SITES_CSV);
+if (surveySites.length !== 924) fail(`rattes_survey_sites.csv rows ${surveySites.length}, expected 924`);
+const evd = new Uint8Array(n); // 0 = no trajectory; 1 = survey-constrained; 2 = statistical prediction
+for (let i = 0; i < n; i++) if (hasTraj[i]) evd[i] = 2;
+for (const r of surveySites) {
+  const row = rowById.get(Math.round(Number(r.short_id)));
+  if (row == null || !hasTraj[row]) fail(`rattes_survey_sites.csv: short_id ${r.short_id} not a modeled reservoir`);
+  evd[row] = 1;
+}
+{
+  let ones = 0;
+  for (let i = 0; i < n; i++) if (evd[i] === 1) ones++;
+  if (ones !== 924) fail(`evd survey-constrained count ${ones}, expected 924`);
+}
+
 // ------------------------------------------------- 5. crosswalk / sites ----
 
 const xwalk = (await readCsvFile(CROSSWALK_CSV)).filter((r) => r.status !== "rejected");
@@ -433,7 +455,7 @@ const CAPACITY_RULE = "cap[i] = capOrig - sed[i] unless the row appears in capX"
     sed2015: buildJsonArray(idxs, (i) => (hasTraj[i] ? fmtSig(sed2015[i], 4) : "null")),
     sed2025: buildJsonArray(idxs, (i) => (hasTraj[i] ? fmtSig(sedGrid[i * NT + SLOT_2025], 4) : "null")),
     sed2050: buildJsonArray(idxs, (i) => (hasTraj[i] ? fmtSig(sedGrid[i * NT + SLOT_2050], 4) : "null")),
-    evd: buildJsonArray(idxs, () => "0"), // 0 until RATTES Supplementary Data 1 is acquired
+    evd: buildJsonArray(idxs, (i) => String(evd[i])),
   };
   const meta = {
     resnet: RESNET_META,
@@ -447,7 +469,8 @@ const CAPACITY_RULE = "cap[i] = capOrig - sed[i] unless the row appears in capX"
     notes:
       "Columnar parallel arrays; row = index, sorted by ShortID (145 negative-ID mouth nodes first). " +
       "capOrig = cap2025 + sed2025 (RATTES invariant). yrc 0 = unknown. to = row index of next downstream dam, -1 = none. " +
-      "evd: 0 unknown, 1 survey-constrained, 2 MLR-predicted.",
+      "evd: 1 = survey-constrained (one of the 924 reservoirs with qualifying repeat surveys in the RATTES " +
+      "compilation, Supplementary Data 1), 2 = statistical prediction, 0 = not modeled (mouth nodes).",
   };
   const json =
     `{"_meta":${JSON.stringify(meta)},"n":${n},` +
