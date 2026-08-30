@@ -180,7 +180,10 @@ right `site_id` (or creating missing site records) is an owner data decision.
 - Santee River into Cooper River diversion: geometry [-80.1176369819627, 33.3591392790601] vs attribute [-80.0535, 33.301222]
 
 ### NID IDs with no match in the National Inventory of Dams service
-- 11111
+- 11111 *(resolved 2026-08-30: this was the test record "Narnia Test 123"; the whole
+  test-record cluster — the site, literature `L0465` "This is a Test", and entries
+  `E01408`/`E01409` — was removed from the CSVs with owner approval. Note this log's
+  acceptance counts above still record the migration's own output, 979/466/1,410.)*
 
 ### Keyword case variants (left as-is; filters match case-insensitively, mirroring ArcGIS)
 - sites.site_type: "Flood control" ×38 / "Flood Control" ×178

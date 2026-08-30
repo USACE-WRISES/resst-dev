@@ -25,12 +25,15 @@ const def = (key: string) => {
 
 describe("dataset shape", () => {
   it("matches the verified source counts", () => {
-    expect(sites.length).toBe(979);
-    expect(literature.length).toBe(466);
-    expect(entries.length).toBe(1410);
+    // 2026-08-30: the migration's 979/466/1,410 dropped by the owner-approved
+    // removal of the test-record cluster (narnia-test-123 site + "This is a
+    // Test" literature record and its two entries).
+    expect(sites.length).toBe(978);
+    expect(literature.length).toBe(465);
+    expect(entries.length).toBe(1408);
   });
   it("derives the app's three counter scopes", () => {
-    expect(entries.filter((e: any) => e.site_name !== "").length).toBe(1192); // Site Literature view
+    expect(entries.filter((e: any) => e.site_name !== "").length).toBe(1191); // Site Literature view
     expect(literature.filter((l: any) => l.site_names === "").length).toBe(214); // General Literature view
   });
 });
@@ -73,17 +76,17 @@ describe("live-verified filter baselines", () => {
     s["sites.site_type"] = { enabled: true, selected: ["Flood Control"] };
     expect(applyFilters(sites, FILTER_DEFS, s, "sites")).toHaveLength(42);
   });
-  it("enabled item with nothing selected applies the not-blank guard (1,192 → 1,189)", () => {
+  it("enabled item with nothing selected applies the not-blank guard (1,191 → 1,188)", () => {
     const s = state();
     s["siteLit.document_type"] = { enabled: true, selected: [] };
     const siteLit = entries.filter((e: any) => e.site_name !== "");
-    expect(applyFilters(siteLit, FILTER_DEFS, s, "siteLit")).toHaveLength(1189);
+    expect(applyFilters(siteLit, FILTER_DEFS, s, "siteLit")).toHaveLength(1188);
   });
   it("filters never cross domains", () => {
     const s = state();
     s["sites.sediment_release"] = { enabled: true, selected: ["Dam Removal"] };
-    expect(applyFilters(literature, FILTER_DEFS, s, "generalLit")).toHaveLength(466);
-    expect(applyFilters(entries, FILTER_DEFS, s, "siteLit")).toHaveLength(1410);
+    expect(applyFilters(literature, FILTER_DEFS, s, "generalLit")).toHaveLength(465);
+    expect(applyFilters(entries, FILTER_DEFS, s, "siteLit")).toHaveLength(1408);
   });
 });
 

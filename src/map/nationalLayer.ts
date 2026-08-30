@@ -4,7 +4,7 @@
 // a metric picker, custom click routing, and (later) screening filters.
 //
 // Design rules baked in:
-// - nat-circles renders BELOW sites-circles: the 979 documented sites always
+// - nat-circles renders BELOW sites-circles: the documented sites always
 //   sit on top, which itself communicates how rare documented management is.
 // - No text layer for the national set (57k labels is the known perf trap).
 // - Metric switches are setPaintProperty only; screening will be setFilter —
