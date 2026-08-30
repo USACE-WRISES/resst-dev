@@ -1,366 +1,366 @@
 ﻿site_id,short_id,nid,method,confidence,distance_m,name_score,status,notes
-alamo-dam,31853,AZ82203,spatial_name,high,138,1.00,auto,
-allegheny-river,341694,NY00471,spatial_name,low,4799,0.00,auto,
-almond-dam-almond-lake,31854,NY00740,spatial_name,high,314,1.00,auto,
-american-river-watershed-folsom-dam,31836,CA10148,spatial_name,low,35,0.33,auto,
-apalachia-dam,14181,NC00181,spatial_name,high,14,1.00,auto,
-apalachicola-river-near-chipola-cutoff,40821,FL00103,spatial_name,low,3445,0.00,auto,
-apalachicola-river-near-corley-slough,40821,FL00103,spatial_name,low,4448,0.00,auto,
-arkport-dam,179346,NY00856,spatial_name,high,158,1.00,auto,
-arrowrock-dam,5704,ID00280,spatial_name,high,76,1.00,auto,
+alamo-dam,31853,AZ82203,spatial_name,high,138,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 138 m)
+allegheny-river,341694,NY00471,spatial_name,low,4799,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4799 m)
+almond-dam-almond-lake,31854,NY00740,spatial_name,high,314,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 314 m)
+american-river-watershed-folsom-dam,31836,CA10148,spatial_name,low,35,0.33,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.33 at 35 m); same dam as folsom-dam — intentional
+apalachia-dam,14181,NC00181,spatial_name,high,14,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 14 m)
+apalachicola-river-near-chipola-cutoff,40821,FL00103,spatial_name,low,3445,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 3445 m)
+apalachicola-river-near-corley-slough,40821,FL00103,spatial_name,low,4448,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4448 m)
+arkport-dam,179346,NY00856,spatial_name,high,158,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 158 m)
+arrowrock-dam,5704,ID00280,spatial_name,high,76,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 76 m)
 arroyo-seco,288867,CA00189,nid,high,5878,,auto,
-auglaize-river,343911,OH01504,spatial_name,low,3469,0.00,auto,
-austin-great-granite-dam,107529,TX01086,spatial_name,low,47,0.00,auto,
-aylesworth-creek-lake,187417,PA00001,spatial_name,high,81,1.00,auto,
-b-everett-jordan-dam-jordan-dam,14177,NC00173,spatial_name,high,71,1.00,auto,
-badwater-creek,371369,WY01119,spatial_name,low,1639,0.00,auto,
-bartlett-dam,808,AZ10308,spatial_name,high,6,1.00,auto,
-batupan-bogue-creek,324744,MS01632,spatial_name,low,3306,0.14,auto,
-bayou-gulch,290153,CO00265,spatial_name,low,4850,0.00,auto,
-bear-gulch,103979,SD01139,spatial_name,low,3687,0.00,auto,
-beaver-creek,336663,NE00481,spatial_name,low,2843,0.00,auto,
-big-bend-dam,23027,SD01092,spatial_name,medium,1335,1.00,auto,
-big-rapids-dam,316395,MI00475,spatial_name,low,3664,0.00,auto,
+auglaize-river,343911,OH01504,spatial_name,low,3469,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 3469 m)
+austin-great-granite-dam,107529,TX01086,spatial_name,low,47,0.00,auto,review: score 0.00 at 47 m
+aylesworth-creek-lake,187417,PA00001,spatial_name,high,81,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 81 m)
+b-everett-jordan-dam-jordan-dam,14177,NC00173,spatial_name,high,71,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 71 m)
+badwater-creek,371369,WY01119,spatial_name,low,1639,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 1639 m)
+bartlett-dam,808,AZ10308,spatial_name,high,6,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 6 m)
+batupan-bogue-creek,324744,MS01632,spatial_name,low,3306,0.14,auto,review: score 0.14 at 3306 m
+bayou-gulch,290153,CO00265,spatial_name,low,4850,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4850 m)
+bear-gulch,103979,SD01139,spatial_name,low,3687,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 3687 m)
+beaver-creek,336663,NE00481,spatial_name,low,2843,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2843 m)
+big-bend-dam,23027,SD01092,spatial_name,medium,1335,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 1335 m); same dam as missouri-river-from-oahe-dam-to-lake-sharpe — intentional
+big-rapids-dam,316395,MI00475,spatial_name,low,3664,0.00,auto,review: score 0.00 at 3664 m
 big-tujunga,288868,CA00191,nid,high,4315,,auto,
 black-butte-dam,31856,CA10102,nid,high,261,,auto,
-black-river,369996,WI00919,spatial_name,low,4953,0.00,auto,
-blacks-fork,371518,WY01376,spatial_name,low,4286,0.00,auto,
-blue-ridge-dam,4937,GA11101,spatial_name,high,71,1.00,auto,
-blue-river,39068,CO01658,spatial_name,low,281,0.00,auto,
-bluestone-dam-bluestone-lake,30438,WV08902,spatial_name,high,85,1.00,auto,
-boone-dam,121105,TN16306,spatial_name,high,49,1.00,auto,
-brandywine-creek,292515,DE00105,spatial_name,low,4539,0.00,auto,
-brazos-river,363409,TX06220,spatial_name,low,2740,0.00,auto,
-brea-carbon-canyon-carbon-canyon-dam,31864,CA10017,spatial_name,high,282,0.67,auto,
-buffalo-bill-shoshone-dam,31178,WY01300,spatial_name,high,43,0.67,auto,
-bull-shoals-dam,35401,AR00160,spatial_name,high,149,1.00,auto,
-burlington-northern-santa-fe-railway-company-bnsf-railway-crossing,1202,CA10022,spatial_name,low,2560,0.00,auto,
-bush-dam-kettle-creek-reservoir,21924,PA00002,spatial_name,low,168,0.25,auto,
-cache-la-poudre-river,291550,CO02790,spatial_name,low,4831,0.00,auto,
-calaveras-dam,37836,CA01546,spatial_name,high,31,0.50,auto,
-calderwood-dam,105379,TN00906,spatial_name,high,73,1.00,auto,
-california,374426,CA00027,spatial_name,low,1953,0.00,auto,
-california-hillslopes,289912,CA10367,spatial_name,low,2457,0.00,auto,
+black-river,369996,WI00919,spatial_name,low,4953,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4953 m)
+blacks-fork,371518,WY01376,spatial_name,low,4286,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4286 m)
+blue-ridge-dam,4937,GA11101,spatial_name,high,71,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 71 m)
+blue-river,39068,CO01658,spatial_name,low,281,0.00,auto,review: score 0.00 at 281 m
+bluestone-dam-bluestone-lake,30438,WV08902,spatial_name,high,85,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 85 m)
+boone-dam,121105,TN16306,spatial_name,high,49,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 49 m)
+brandywine-creek,292515,DE00105,spatial_name,low,4539,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4539 m)
+brazos-river,363409,TX06220,spatial_name,low,2740,0.00,auto,review: score 0.00 at 2740 m
+brea-carbon-canyon-carbon-canyon-dam,31864,CA10017,spatial_name,high,282,0.67,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.67 at 282 m)
+buffalo-bill-shoshone-dam,31178,WY01300,spatial_name,high,43,0.67,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.67 at 43 m)
+bull-shoals-dam,35401,AR00160,spatial_name,high,149,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 149 m)
+burlington-northern-santa-fe-railway-company-bnsf-railway-crossing,1202,CA10022,spatial_name,low,2560,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2560 m)
+bush-dam-kettle-creek-reservoir,21924,PA00002,spatial_name,low,168,0.25,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.25 at 168 m)
+cache-la-poudre-river,291550,CO02790,spatial_name,low,4831,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4831 m)
+calaveras-dam,37836,CA01546,spatial_name,high,31,0.50,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.50 at 31 m)
+calderwood-dam,105379,TN00906,spatial_name,high,73,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 73 m)
+california,374426,CA00027,spatial_name,low,1953,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 1953 m)
+california-hillslopes,289912,CA10367,spatial_name,low,2457,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2457 m)
 camanche-dam,36931,CA00173,nid,high,245,,auto,
-cameron-creek-bitterroot-national-forest,329675,MT00533,spatial_name,low,521,0.00,auto,
+cameron-creek-bitterroot-national-forest,329675,MT00533,spatial_name,low,521,0.00,auto,review: score 0.00 at 521 m
 camp-far-west-reservoir,36959,CA00227,nid,high,62,,auto,
-canyon-lake-dam,24048,SD02137,spatial_name,high,78,1.00,auto,
-canyon-lake-spillway,106516,TX00004,spatial_name,high,86,0.50,auto,
-casitas-dam,37902,CA10139,spatial_name,high,165,1.00,auto,
-cedar-canyon-dam-red-dale-gulch,24048,SD02137,spatial_name,low,716,0.20,auto,
-cedar-river,300671,IA01821,spatial_name,low,226,0.17,auto,
-centerville-canyon-wasatch-mountains,365356,UT10215,spatial_name,low,2182,0.00,auto,
+canyon-lake-dam,24048,SD02137,spatial_name,high,78,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 78 m); same dam as cedar-canyon-dam-red-dale-gulch — intentional
+canyon-lake-spillway,106516,TX00004,spatial_name,high,86,0.50,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.50 at 86 m)
+casitas-dam,37902,CA10139,spatial_name,high,165,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 165 m)
+cedar-canyon-dam-red-dale-gulch,24048,SD02137,spatial_name,low,716,0.20,auto,review: score 0.20 at 716 m; same dam as canyon-lake-dam — intentional
+cedar-river,300671,IA01821,spatial_name,low,226,0.17,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.17 at 226 m)
+centerville-canyon-wasatch-mountains,365356,UT10215,spatial_name,low,2182,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2182 m)
 charles-mill-dam,17644,OH00020,nid,high,56,,auto,
-chatuge-dam,14277,NC00391,spatial_name,high,729,1.00,auto,
-cheesman-dam,1366,CO00357,spatial_name,high,540,1.00,auto,
-cheesman-lake-watershed,1366,CO00357,nid,high,6043,,auto,
-cheney-reservoir-dam,84597,KS00017,spatial_name,high,70,1.00,auto,
-cherokee-dam,24577,TN08903,spatial_name,high,51,1.00,auto,
-cherry-creek-dam,1924,CO01280,spatial_name,high,66,1.00,auto,
-chickamauga-dam,105772,TN06504,spatial_name,high,99,1.00,auto,
-chief-joseph-dam,206180,WA00299,spatial_name,high,227,1.00,auto,
-chippewa-river,370026,WI00983,spatial_name,low,3680,0.00,auto,
-choptank-river,292463,DE00033,spatial_name,low,62,0.00,auto,
-cimarron-river,346835,OK12559,spatial_name,low,4044,0.00,auto,
-clairborne-lock-and-dam,123197,AL01436,spatial_name,low,46,0.33,auto,
-clear-creek,372086,WY02603,spatial_name,low,1813,0.00,auto,
+chatuge-dam,14277,NC00391,spatial_name,high,729,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 729 m)
+cheesman-dam,1366,CO00357,spatial_name,high,540,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 540 m); same dam as cheesman-lake-watershed — intentional
+cheesman-lake-watershed,1366,CO00357,nid,high,6043,,auto,same dam as cheesman-dam — intentional
+cheney-reservoir-dam,84597,KS00017,spatial_name,high,70,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 70 m)
+cherokee-dam,24577,TN08903,spatial_name,high,51,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 51 m)
+cherry-creek-dam,1924,CO01280,spatial_name,high,66,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 66 m)
+chickamauga-dam,105772,TN06504,spatial_name,high,99,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 99 m)
+chief-joseph-dam,206180,WA00299,spatial_name,high,227,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 227 m)
+chippewa-river,370026,WI00983,spatial_name,low,3680,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 3680 m)
+choptank-river,292463,DE00033,spatial_name,low,62,0.00,auto,review: score 0.00 at 62 m
+cimarron-river,346835,OK12559,spatial_name,low,4044,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4044 m)
+clairborne-lock-and-dam,123197,AL01436,spatial_name,low,46,0.33,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.33 at 46 m)
+clear-creek,372086,WY02603,spatial_name,low,1813,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 1813 m)
 cochiti,17258,NM00404,nid,high,479,,auto,
-cogswell-reservoir-cogswell-dam,920,CA00190,spatial_name,high,85,1.00,auto,
-colorado-river-at-blue-river,290657,CO00928,spatial_name,low,4713,0.00,auto,
-conemaugh-river-lake,187497,PA00101,spatial_name,high,158,1.00,auto,
-conestoga-dam-site-12-dam-conestoga-reservoir,16124,NE01055,spatial_name,high,256,0.50,auto,
-connecticut-river-at-sugar-river,339270,NH00140,spatial_name,low,2393,0.00,auto,
+cogswell-reservoir-cogswell-dam,920,CA00190,spatial_name,high,85,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 85 m)
+colorado-river-at-blue-river,290657,CO00928,spatial_name,low,4713,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4713 m)
+conemaugh-river-lake,187497,PA00101,spatial_name,high,158,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 158 m)
+conestoga-dam-site-12-dam-conestoga-reservoir,16124,NE01055,spatial_name,high,256,0.50,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.50 at 256 m)
+connecticut-river-at-sugar-river,339270,NH00140,spatial_name,low,2393,0.00,auto,review: score 0.00 at 2393 m
 conowingo-dam,240255,MD00097,nid,high,39,,auto,
-coralville-dam-coralville-lake,4941,IA00012,spatial_name,high,142,1.00,auto,
+coralville-dam-coralville-lake,4941,IA00012,spatial_name,high,142,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 142 m)
 cougar-reservoir-willamette-basin,98088,OR00015,nid,high,104,,auto,
-cowanesque-dam-cowanesque-reservoir,21974,PA01134,spatial_name,high,189,1.00,auto,
-cowlitz-river,349836,OR01385,spatial_name,low,4045,0.00,auto,
-crooked-creek-lake,21935,PA00102,spatial_name,medium,1960,1.00,auto,
-cross-creek,290531,CO00763,spatial_name,low,2151,0.00,auto,
-cuffawa-creek,323999,MS00800,spatial_name,low,562,0.00,auto,
-cull-canyon-reservoir-cull-creek-reservoir-dam,289327,CA00840,spatial_name,high,463,0.50,auto,
-curwensville-dam-curwensville-reservoir,31857,PA00003,spatial_name,high,182,1.00,auto,
+cowanesque-dam-cowanesque-reservoir,21974,PA01134,spatial_name,high,189,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 189 m)
+cowlitz-river,349836,OR01385,spatial_name,low,4045,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4045 m)
+crooked-creek-lake,21935,PA00102,spatial_name,medium,1960,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 1960 m)
+cross-creek,290531,CO00763,spatial_name,low,2151,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2151 m)
+cuffawa-creek,323999,MS00800,spatial_name,low,562,0.00,auto,review: score 0.00 at 562 m
+cull-canyon-reservoir-cull-creek-reservoir-dam,289327,CA00840,spatial_name,high,463,0.50,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.50 at 463 m)
+curwensville-dam-curwensville-reservoir,31857,PA00003,spatial_name,high,182,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 182 m)
 detroit-reservoir-willamette-basin,98077,OR00004,nid,high,70,,auto,
 devil-canyon,289706,CA01364,nid,high,555,,auto,
 dewey-dam,9688,KY03029,nid,high,166,,auto,
-diablo-dam,117486,WA00170,spatial_name,high,57,1.00,auto,
-dix-river-dix-dam,120944,KY00316,spatial_name,high,21,1.00,auto,
+diablo-dam,117486,WA00170,spatial_name,high,57,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 57 m)
+dix-river-dix-dam,120944,KY00316,spatial_name,high,21,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 21 m)
 don-pedro-dam,31851,CA00281,nid,high,185,,auto,
-doran-creek-bitterroot-national-forest,329675,MT00533,spatial_name,low,1527,0.00,auto,
-douglas-dam,24724,TN15501,spatial_name,high,46,1.00,auto,
-druid-lake-dam,315237,MD00110,spatial_name,low,4603,0.00,auto,
-dunsmore-1,289564,CA01151,spatial_name,low,2707,0.00,auto,
-dunsmore-2,289564,CA01151,spatial_name,low,2211,0.00,auto,
-dworshak-dam,120889,ID00287,spatial_name,high,84,1.00,auto,
-east-sidney-dam-east-sidney-reservoir,17612,NY01211,spatial_name,high,99,1.00,auto,
-elephant-butte-dam,17114,NM00129,spatial_name,high,19,1.00,auto,
-elkhorn-river,338112,NE02426,spatial_name,low,4412,0.00,auto,
+doran-creek-bitterroot-national-forest,329675,MT00533,spatial_name,low,1527,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 1527 m)
+douglas-dam,24724,TN15501,spatial_name,high,46,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 46 m)
+druid-lake-dam,315237,MD00110,spatial_name,low,4603,0.00,auto,review: score 0.00 at 4603 m
+dunsmore-1,289564,CA01151,spatial_name,low,2707,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2707 m)
+dunsmore-2,289564,CA01151,spatial_name,low,2211,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2211 m)
+dworshak-dam,120889,ID00287,spatial_name,high,84,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 84 m); same dam as north-fork-clearwater-river — intentional
+east-sidney-dam-east-sidney-reservoir,17612,NY01211,spatial_name,high,99,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 99 m)
+elephant-butte-dam,17114,NM00129,spatial_name,high,19,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 19 m)
+elkhorn-river,338112,NE02426,spatial_name,low,4412,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4412 m)
 englebright-dam,37879,CA10105,nid,high,43,,auto,
-enid-dam-long-creek-yocona-river,120973,MS01495,spatial_name,low,1294,0.33,auto,
-fairfield-lake,332710,NC00592,nid,high,301556,,auto,
-fall-creek,98080,OR00007,nid,high,509,,auto,
-fall-creek-dam,98080,OR00007,spatial_name,high,32,1.00,auto,
-fall-creek-reservoir-willamette-basin,98080,OR00007,nid,high,256,,auto,
+enid-dam-long-creek-yocona-river,120973,MS01495,spatial_name,low,1294,0.33,auto,review: score 0.33 at 1294 m
+fairfield-lake,332710,NC00592,nid,high,301556,,auto,review: site coordinates are 302 km from the NID dam
+fall-creek,98080,OR00007,nid,high,509,,auto,"same dam as fall-creek-dam, fall-creek-reservoir-willamette-basin — intentional"
+fall-creek-dam,98080,OR00007,spatial_name,high,32,1.00,confirmed,"auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 32 m); same dam as fall-creek, fall-creek-reservoir-willamette-basin — intentional"
+fall-creek-reservoir-willamette-basin,98080,OR00007,nid,high,256,,auto,"same dam as fall-creek, fall-creek-dam — intentional"
 fishtrap-dam,9687,KY03028,nid,high,206,,auto,
-folsom-dam,31836,CA10148,nid,high,35,,auto,
-fontana-dam,14234,NC00298,spatial_name,high,71,1.00,auto,
-fontenelle-dam,120263,WY01389,spatial_name,high,328,1.00,auto,
-fort-loudoun-dam,121102,TN10501,spatial_name,high,146,1.00,auto,
-fort-patrick-henry-dam,121106,TN16307,spatial_name,high,58,1.00,auto,
-fort-peck-dam,10896,MT00025,spatial_name,medium,1190,1.00,auto,
-fort-randall-dam,23028,SD01093,spatial_name,high,475,1.00,auto,
-fraser-river-at-winter-park,291702,CO02983,spatial_name,low,4642,0.00,auto,
-frye-creek,288471,AZ00069,spatial_name,medium,1162,0.50,auto,
-fullerton-dam,126864,CA10018,spatial_name,high,454,1.00,auto,
-garrison-dam,15122,ND00145,spatial_name,medium,2071,1.00,auto,
-garrison-dam-lake-sakakawea,15122,ND00145,spatial_name,medium,2071,0.50,auto,
-gavins-point-dam-lewis-and-clark-lake,23029,SD01094,spatial_name,high,122,0.50,auto,
-gavins-point-dam-to-cairo-illinois,312839,KY00838,spatial_name,low,3818,0.00,auto,
-glen-canyon-dam,807,AZ10307,spatial_name,high,46,1.00,auto,
+folsom-dam,31836,CA10148,nid,high,35,,auto,same dam as american-river-watershed-folsom-dam — intentional
+fontana-dam,14234,NC00298,spatial_name,high,71,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 71 m)
+fontenelle-dam,120263,WY01389,spatial_name,high,328,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 328 m)
+fort-loudoun-dam,121102,TN10501,spatial_name,high,146,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 146 m)
+fort-patrick-henry-dam,121106,TN16307,spatial_name,high,58,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 58 m)
+fort-peck-dam,10896,MT00025,spatial_name,medium,1190,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 1190 m)
+fort-randall-dam,23028,SD01093,spatial_name,high,475,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 475 m)
+fraser-river-at-winter-park,291702,CO02983,spatial_name,low,4642,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4642 m)
+frye-creek,288471,AZ00069,spatial_name,medium,1162,0.50,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.50 at 1162 m)
+fullerton-dam,126864,CA10018,spatial_name,high,454,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 454 m)
+garrison-dam,15122,ND00145,spatial_name,medium,2071,1.00,confirmed,"auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 2071 m); same dam as garrison-dam-lake-sakakawea, missouri-river-from-fort-peck-dam-to-lake-sakakawea — intentional"
+garrison-dam-lake-sakakawea,15122,ND00145,spatial_name,medium,2071,0.50,confirmed,"auto-curated 2026-08-30: strong name/colocation evidence (score 0.50 at 2071 m); same dam as garrison-dam, missouri-river-from-fort-peck-dam-to-lake-sakakawea — intentional"
+gavins-point-dam-lewis-and-clark-lake,23029,SD01094,spatial_name,high,122,0.50,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.50 at 122 m); same dam as missouri-river-from-fort-randall-dam-to-lewis-and-clark-lake — intentional
+gavins-point-dam-to-cairo-illinois,312839,KY00838,spatial_name,low,3818,0.00,auto,review: score 0.00 at 3818 m
+glen-canyon-dam,807,AZ10307,spatial_name,high,46,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 46 m)
 glen-elder-dam,5829,KS00021,nid,high,911,,auto,
-glenville-thorpe-dam,120982,NC00378,spatial_name,high,47,0.50,auto,
-glines-canyon-dam,121157,WA00144,spatial_name,low,230,0.00,auto,
-good-hope-tributary,315419,MD00391,spatial_name,low,3984,0.00,auto,
-goodwin-creek,326564,MS03807,spatial_name,low,1528,0.00,auto,
-grand-coulee-dam,117548,WA00262,spatial_name,high,287,1.00,auto,
-grapevine-spillway-denton-creek,24758,TX00005,spatial_name,low,98,0.33,auto,
-green-duwamish-river,368996,WA00618,spatial_name,low,4885,0.00,auto,
+glenville-thorpe-dam,120982,NC00378,spatial_name,high,47,0.50,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.50 at 47 m)
+glines-canyon-dam,121157,WA00144,spatial_name,low,230,0.00,auto,review: score 0.00 at 230 m
+good-hope-tributary,315419,MD00391,spatial_name,low,3984,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 3984 m)
+goodwin-creek,326564,MS03807,spatial_name,low,1528,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 1528 m)
+grand-coulee-dam,117548,WA00262,spatial_name,high,287,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 287 m)
+grapevine-spillway-denton-creek,24758,TX00005,spatial_name,low,98,0.33,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.33 at 98 m)
+green-duwamish-river,368996,WA00618,spatial_name,low,4885,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4885 m)
 green-peter-reservoir-willamette-basin,98083,OR00010,nid,high,229,,auto,
-greybull-river,371388,WY01151,spatial_name,low,1970,0.00,auto,
-guernsey-dam,31172,WY01293,spatial_name,high,111,1.00,auto,
-gullys-near-treynor-iowa,302499,IA03765,spatial_name,low,1276,0.17,auto,
-gunnison-river,291732,CO03017,spatial_name,low,2738,0.00,auto,
-guntersville-dam,35204,AL09501,spatial_name,high,152,1.00,auto,
-haines-debris-basin,126863,CA10004,spatial_name,high,43,0.50,auto,
-hammond-dam-hammond-reservoir,99739,PA01133,spatial_name,high,156,1.00,auto,
-hannibal-locks-and-dam,370691,WV10301,spatial_name,high,149,1.00,auto,
-hansen-dam,31858,CA10019,spatial_name,high,19,1.00,auto,
+greybull-river,371388,WY01151,spatial_name,low,1970,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 1970 m)
+guernsey-dam,31172,WY01293,spatial_name,high,111,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 111 m)
+gullys-near-treynor-iowa,302499,IA03765,spatial_name,low,1276,0.17,auto,review: score 0.17 at 1276 m
+gunnison-river,291732,CO03017,spatial_name,low,2738,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2738 m)
+guntersville-dam,35204,AL09501,spatial_name,high,152,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 152 m)
+haines-debris-basin,126863,CA10004,spatial_name,high,43,0.50,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.50 at 43 m)
+hammond-dam-hammond-reservoir,99739,PA01133,spatial_name,high,156,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 156 m)
+hannibal-locks-and-dam,370691,WV10301,spatial_name,high,149,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 149 m)
+hansen-dam,31858,CA10019,spatial_name,high,19,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 19 m)
 harlan-county-dam,16134,NE01066,nid,high,646,,auto,
-harland-creek,323367,MS00085,spatial_name,low,2929,0.00,auto,
-hat-creek,366119,VA031006,spatial_name,low,2312,0.00,auto,
-hickahala-creek,324700,MS01585,spatial_name,low,3682,0.00,auto,
-hiwassee-dam,14290,NC00419,spatial_name,high,26,1.00,auto,
-holbrook-canyon,365423,UT50437,spatial_name,low,1232,0.00,auto,
-holtwood-dam,350673,PA00854,spatial_name,high,192,1.00,auto,
+harland-creek,323367,MS00085,spatial_name,low,2929,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2929 m)
+hat-creek,366119,VA031006,spatial_name,low,2312,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2312 m)
+hickahala-creek,324700,MS01585,spatial_name,low,3682,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 3682 m)
+hiwassee-dam,14290,NC00419,spatial_name,high,26,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 26 m)
+holbrook-canyon,365423,UT50437,spatial_name,low,1232,0.00,auto,review: score 0.00 at 1232 m; same dam as kenney-creek — intentional
+holtwood-dam,350673,PA00854,spatial_name,high,192,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 192 m)
 hoover-dam,17434,NV10122,nid,high,44,,auto,
-horseshoe-creek,31170,WY01291,spatial_name,low,3460,0.00,auto,
-howard-a-hanson-dam,117574,WA00298,spatial_name,high,40,1.00,auto,
-hungry-horse-dam,78156,MT00565,spatial_name,high,89,1.00,auto,
-ice-harbor-lock-and-dam-ice-harbor-on-snake-river,206209,WA00347,spatial_name,high,35,0.60,auto,
-illinois-river,303346,IL00002,spatial_name,low,1870,0.00,auto,
-indian-rock-dam,21926,PA00007,spatial_name,high,112,0.67,auto,
-iowa,299096,IA00138,spatial_name,low,4437,0.00,auto,
-iowa-river,301859,IA03064,spatial_name,low,450,0.00,auto,
-ipswich-river,314725,MA01141,spatial_name,low,2918,0.00,auto,
-island-park-dam,51481,ID00272,spatial_name,high,12,1.00,auto,
-j-strom-thurmond-clarks-hill-dam,43201,GA01701,spatial_name,high,50,0.60,auto,
-jefferson-creek,291666,CO02939,spatial_name,low,3038,0.00,auto,
-jennings-randolph-lake-bloomington-dam,9736,MD00069,spatial_name,high,112,0.67,auto,
-jennings-randolph-reservoir,9736,MD00069,spatial_name,high,115,1.00,auto,
-jim-woodruff-lock-and-dam,2466,FL00435,spatial_name,high,36,1.00,auto,
-joe-wright-creek,291008,CO01766,spatial_name,low,4149,1.00,auto,
-john-redmond-dam,5818,KS00004,spatial_name,medium,2655,1.00,auto,
-john-redmond-dam-neosho-river,5818,KS00004,nid,high,2655,,auto,
-kankakee-river,304475,IL50319,spatial_name,low,492,0.00,auto,
+horseshoe-creek,31170,WY01291,spatial_name,low,3460,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 3460 m)
+howard-a-hanson-dam,117574,WA00298,spatial_name,high,40,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 40 m)
+hungry-horse-dam,78156,MT00565,spatial_name,high,89,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 89 m)
+ice-harbor-lock-and-dam-ice-harbor-on-snake-river,206209,WA00347,spatial_name,high,35,0.60,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.60 at 35 m); same dam as snake-river-watershed — intentional
+illinois-river,303346,IL00002,spatial_name,low,1870,0.00,auto,review: score 0.00 at 1870 m
+indian-rock-dam,21926,PA00007,spatial_name,high,112,0.67,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.67 at 112 m)
+iowa,299096,IA00138,spatial_name,low,4437,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4437 m)
+iowa-river,301859,IA03064,spatial_name,low,450,0.00,auto,review: score 0.00 at 450 m
+ipswich-river,314725,MA01141,spatial_name,low,2918,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2918 m)
+island-park-dam,51481,ID00272,spatial_name,high,12,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 12 m)
+j-strom-thurmond-clarks-hill-dam,43201,GA01701,spatial_name,high,50,0.60,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.60 at 50 m)
+jefferson-creek,291666,CO02939,spatial_name,low,3038,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 3038 m)
+jennings-randolph-lake-bloomington-dam,9736,MD00069,spatial_name,high,112,0.67,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.67 at 112 m); same dam as jennings-randolph-reservoir — intentional
+jennings-randolph-reservoir,9736,MD00069,spatial_name,high,115,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 115 m); same dam as jennings-randolph-lake-bloomington-dam — intentional
+jim-woodruff-lock-and-dam,2466,FL00435,spatial_name,high,36,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 36 m)
+joe-wright-creek,291008,CO01766,spatial_name,low,4149,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 4149 m)
+john-redmond-dam,5818,KS00004,spatial_name,medium,2655,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 2655 m); same dam as john-redmond-dam-neosho-river — intentional
+john-redmond-dam-neosho-river,5818,KS00004,nid,high,2655,,auto,same dam as john-redmond-dam — intentional
+kankakee-river,304475,IL50319,spatial_name,low,492,0.00,auto,review: score 0.00 at 492 m
 kanopolis-dam,5820,KS00005,nid,high,3752,,auto,
-kenney-creek,365423,UT50437,spatial_name,low,1435,0.00,auto,
-kensico-dam,90135,NY00051,spatial_name,high,64,1.00,auto,
-kentucky-dam,120948,KY05017,spatial_name,high,104,1.00,auto,
-keswick-dam,126894,CA10160,spatial_name,high,33,1.00,auto,
-keystone-gulch,290452,CO00664,spatial_name,low,2591,0.00,auto,
-kickapoo-creek,304661,IL50587,spatial_name,low,57,0.00,auto,
-kinney-creek,290487,CO00708,spatial_name,low,2455,0.00,auto,
+kenney-creek,365423,UT50437,spatial_name,low,1435,0.00,auto,review: score 0.00 at 1435 m; same dam as holbrook-canyon — intentional
+kensico-dam,90135,NY00051,spatial_name,high,64,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 64 m)
+kentucky-dam,120948,KY05017,spatial_name,high,104,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 104 m)
+keswick-dam,126894,CA10160,spatial_name,high,33,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 33 m)
+keystone-gulch,290452,CO00664,spatial_name,low,2591,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2591 m)
+kickapoo-creek,304661,IL50587,spatial_name,low,57,0.00,auto,review: score 0.00 at 57 m
+kinney-creek,290487,CO00708,spatial_name,low,2455,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2455 m)
 la-grange-dam,288917,CA00278,nid,high,45,,auto,
-lahontan-dam,17435,NV10123,spatial_name,high,48,1.00,auto,
-lake-cochituate-dam,314458,MA00740,spatial_name,high,85,1.00,auto,
-lake-onalaska-area-black-river-delta,317290,MN00587,spatial_name,low,4685,0.00,auto,
-lake-wabaunsee,308317,KS02531,spatial_name,high,226,1.00,auto,
-las-vegas-wash,89784,NV10153,spatial_name,medium,2970,0.67,auto,
-licking-river,313014,KY01120,spatial_name,low,3586,0.00,auto,
-little-bear-river-hyrum-dam,114069,UT10123,spatial_name,low,99,0.33,auto,
-little-goose-lock-and-dam-little-goose-reservoir,206200,WA00331,spatial_name,high,206,1.00,auto,
-little-river,297413,GA04857,spatial_name,low,1687,0.00,auto,
-long-and-caney-creek,326564,MS03807,spatial_name,low,1515,0.33,auto,
+lahontan-dam,17435,NV10123,spatial_name,high,48,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 48 m)
+lake-cochituate-dam,314458,MA00740,spatial_name,high,85,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 85 m)
+lake-onalaska-area-black-river-delta,317290,MN00587,spatial_name,low,4685,0.00,auto,review: score 0.00 at 4685 m
+lake-wabaunsee,308317,KS02531,spatial_name,high,226,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 226 m)
+las-vegas-wash,89784,NV10153,spatial_name,medium,2970,0.67,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.67 at 2970 m)
+licking-river,313014,KY01120,spatial_name,low,3586,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 3586 m)
+little-bear-river-hyrum-dam,114069,UT10123,spatial_name,low,99,0.33,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.33 at 99 m)
+little-goose-lock-and-dam-little-goose-reservoir,206200,WA00331,spatial_name,high,206,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 206 m)
+little-river,297413,GA04857,spatial_name,low,1687,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 1687 m)
+long-and-caney-creek,326564,MS03807,spatial_name,low,1515,0.33,auto,review: score 0.33 at 1515 m
 lookout-point-reservoir-willamette-basin,98082,OR00009,nid,high,34,,auto,
-lopez-dam,37872,CA10020,spatial_name,high,94,1.00,auto,
-los-angeles-debris-basins,288875,CA00202,spatial_name,low,4814,0.17,auto,
-lower-crystal-springs-dam,31846,CA00127,spatial_name,high,26,1.00,auto,
-lower-fox-river,207312,WI00867,spatial_name,low,829,0.00,auto,
-lower-granite-dam,206211,WA00349,spatial_name,high,280,0.67,auto,
-lower-monumental-lock-and-dam,206158,WA00270,spatial_name,high,284,1.00,auto,
-lower-otay-dam,288822,CA00112,spatial_name,low,4428,0.33,auto,
-lower-san-leandro-chabot-dam,37614,CA01082,spatial_name,low,4533,0.33,auto,
-loyalhanna-lake,21937,PA00106,spatial_name,high,32,1.00,auto,
-luckiamute-river,349525,OR00382,spatial_name,low,4397,0.00,auto,
-lucky-peak-dam-lucky-peak-reservoir,51488,ID00288,spatial_name,high,370,1.00,auto,
-mad-creek,291603,CO02852,spatial_name,low,376,0.00,auto,
-magpie-creek-canyon-ferry,11299,MT00568,spatial_name,low,3396,0.67,auto,
-mathews-canyon-dam,178336,NV10002,spatial_name,high,88,1.00,auto,
+lopez-dam,37872,CA10020,spatial_name,high,94,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 94 m)
+los-angeles-debris-basins,288875,CA00202,spatial_name,low,4814,0.17,auto,review: score 0.17 at 4814 m
+lower-crystal-springs-dam,31846,CA00127,spatial_name,high,26,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 26 m); same dam as upper-crystal-springs-dam — intentional
+lower-fox-river,207312,WI00867,spatial_name,low,829,0.00,auto,review: score 0.00 at 829 m
+lower-granite-dam,206211,WA00349,spatial_name,high,280,0.67,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.67 at 280 m)
+lower-monumental-lock-and-dam,206158,WA00270,spatial_name,high,284,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 284 m)
+lower-otay-dam,288822,CA00112,spatial_name,low,4428,0.33,auto,review: score 0.33 at 4428 m
+lower-san-leandro-chabot-dam,37614,CA01082,spatial_name,low,4533,0.33,auto,review: score 0.33 at 4533 m
+loyalhanna-lake,21937,PA00106,spatial_name,high,32,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 32 m)
+luckiamute-river,349525,OR00382,spatial_name,low,4397,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4397 m)
+lucky-peak-dam-lucky-peak-reservoir,51488,ID00288,spatial_name,high,370,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 370 m)
+mad-creek,291603,CO02852,spatial_name,low,376,0.00,auto,review: score 0.00 at 376 m
+magpie-creek-canyon-ferry,11299,MT00568,spatial_name,low,3396,0.67,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.67 at 3396 m)
+mathews-canyon-dam,178336,NV10002,spatial_name,high,88,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 88 m)
 matilija-dam,288933,CA00312,nid,high,53,,auto,
-mcnary-dam-mcnary-reservoir,121155,OR00616,spatial_name,high,85,0.67,auto,
-medina-dam,25894,TX01787,spatial_name,high,8,1.00,auto,
-melton-hill-dam,106003,TN10502,spatial_name,high,35,1.00,auto,
-middle-boulder-creek,38184,CO00213,spatial_name,low,2061,0.00,auto,
-middle-fork-powder-river,371045,WY00550,spatial_name,low,2479,0.00,auto,
-midwestern-usa-stream-channel-eastern-nebraska,337969,NE02245,spatial_name,low,2483,0.00,auto,
+mcnary-dam-mcnary-reservoir,121155,OR00616,spatial_name,high,85,0.67,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.67 at 85 m)
+medina-dam,25894,TX01787,spatial_name,high,8,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 8 m)
+melton-hill-dam,106003,TN10502,spatial_name,high,35,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 35 m)
+middle-boulder-creek,38184,CO00213,spatial_name,low,2061,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2061 m)
+middle-fork-powder-river,371045,WY00550,spatial_name,low,2479,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2479 m)
+midwestern-usa-stream-channel-eastern-nebraska,337969,NE02245,spatial_name,low,2483,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2483 m)
 milford-dam,54190,KS00008,nid,high,777,,auto,
-mill-creek,365423,UT50437,spatial_name,low,1649,0.00,auto,
-mill-creek-diversion-dam-bennington-lake,206210,WA00348,spatial_name,low,1969,0.25,auto,
-mill-pond-dam,336772,NE00600,spatial_name,high,31,0.67,auto,
-millsite-dam,113740,UT00212,spatial_name,high,21,1.00,auto,
-millsite-reservoir,113740,UT00212,spatial_name,high,828,1.00,auto,
-mississippi-river-below-grafton-il,303753,IL00670,spatial_name,low,3827,0.00,auto,
-missouri,321330,MO31546,spatial_name,low,1435,0.00,auto,
-missouri-river-at-hermann-missouri,321336,MO31560,spatial_name,low,3390,0.00,auto,
-missouri-river-at-st-charles-mo,321216,MO31393,spatial_name,low,3835,0.00,auto,
-missouri-river-at-waverly-missouri,320078,MO20519,spatial_name,low,3933,0.00,auto,
-missouri-river-from-fort-peck-dam-to-lake-sakakawea,15122,ND00145,spatial_name,low,2071,0.00,auto,
-missouri-river-from-fort-randall-dam-to-lewis-and-clark-lake,23029,SD01094,spatial_name,low,122,0.00,auto,
-missouri-river-from-garrison-dam-to-oahe-dam,23030,SD01095,spatial_name,low,4062,0.20,auto,
-missouri-river-from-oahe-dam-to-lake-sharpe,23027,SD01092,spatial_name,low,1335,0.00,auto,
-modoc-national-forest,289051,CA00480,spatial_name,low,1704,0.00,auto,
-mojave-mojave-forks-dam,126865,CA10021,spatial_name,high,328,0.50,auto,
-montana,331990,MT03681,spatial_name,low,594,0.00,auto,
-montana-west-of-continental-divide,329696,MT00587,spatial_name,low,4064,0.00,auto,
-mossyrock-dam,117469,WA00151,spatial_name,high,19,1.00,auto,
-mountain-creek,353522,SC02331,spatial_name,low,4669,0.00,auto,
+mill-creek,365423,UT50437,spatial_name,low,1649,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 1649 m)
+mill-creek-diversion-dam-bennington-lake,206210,WA00348,spatial_name,low,1969,0.25,auto,review: score 0.25 at 1969 m
+mill-pond-dam,336772,NE00600,spatial_name,high,31,0.67,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.67 at 31 m)
+millsite-dam,113740,UT00212,spatial_name,high,21,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 21 m); same dam as millsite-reservoir — intentional
+millsite-reservoir,113740,UT00212,spatial_name,high,828,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 828 m); same dam as millsite-dam — intentional
+mississippi-river-below-grafton-il,303753,IL00670,spatial_name,low,3827,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 3827 m)
+missouri,321330,MO31546,spatial_name,low,1435,0.00,auto,review: score 0.00 at 1435 m
+missouri-river-at-hermann-missouri,321336,MO31560,spatial_name,low,3390,0.00,auto,review: score 0.00 at 3390 m
+missouri-river-at-st-charles-mo,321216,MO31393,spatial_name,low,3835,0.00,auto,review: score 0.00 at 3835 m
+missouri-river-at-waverly-missouri,320078,MO20519,spatial_name,low,3933,0.00,auto,review: score 0.00 at 3933 m
+missouri-river-from-fort-peck-dam-to-lake-sakakawea,15122,ND00145,spatial_name,low,2071,0.00,auto,"review: score 0.00 at 2071 m; same dam as garrison-dam, garrison-dam-lake-sakakawea — intentional"
+missouri-river-from-fort-randall-dam-to-lewis-and-clark-lake,23029,SD01094,spatial_name,low,122,0.00,auto,review: score 0.00 at 122 m; same dam as gavins-point-dam-lewis-and-clark-lake — intentional
+missouri-river-from-garrison-dam-to-oahe-dam,23030,SD01095,spatial_name,low,4062,0.20,auto,"review: score 0.20 at 4062 m; same dam as oahe-dam, oahe-dam-lake-oahe — intentional"
+missouri-river-from-oahe-dam-to-lake-sharpe,23027,SD01092,spatial_name,low,1335,0.00,auto,review: score 0.00 at 1335 m; same dam as big-bend-dam — intentional
+modoc-national-forest,289051,CA00480,spatial_name,low,1704,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 1704 m)
+mojave-mojave-forks-dam,126865,CA10021,spatial_name,high,328,0.50,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.50 at 328 m)
+montana,331990,MT03681,spatial_name,low,594,0.00,auto,review: score 0.00 at 594 m
+montana-west-of-continental-divide,329696,MT00587,spatial_name,low,4064,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4064 m)
+mossyrock-dam,117469,WA00151,spatial_name,high,19,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 19 m)
+mountain-creek,353522,SC02331,spatial_name,low,4669,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4669 m)
 mud-mountain-dam,30343,WA00300,nid,high,153,,auto,
-muddy-creek,357063,TN06923,spatial_name,low,4980,0.50,auto,
-nantahala-dam,120981,NC00371,spatial_name,high,111,1.00,auto,
-new-bullards-bar-dam,31847,CA00863,spatial_name,high,170,1.00,auto,
-new-bullards-bar-reservoir-watershed,31847,CA00863,nid,high,16404,,auto,
-new-croton-dam,90130,NY00046,spatial_name,high,214,1.00,auto,
-new-exchequer-dam,31852,CA00240,spatial_name,low,60,0.33,auto,
+muddy-creek,357063,TN06923,spatial_name,low,4980,0.50,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.50 at 4980 m)
+nantahala-dam,120981,NC00371,spatial_name,high,111,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 111 m)
+new-bullards-bar-dam,31847,CA00863,spatial_name,high,170,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 170 m); same dam as new-bullards-bar-reservoir-watershed — intentional
+new-bullards-bar-reservoir-watershed,31847,CA00863,nid,high,16404,,auto,review: site coordinates are 16 km from the NID dam; same dam as new-bullards-bar-dam — intentional
+new-croton-dam,90130,NY00046,spatial_name,high,214,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 214 m); same dam as old-croton-dam — intentional
+new-exchequer-dam,31852,CA00240,spatial_name,low,60,0.33,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.33 at 60 m)
 new-hogan-dam,1208,CA10109,nid,high,40,,auto,
 new-melones-dam,37942,CA10246,nid,high,162,,auto,
-nickajack-dam,106094,TN11502,spatial_name,high,122,1.00,auto,
-nolichucky-dam,24515,TN05903,spatial_name,high,128,1.00,auto,
-norris-dam,24410,TN01302,spatial_name,high,116,1.00,auto,
-north-fork-clearwater-river,120889,ID00287,spatial_name,low,2317,0.00,auto,
-north-fork-powder-river,370980,WY00447,spatial_name,low,458,0.00,auto,
-north-fork-south-platte-river,290218,CO00346,spatial_name,low,2788,0.00,auto,
-north-fork-toutle-river,84781,WA00558,spatial_name,low,4730,0.00,auto,
-nottely-dam,120878,GA29101,spatial_name,high,237,1.00,auto,
-oahe-dam,23030,SD01095,spatial_name,low,4062,1.00,auto,
-oahe-dam-lake-oahe,23030,SD01095,spatial_name,low,4062,1.00,auto,
-oaklimeter-creek,324600,MS01471,spatial_name,low,4732,0.17,auto,
-oaklimiter-creek,324601,MS01472,spatial_name,low,2281,0.00,auto,
-ocoee-dam-no-1,121104,TN13905,spatial_name,high,14,1.00,auto,
-ocoee-dam-no-3,121103,TN13903,spatial_name,high,10,1.00,auto,
-ohio,344302,OH03029,spatial_name,low,3859,0.00,auto,
-ohio-river,312481,KY00307,spatial_name,low,4248,0.00,auto,
-ohio-river-dam-no-26-historic-lock-and-dam-no-26,120895,IL00116 REMOVED,spatial_name,medium,515,0.40,auto,
-old-croton-dam,90130,NY00046,spatial_name,low,4763,0.33,auto,
-old-elwha-dam-site,121156,WA00242,spatial_name,low,114,0.00,auto,
-olive-bridge-dam,90125,NY00041,spatial_name,low,68,0.00,auto,
-olive-creek-dam-and-reservoir,16130,NE01062,spatial_name,high,171,1.00,auto,
-ontelaunee-dam,350564,PA00709,spatial_name,high,28,1.00,auto,
+nickajack-dam,106094,TN11502,spatial_name,high,122,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 122 m)
+nolichucky-dam,24515,TN05903,spatial_name,high,128,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 128 m)
+norris-dam,24410,TN01302,spatial_name,high,116,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 116 m)
+north-fork-clearwater-river,120889,ID00287,spatial_name,low,2317,0.00,auto,review: score 0.00 at 2317 m; same dam as dworshak-dam — intentional
+north-fork-powder-river,370980,WY00447,spatial_name,low,458,0.00,auto,review: score 0.00 at 458 m
+north-fork-south-platte-river,290218,CO00346,spatial_name,low,2788,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2788 m)
+north-fork-toutle-river,84781,WA00558,spatial_name,low,4730,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4730 m)
+nottely-dam,120878,GA29101,spatial_name,high,237,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 237 m)
+oahe-dam,23030,SD01095,spatial_name,low,4062,1.00,confirmed,"auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 4062 m); same dam as missouri-river-from-garrison-dam-to-oahe-dam, oahe-dam-lake-oahe — intentional"
+oahe-dam-lake-oahe,23030,SD01095,spatial_name,low,4062,1.00,confirmed,"auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 4062 m); same dam as missouri-river-from-garrison-dam-to-oahe-dam, oahe-dam — intentional"
+oaklimeter-creek,324600,MS01471,spatial_name,low,4732,0.17,auto,review: score 0.17 at 4732 m
+oaklimiter-creek,324601,MS01472,spatial_name,low,2281,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2281 m)
+ocoee-dam-no-1,121104,TN13905,spatial_name,high,14,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 14 m)
+ocoee-dam-no-3,121103,TN13903,spatial_name,high,10,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 10 m)
+ohio,344302,OH03029,spatial_name,low,3859,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 3859 m)
+ohio-river,312481,KY00307,spatial_name,low,4248,0.00,auto,review: score 0.00 at 4248 m
+ohio-river-dam-no-26-historic-lock-and-dam-no-26,120895,IL00116 REMOVED,spatial_name,medium,515,0.40,auto,"review: score 0.40 at 515 m; nid carries ResNet’s literal "" REMOVED"" suffix (source-faithful)"
+old-croton-dam,90130,NY00046,spatial_name,low,4763,0.33,auto,review: score 0.33 at 4763 m; same dam as new-croton-dam — intentional
+old-elwha-dam-site,121156,WA00242,spatial_name,low,114,0.00,auto,review: score 0.00 at 114 m
+olive-bridge-dam,90125,NY00041,spatial_name,low,68,0.00,auto,review: score 0.00 at 68 m
+olive-creek-dam-and-reservoir,16130,NE01062,spatial_name,high,171,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 171 m)
+ontelaunee-dam,350564,PA00709,spatial_name,high,28,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 28 m)
 oroville-dam,84534,CA00035,nid,high,722,,auto,
-owyhee-dam,98535,OR00582,spatial_name,high,42,1.00,auto,
-pacoima-dam,288869,CA00193,spatial_name,high,14,1.00,auto,
-painted-rock-dam,31860,AZ10002,spatial_name,high,49,1.00,auto,
-pathfinder-dam,31174,WY01296,spatial_name,high,11,1.00,auto,
-patterson-creek,370512,WV05715,spatial_name,medium,2610,0.50,auto,
-payette-national-forest,303160,ID00244,spatial_name,low,1231,0.33,auto,
+owyhee-dam,98535,OR00582,spatial_name,high,42,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 42 m)
+pacoima-dam,288869,CA00193,spatial_name,high,14,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 14 m)
+painted-rock-dam,31860,AZ10002,spatial_name,high,49,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 49 m)
+pathfinder-dam,31174,WY01296,spatial_name,high,11,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 11 m)
+patterson-creek,370512,WV05715,spatial_name,medium,2610,0.50,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.50 at 2610 m)
+payette-national-forest,303160,ID00244,spatial_name,low,1231,0.33,auto,review: score 0.33 at 1231 m
 perry-dam,5822,KS00009,nid,high,4,,auto,
-piceance-creek-basin,290688,CO00964,spatial_name,low,2546,0.00,auto,
-pickwick-landing-dam,121101,TN07101,spatial_name,high,326,1.00,auto,
-pigeon-roost-creek,329192,MS07227,spatial_name,low,2218,0.00,auto,
-pilarcitos-dam,288829,CA00128,spatial_name,high,144,1.00,auto,
-pine-canyon-dam,178335,NV10001,spatial_name,high,273,1.00,auto,
-pipestem-dam-pipestem-lake,84170,ND00146,spatial_name,high,88,1.00,auto,
-potomac-river,367304,VA107093,spatial_name,low,1075,0.00,auto,
-powder-river,330377,MT01717,spatial_name,low,2832,0.00,auto,
+piceance-creek-basin,290688,CO00964,spatial_name,low,2546,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2546 m)
+pickwick-landing-dam,121101,TN07101,spatial_name,high,326,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 326 m)
+pigeon-roost-creek,329192,MS07227,spatial_name,low,2218,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2218 m)
+pilarcitos-dam,288829,CA00128,spatial_name,high,144,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 144 m)
+pine-canyon-dam,178335,NV10001,spatial_name,high,273,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 273 m)
+pipestem-dam-pipestem-lake,84170,ND00146,spatial_name,high,88,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 88 m)
+potomac-river,367304,VA107093,spatial_name,low,1075,0.00,auto,review: score 0.00 at 1075 m
+powder-river,330377,MT01717,spatial_name,low,2832,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2832 m)
 prado-dam,1202,CA10022,nid,high,398,,auto,
-praire-dog-creek,5834,KS00024,spatial_name,low,3962,0.00,auto,
-priest-rapids-dam,404201,WA00088,spatial_name,high,591,1.00,auto,
-ralston-afterbay-on-middle-american-river-oxbow-powerhouse,289339,CA00859,spatial_name,low,29,0.29,auto,
-raystown-dam-raystown-lake,98890,PA00004,spatial_name,high,35,1.00,auto,
-red-rock-dam-lake-red-rock,4943,IA00013,spatial_name,high,365,1.00,auto,
-red-willow-creek,338622,NE03251,spatial_name,low,1172,0.00,auto,
-riley-dam,316438,MI00533,spatial_name,high,44,1.00,auto,
-rio-grande-2,340808,NM00621,spatial_name,low,2114,0.00,auto,
-rock-creek,288943,CA00329,spatial_name,low,4045,0.00,auto,
-sagehen-creek,37118,CA00458,spatial_name,low,4015,0.00,auto,
-salmon-river,311587,KS07624,spatial_name,low,2337,0.00,auto,
-salt-creek-lakes,336561,NE00360,spatial_name,low,1088,0.00,auto,
-salt-springs-dam,37070,CA00382,spatial_name,high,53,1.00,auto,
-saluda-dam,100764,SC00224,spatial_name,high,147,1.00,auto,
-san-andreas-dam,36911,CA00129,spatial_name,high,100,1.00,auto,
-san-antonio-dam,126866,CA10023,spatial_name,high,497,1.00,auto,
-san-pablo-dam,36929,CA00166,spatial_name,high,204,1.00,auto,
-santa-fe-dam,31861,CA10024,spatial_name,high,785,1.00,auto,
-sappa-creek,336676,NE00496,spatial_name,low,2638,0.00,auto,
-saratoga-springs,365576,UT53890,spatial_name,low,4152,0.33,auto,
-sardis-dam-little-tallahatchie-river-yazoo-river,10469,MS01493,spatial_name,low,1369,0.25,auto,
-savage-river-reservoir-savage-river-dam,63418,MD00014,spatial_name,high,157,1.00,auto,
-sayers-dam-foster-joseph-sayers-reservoir,98891,PA00005,spatial_name,high,69,1.00,auto,
-saylorville-dam,4949,IA00017,nid,high,624,,auto,
-saylorville-dam-saylorville-reservoir,4949,IA00017,spatial_name,high,624,1.00,auto,
-schoolhouse-brook-and-fenton-river,130525,CT00503,spatial_name,low,2416,0.00,auto,
-sediment-retention-structure-at-mount-st-helens,84781,WA00558,spatial_name,high,29,1.00,auto,
-seneca-creek,315218,MD00087,spatial_name,low,2483,0.25,auto,
-sepulveda-dam,126867,CA10025,spatial_name,high,53,1.00,auto,
-shasta-dam,37922,CA10186,nid,high,89,,auto,
-shasta-dam-sacramento-river,37922,CA10186,spatial_name,high,89,0.50,auto,
-snake-river-watershed,206209,WA00347,spatial_name,low,35,0.00,auto,
-south-fork-powder-river,371024,WY00510,spatial_name,low,4187,0.00,auto,
-south-holston-dam,106376,TN16305,spatial_name,high,92,1.00,auto,
-south-platte-river,336439,NE00211,spatial_name,low,3632,0.00,auto,
-st-francis-dam,288805,CA00077,spatial_name,low,2210,0.00,auto,
-stanislaus-national-forest,289562,CA01149,spatial_name,low,2559,0.00,auto,
-stillwater-dam-stillwater-lake,21925,PA00006,spatial_name,high,65,1.00,auto,
-stone-and-holbrook-creek-wasatch-mountains,365223,UT00564,spatial_name,low,925,0.14,auto,
-swift-no-1-dam,117465,WA00147,spatial_name,high,306,1.00,auto,
-tahoe-national-forest,288898,CA00248,spatial_name,low,4827,0.00,auto,
-taunton-river,314877,MA02063,spatial_name,low,233,0.00,auto,
-the-dalles,349263,OR00002,spatial_name,low,3397,0.50,auto,
+praire-dog-creek,5834,KS00024,spatial_name,low,3962,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 3962 m)
+priest-rapids-dam,404201,WA00088,spatial_name,high,591,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 591 m)
+ralston-afterbay-on-middle-american-river-oxbow-powerhouse,289339,CA00859,spatial_name,low,29,0.29,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.29 at 29 m)
+raystown-dam-raystown-lake,98890,PA00004,spatial_name,high,35,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 35 m)
+red-rock-dam-lake-red-rock,4943,IA00013,spatial_name,high,365,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 365 m)
+red-willow-creek,338622,NE03251,spatial_name,low,1172,0.00,auto,review: score 0.00 at 1172 m
+riley-dam,316438,MI00533,spatial_name,high,44,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 44 m)
+rio-grande-2,340808,NM00621,spatial_name,low,2114,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2114 m)
+rock-creek,288943,CA00329,spatial_name,low,4045,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4045 m)
+sagehen-creek,37118,CA00458,spatial_name,low,4015,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4015 m)
+salmon-river,311587,KS07624,spatial_name,low,2337,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2337 m)
+salt-creek-lakes,336561,NE00360,spatial_name,low,1088,0.00,auto,review: score 0.00 at 1088 m
+salt-springs-dam,37070,CA00382,spatial_name,high,53,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 53 m)
+saluda-dam,100764,SC00224,spatial_name,high,147,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 147 m)
+san-andreas-dam,36911,CA00129,spatial_name,high,100,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 100 m)
+san-antonio-dam,126866,CA10023,spatial_name,high,497,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 497 m)
+san-pablo-dam,36929,CA00166,spatial_name,high,204,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 204 m)
+santa-fe-dam,31861,CA10024,spatial_name,high,785,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 785 m)
+sappa-creek,336676,NE00496,spatial_name,low,2638,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2638 m)
+saratoga-springs,365576,UT53890,spatial_name,low,4152,0.33,auto,review: score 0.33 at 4152 m
+sardis-dam-little-tallahatchie-river-yazoo-river,10469,MS01493,spatial_name,low,1369,0.25,auto,review: score 0.25 at 1369 m
+savage-river-reservoir-savage-river-dam,63418,MD00014,spatial_name,high,157,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 157 m)
+sayers-dam-foster-joseph-sayers-reservoir,98891,PA00005,spatial_name,high,69,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 69 m)
+saylorville-dam,4949,IA00017,nid,high,624,,auto,same dam as saylorville-dam-saylorville-reservoir — intentional
+saylorville-dam-saylorville-reservoir,4949,IA00017,spatial_name,high,624,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 624 m); same dam as saylorville-dam — intentional
+schoolhouse-brook-and-fenton-river,130525,CT00503,spatial_name,low,2416,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2416 m)
+sediment-retention-structure-at-mount-st-helens,84781,WA00558,spatial_name,high,29,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 29 m); same dam as toutle-river-sediment-retention-structure — intentional
+seneca-creek,315218,MD00087,spatial_name,low,2483,0.25,auto,review: score 0.25 at 2483 m
+sepulveda-dam,126867,CA10025,spatial_name,high,53,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 53 m)
+shasta-dam,37922,CA10186,nid,high,89,,auto,same dam as shasta-dam-sacramento-river — intentional
+shasta-dam-sacramento-river,37922,CA10186,spatial_name,high,89,0.50,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.50 at 89 m); same dam as shasta-dam — intentional
+snake-river-watershed,206209,WA00347,spatial_name,low,35,0.00,auto,review: score 0.00 at 35 m; same dam as ice-harbor-lock-and-dam-ice-harbor-on-snake-river — intentional
+south-fork-powder-river,371024,WY00510,spatial_name,low,4187,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4187 m)
+south-holston-dam,106376,TN16305,spatial_name,high,92,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 92 m)
+south-platte-river,336439,NE00211,spatial_name,low,3632,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 3632 m)
+st-francis-dam,288805,CA00077,spatial_name,low,2210,0.00,auto,review: score 0.00 at 2210 m
+stanislaus-national-forest,289562,CA01149,spatial_name,low,2559,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2559 m)
+stillwater-dam-stillwater-lake,21925,PA00006,spatial_name,high,65,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 65 m)
+stone-and-holbrook-creek-wasatch-mountains,365223,UT00564,spatial_name,low,925,0.14,auto,review: score 0.14 at 925 m
+swift-no-1-dam,117465,WA00147,spatial_name,high,306,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 306 m)
+tahoe-national-forest,288898,CA00248,spatial_name,low,4827,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4827 m)
+taunton-river,314877,MA02063,spatial_name,low,233,0.00,auto,review: score 0.00 at 233 m
+the-dalles,349263,OR00002,spatial_name,low,3397,0.50,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.50 at 3397 m)
 theodore-roosevelt-dam,813,AZ10317,nid,high,30,,auto,
-tiffin-river,17658,OH00385,spatial_name,low,4781,0.00,auto,
-tioga-dam-tioga-reservoir,31862,PA01132,spatial_name,high,241,1.00,auto,
-tionesta-lake,187500,PA00110,spatial_name,high,581,1.00,auto,
-tippah-river,327924,MS05690,spatial_name,low,4409,0.00,auto,
-toutle-river-at-coal-bank-bridge,368728,WA00142,spatial_name,low,3345,0.00,auto,
-toutle-river-sediment-retention-structure,84781,WA00558,spatial_name,medium,129,0.43,auto,
-tradewater-river,312370,KY00185,spatial_name,low,4097,0.00,auto,
-trail-creek,290180,CO00295,spatial_name,low,1095,0.00,auto,
-trapper-creek,303149,ID00233,spatial_name,low,2147,0.00,auto,
+tiffin-river,17658,OH00385,spatial_name,low,4781,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4781 m)
+tioga-dam-tioga-reservoir,31862,PA01132,spatial_name,high,241,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 241 m)
+tionesta-lake,187500,PA00110,spatial_name,high,581,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 581 m)
+tippah-river,327924,MS05690,spatial_name,low,4409,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4409 m)
+toutle-river-at-coal-bank-bridge,368728,WA00142,spatial_name,low,3345,0.00,auto,review: score 0.00 at 3345 m
+toutle-river-sediment-retention-structure,84781,WA00558,spatial_name,medium,129,0.43,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.43 at 129 m); same dam as sediment-retention-structure-at-mount-st-helens — intentional
+tradewater-river,312370,KY00185,spatial_name,low,4097,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4097 m)
+trail-creek,290180,CO00295,spatial_name,low,1095,0.00,auto,review: score 0.00 at 1095 m
+trapper-creek,303149,ID00233,spatial_name,low,2147,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2147 m)
 trinity-dam,37925,CA10196,nid,high,61,,auto,
-trout-creek,291642,CO02906,spatial_name,low,1929,0.00,auto,
+trout-creek,291642,CO02906,spatial_name,low,1929,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 1929 m)
 tulloch-dam,36987,CA00265,nid,high,27,,auto,
 tuttle-creek,5824,KS00012,nid,high,634,,auto,
-twenty-mile-creek-tombigbee-river,323861,MS00651,spatial_name,low,2776,0.00,auto,
-tygart-valley-river,370650,WV08304,spatial_name,low,2707,0.00,auto,
-union-lake-dam,88851,NJ00448,spatial_name,high,67,1.00,auto,
-united-states,337373,NE01322,spatial_name,low,2022,0.00,auto,
-upper-crystal-springs-dam,31846,CA00127,spatial_name,medium,2320,0.50,auto,
-upper-elk-creek,291702,CO02983,spatial_name,low,3743,0.00,auto,
-upper-snake-rock-minidoka-dam,51483,ID00275,spatial_name,low,562,0.25,auto,
-upper-truckee-river,289531,CA01106,spatial_name,low,2148,0.00,auto,
-upper-vasquez-creek,291702,CO02983,spatial_name,low,3453,0.00,auto,
-us-forest-service-region-6,368848,WA00355,spatial_name,low,1514,0.00,auto,
-van-norman-san-fernando-dams,288804,CA00076,spatial_name,low,272,0.33,auto,
-wachusetts-dam,62862,MA00886,spatial_name,low,186,0.00,auto,
-waco-dam-waco-lake,24767,TX00016,spatial_name,medium,1391,1.00,auto,
-walnut-creek,300668,IA01817,spatial_name,low,3074,0.00,auto,
-walter-bouldin-dam,84759,AL01419,spatial_name,medium,1638,1.00,auto,
-watauga-dam,121098,TN01903,spatial_name,high,192,1.00,auto,
-watts-bar-dam,106146,TN12102,spatial_name,high,186,1.00,auto,
-watts-branch,315310,MD00208,spatial_name,low,4913,0.14,auto,
-west-tarkio-creek,300276,IA01367,spatial_name,low,1758,0.00,auto,
-wheeler-dam,120850,AL07701,spatial_name,high,91,1.00,auto,
+twenty-mile-creek-tombigbee-river,323861,MS00651,spatial_name,low,2776,0.00,auto,review: score 0.00 at 2776 m
+tygart-valley-river,370650,WV08304,spatial_name,low,2707,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2707 m)
+union-lake-dam,88851,NJ00448,spatial_name,high,67,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 67 m)
+united-states,337373,NE01322,spatial_name,low,2022,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2022 m)
+upper-crystal-springs-dam,31846,CA00127,spatial_name,medium,2320,0.50,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.50 at 2320 m); same dam as lower-crystal-springs-dam — intentional
+upper-elk-creek,291702,CO02983,spatial_name,low,3743,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 3743 m)
+upper-snake-rock-minidoka-dam,51483,ID00275,spatial_name,low,562,0.25,auto,review: score 0.25 at 562 m
+upper-truckee-river,289531,CA01106,spatial_name,low,2148,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2148 m)
+upper-vasquez-creek,291702,CO02983,spatial_name,low,3453,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 3453 m)
+us-forest-service-region-6,368848,WA00355,spatial_name,low,1514,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 1514 m)
+van-norman-san-fernando-dams,288804,CA00076,spatial_name,low,272,0.33,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.33 at 272 m)
+wachusetts-dam,62862,MA00886,spatial_name,low,186,0.00,auto,review: score 0.00 at 186 m
+waco-dam-waco-lake,24767,TX00016,spatial_name,medium,1391,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 1391 m)
+walnut-creek,300668,IA01817,spatial_name,low,3074,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 3074 m)
+walter-bouldin-dam,84759,AL01419,spatial_name,medium,1638,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 1638 m)
+watauga-dam,121098,TN01903,spatial_name,high,192,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 192 m)
+watts-bar-dam,106146,TN12102,spatial_name,high,186,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 186 m)
+watts-branch,315310,MD00208,spatial_name,low,4913,0.14,auto,review: score 0.14 at 4913 m
+west-tarkio-creek,300276,IA01367,spatial_name,low,1758,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 1758 m)
+wheeler-dam,120850,AL07701,spatial_name,high,91,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 91 m)
 whiskeytown-dam,37926,CA10204,nid,high,84,,auto,
-whitlow-ranch-dam,790,AZ10004,spatial_name,high,41,1.00,auto,
-whitney-point-dam-whitney-point-lake,17606,NY01055,spatial_name,high,168,1.00,auto,
-whittier-narrows-dam,126868,CA10027,spatial_name,medium,2733,1.00,auto,
-wilder-dam,88061,NH00259,spatial_name,high,24,1.00,auto,
-willamette-river,349755,OR00680,spatial_name,low,3867,0.00,auto,
-willamina-creek,349345,OR00144,spatial_name,low,456,0.00,auto,
+whitlow-ranch-dam,790,AZ10004,spatial_name,high,41,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 41 m)
+whitney-point-dam-whitney-point-lake,17606,NY01055,spatial_name,high,168,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 168 m)
+whittier-narrows-dam,126868,CA10027,spatial_name,medium,2733,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 2733 m)
+wilder-dam,88061,NH00259,spatial_name,high,24,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 24 m)
+willamette-river,349755,OR00680,spatial_name,low,3867,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 3867 m)
+willamina-creek,349345,OR00144,spatial_name,low,456,0.00,auto,review: score 0.00 at 456 m
 wilson-dam,5826,KS00013,nid,high,159,,auto,
-winberry-creek,98082,OR00009,spatial_name,low,4607,0.00,auto,
-wolf-creek-dam,61461,KY03010,spatial_name,high,72,1.00,auto,
-wright-patman-dam-wright-patman-lake,24769,TX00021,spatial_name,high,856,1.00,auto,
-yadkin-river,332557,NC00416,spatial_name,low,2260,0.00,auto,
-yakima-river,369282,WA01950,spatial_name,low,4456,0.00,auto,
-yalobusha-river-grenada-dam,120972,MS01494,spatial_name,medium,1193,0.50,auto,
+winberry-creek,98082,OR00009,spatial_name,low,4607,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4607 m)
+wolf-creek-dam,61461,KY03010,spatial_name,high,72,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 72 m)
+wright-patman-dam-wright-patman-lake,24769,TX00021,spatial_name,high,856,1.00,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 1.00 at 856 m)
+yadkin-river,332557,NC00416,spatial_name,low,2260,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 2260 m)
+yakima-river,369282,WA01950,spatial_name,low,4456,0.00,rejected,auto-curated 2026-08-30: reach/study site; nearest dam unrelated (score 0 at 4456 m)
+yalobusha-river-grenada-dam,120972,MS01494,spatial_name,medium,1193,0.50,confirmed,auto-curated 2026-08-30: strong name/colocation evidence (score 0.50 at 1193 m)
 yatesville-dam,61474,KY03065,nid,high,27,,auto,
