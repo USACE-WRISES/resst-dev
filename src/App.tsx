@@ -105,7 +105,7 @@ export default function App() {
           <TablePanel derived={derived} state={state} />
         </div>
         <div className={state.mobilePanel === "details" ? "panel-slot details open" : "panel-slot details"}>
-          <DetailsPanel derived={derived} state={state} />
+          <DetailsPanel derived={derived} state={state} data={data} />
         </div>
         {/* Desktop-only edge pills (the original app's sidebar toggles) — the
             drawers own the narrow-screen experience, so CSS hides these ≤1100px. */}
