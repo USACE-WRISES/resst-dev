@@ -10,6 +10,14 @@ import type { TabId } from "../config/tabs";
 
 export type OverlayStatus = "loading" | "ready" | "error";
 
+/** Lazily-fetched sedimentation bundles that report load status (trajectory
+    chunks stay chip-less — the chart section handles them inline). */
+export type SedimentPack = "core" | "surveys";
+/** Metric styling the national inventory layer. */
+export type NationalMetric = "pctLost2025" | "pctLost2050" | "rate" | "storage" | "evidence";
+/** Which side of the selected reservoir's network is highlighted on the map. */
+export type NetworkMode = "none" | "up" | "down" | "full";
+
 /** Armed map-selection tool. The HUC tool ids double as overlay keys
     (overlays.ts), so arming one can switch its boundary layer on. */
 export type MapTool = "none" | "box" | "polygon" | "huc2" | "huc4" | "huc6" | "huc8" | "river";
@@ -67,6 +75,21 @@ export interface AppState {
   helpOpen: boolean;
   downloadsOpen: boolean;
   welcomeOpen: boolean;
+  /** Bumped whenever a lazy sedimentation bundle finishes loading — the cheap
+      signal that lets pure derivations/components re-read the module caches. */
+  sedimentStamp: number;
+  /** Load status per sedimentation pack (absent = never requested). */
+  sedimentStatus: Partial<Record<SedimentPack, OverlayStatus>>;
+  /** Selected national-inventory reservoir (ResNet ShortID as a string).
+      INVARIANT: mutually exclusive with selectedSiteIds — documented RESST
+      sites always use the site selection; this exists for the other ~57k. */
+  selectedReservoirId: string | null;
+  /** National inventory layer (all modeled reservoirs) — session-only. */
+  nationalLayer: { on: boolean; metric: NationalMetric };
+  /** Network-explorer highlight mode for the current selection. */
+  networkView: { mode: NetworkMode };
+  /** Details-panel collapsible sections: section id -> open override. */
+  panelSections: Record<string, boolean>;
 }
 
 const initialFilters = (): FilterState =>
@@ -107,6 +130,12 @@ let state: AppState = {
       return false;
     }
   })(),
+  sedimentStamp: 0,
+  sedimentStatus: {},
+  selectedReservoirId: null,
+  nationalLayer: { on: false, metric: "pctLost2025" },
+  networkView: { mode: "none" },
+  panelSections: {},
   helpOpen: false,
   downloadsOpen: false,
   welcomeOpen: (() => {
@@ -156,17 +185,34 @@ export const actions = {
   clearAllFilters(): void {
     set({ filters: initialFilters() });
   },
-  /** Single-site selection (map click, table row, search result). */
+  /** Single-site selection (map click, table row, search result). Clears any
+      national-reservoir selection and network highlight (the invariant). */
   selectSite(siteId: string | null): void {
-    set({ selectedSiteIds: siteId ? [siteId] : [], showSelectionOnly: siteId ? state.showSelectionOnly : false });
+    set({
+      selectedSiteIds: siteId ? [siteId] : [],
+      showSelectionOnly: siteId ? state.showSelectionOnly : false,
+      selectedReservoirId: null,
+      networkView: { mode: "none" },
+    });
   },
-  /** Multi-selection from the map Select tools. Pure: dedupes and touches
-      nothing else — tool sessions disarm explicitly via setMapTool. */
+  /** Multi-selection from the map Select tools. Dedupes and touches nothing
+      else beyond the selection invariant — tool sessions disarm explicitly
+      via setMapTool. */
   selectSites(siteIds: string[]): void {
-    set({ selectedSiteIds: [...new Set(siteIds)] });
+    set({ selectedSiteIds: [...new Set(siteIds)], selectedReservoirId: null, networkView: { mode: "none" } });
+  },
+  /** National-inventory reservoir selection (non-documented dams). Clears any
+      site selection — at most one selection model is active at a time. */
+  selectReservoir(shortId: string | null): void {
+    set({
+      selectedReservoirId: shortId,
+      selectedSiteIds: [],
+      showSelectionOnly: false,
+      networkView: { mode: "none" },
+    });
   },
   clearSelection(): void {
-    set({ selectedSiteIds: [], showSelectionOnly: false });
+    set({ selectedSiteIds: [], showSelectionOnly: false, selectedReservoirId: null, networkView: { mode: "none" } });
   },
   setShowSelectionOnly(on: boolean): void {
     set({ showSelectionOnly: on });
@@ -258,6 +304,34 @@ export const actions = {
   },
   setDownloadsOpen(open: boolean): void {
     set({ downloadsOpen: open });
+  },
+  /** Written by src/sediment/data.ts when a lazy bundle finishes loading. */
+  bumpSedimentStamp(): void {
+    set({ sedimentStamp: state.sedimentStamp + 1 });
+  },
+  setSedimentStatus(pack: SedimentPack, status: OverlayStatus | null): void {
+    const cur = state.sedimentStatus[pack] ?? null;
+    if (cur === status) return; // no-op guard, matches setOverlayStatus
+    const next = { ...state.sedimentStatus };
+    if (status === null) delete next[pack];
+    else next[pack] = status;
+    set({ sedimentStatus: next });
+  },
+  setNationalLayer(on: boolean): void {
+    if (state.nationalLayer.on === on) return;
+    set({ nationalLayer: { ...state.nationalLayer, on } });
+  },
+  setNationalMetric(metric: NationalMetric): void {
+    if (state.nationalLayer.metric === metric) return;
+    set({ nationalLayer: { ...state.nationalLayer, metric } });
+  },
+  setNetworkMode(mode: NetworkMode): void {
+    if (state.networkView.mode === mode) return;
+    set({ networkView: { mode } });
+  },
+  /** Collapsible details-panel sections (session-only; survives the pager). */
+  setPanelSection(id: string, open: boolean): void {
+    set({ panelSections: { ...state.panelSections, [id]: open } });
   },
   closeWelcome(dontShowAgain: boolean): void {
     if (dontShowAgain) {
