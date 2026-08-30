@@ -10,9 +10,13 @@ import { actions, useAppState, type NetworkMode } from "../../state/store";
 import { ensureCore, getCore } from "../../sediment/data";
 import { buildNetworkSentences, networkStats } from "../../sediment/network";
 import { formatKm2 } from "../../sediment/format";
+import { basinBounds, fetchBasin, type BasinFeature } from "../../sediment/nldi";
 import { PROVENANCE } from "../../sediment/types";
 import { mapCommands } from "../../map/mapBus";
 import { ProvBadge, ProvNote } from "./Provenance";
+
+/** Session cache of NLDI basins by inventory row ("error" = a completed miss). */
+const basinCache = new Map<number, BasinFeature | "error">();
 
 function ConnectivityBar({ daSqKm, scaSqKm }: { daSqKm: number; scaSqKm: number }) {
   if (!Number.isFinite(daSqKm) || !Number.isFinite(scaSqKm) || daSqKm <= 0) return null;
@@ -39,8 +43,10 @@ function ConnectivityBar({ daSqKm, scaSqKm }: { daSqKm: number; scaSqKm: number 
 export function NetworkSection({ row }: { row: number | null }) {
   const state = useAppState(); // sedimentStamp + networkView re-renders
   const mode = state.networkView.mode;
+  const basinOn = state.networkView.basin;
   const [error, setError] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
+  const [basinTick, setBasinTick] = useState(0);
 
   useEffect(() => {
     setError(false);
@@ -56,6 +62,51 @@ export function NetworkSection({ row }: { row: number | null }) {
     else cmds.clearNetworkHighlight();
     return () => mapCommands()?.clearNetworkHighlight();
   }, [row, mode, state.sedimentStatus.core]);
+
+  // Drainage-area overlay: one NLDI fetch per reservoir (session-cached),
+  // drawn via mapBus with the view extended to the basin. Aborts on toggle
+  // off / selection change; a timeout or service miss caches "error" so the
+  // section never hammers the API (Retry clears the entry).
+  useEffect(() => {
+    const cmds = mapCommands();
+    if (!basinOn || row == null) {
+      cmds?.clearBasin();
+      return;
+    }
+    const core = getCore();
+    if (!core) return;
+    const cached = basinCache.get(row);
+    if (cached === "error") return;
+    if (cached) {
+      cmds?.showBasin(cached);
+      cmds?.fitToPoints(basinBounds(cached));
+      return () => mapCommands()?.clearBasin();
+    }
+    let timedOut = false;
+    const ctl = new AbortController();
+    const timer = setTimeout(() => {
+      timedOut = true;
+      ctl.abort();
+    }, 20000);
+    fetchBasin(core.lon[row], core.lat[row], ctl.signal).then(
+      (feature) => {
+        clearTimeout(timer);
+        basinCache.set(row, feature);
+        setBasinTick((t) => t + 1); // re-runs this effect down the cached path to draw
+      },
+      (err: unknown) => {
+        clearTimeout(timer);
+        if ((err as Error)?.name === "AbortError" && !timedOut) return; // superseded, not a failure
+        basinCache.set(row, "error");
+        setBasinTick((t) => t + 1);
+      },
+    );
+    return () => {
+      clearTimeout(timer);
+      ctl.abort();
+      mapCommands()?.clearBasin();
+    };
+  }, [basinOn, row, basinTick, state.sedimentStatus.core]);
 
   const core = getCore();
   if (error) {
@@ -130,6 +181,9 @@ export function NetworkSection({ row }: { row: number | null }) {
         {modeBtn("up", "Upstream")}
         {modeBtn("down", "Downstream")}
         {modeBtn("full", "Full network")}
+        <button type="button" className="nw-btn" aria-pressed={basinOn} onClick={() => actions.setNetworkBasin(!basinOn)}>
+          Drainage area
+        </button>
         {mode !== "none" && (
           <>
             <button type="button" className="nw-btn" onClick={() => mapCommands()?.fitNetwork()}>
@@ -141,6 +195,31 @@ export function NetworkSection({ row }: { row: number | null }) {
           </>
         )}
       </div>
+      {basinOn && row != null && !basinCache.get(row) && (
+        <p className="sec-status" data-status="loading">
+          Loading drainage area from USGS…
+        </p>
+      )}
+      {basinOn && row != null && basinCache.get(row) === "error" && (
+        <p className="sec-status" data-status="error">
+          Drainage area unavailable; the USGS NLDI service did not return a basin for this location.{" "}
+          <button
+            type="button"
+            className="linklike"
+            onClick={() => {
+              basinCache.delete(row);
+              setBasinTick((t) => t + 1);
+            }}
+          >
+            Retry
+          </button>
+        </p>
+      )}
+      {basinOn && row != null && basinCache.get(row) && basinCache.get(row) !== "error" && (
+        <p className="prov-note nw-basin-note">
+          Drainage area boundary: USGS NLDI (NHDPlusV2), delineated upstream of the dam's mapped location.
+        </p>
+      )}
       <ProvNote
         text="ResNet v1 · routed on NHDPlusV2 flowlines · downstream path is schematic, not the river course"
         group={PROVENANCE.resnet}

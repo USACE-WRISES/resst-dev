@@ -1,6 +1,7 @@
 // Tiny command channel from UI components to the live map instance
 // (the map itself is imperative MapLibre, not React state).
 
+import type { Feature } from "geojson";
 import type { Site } from "../lib/types";
 import type { NetworkMode } from "../state/store";
 
@@ -24,6 +25,10 @@ export interface MapCommands {
   fitNetwork(): void;
   /** Fit the view to arbitrary coordinates (screening's zoom-to-matches). */
   fitToPoints(pts: Array<[number, number]>): void;
+  /** Draw the NLDI drainage-basin polygon for the selected reservoir. */
+  showBasin(feature: Feature): void;
+  /** Clear the drainage-basin polygon. */
+  clearBasin(): void;
 }
 
 let current: MapCommands | null = null;

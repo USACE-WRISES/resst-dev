@@ -33,7 +33,7 @@ import { SelectMenu } from "./SelectMenu";
 import { SelectHintBar } from "./SelectHintBar";
 import { startSelectSession, recomputeRiver, type RiverPick, type SessionCtx, type ToolMsg } from "./selectTools";
 import { installOverlays, updateOverlays, scheduleOverlayRefresh, retryOverlay, disposeOverlays } from "./overlays";
-import { installNetworkLayers, updateNetworkHighlight } from "./networkLayer";
+import { installNetworkLayers, setNetworkBasin, updateNetworkHighlight } from "./networkLayer";
 import { installNationalLayers, resetNationalLayerMemo, setNationalSelected, updateNationalLayer } from "./nationalLayer";
 import { buildScreenFilter } from "../sediment/screen";
 import { ScreeningPanel } from "./ScreeningPanel";
@@ -218,6 +218,12 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: {
       },
       fitToPoints(pts) {
         if (pts.length) fitCoords(pts);
+      },
+      showBasin(feature) {
+        if (loadedRef.current) setNetworkBasin(map, feature);
+      },
+      clearBasin() {
+        if (loadedRef.current) setNetworkBasin(map, null);
       },
     });
 
