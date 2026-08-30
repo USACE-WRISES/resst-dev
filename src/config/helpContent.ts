@@ -3,6 +3,11 @@
 // Experience Builder wording is preserved in the migration archive). Edit the
 // words here directly.
 //
+// The five workflows follow the decision-support arc of the sedimentation
+// expansion: assess one reservoir → find analogs → screen nationally →
+// compile regionally → review thematically. The team-collected case-study/
+// literature database stays the spine; RATTES/ResNet/RESSED are context.
+//
 // "Rich" fields may carry minimal inline HTML — <strong>/<b>, <em>/<i>,
 // <a href>, <br> only. This is owner-authored app content, not user input;
 // HelpOverlay renders it via dangerouslySetInnerHTML. Step titles stay plain
@@ -65,156 +70,202 @@ export const HELP_VIEWS: HelpView[] = [
     lead: [
       "The Reservoir Sustainable Sediment Tool (RESST) compiles case studies, analytical approaches, and literature on sediment release from reservoirs. It gives reservoir managers and environmental engineers one searchable place to explore precedent projects, sediment management strategies, ecological concerns, and analytical methods across sites and regions.",
       "Work the interactive map, apply keyword filters, review site-linked and general literature, and export the results. Selection is the core move: pick sites one at a time, or use the map's <strong>Select</strong> menu to grab them by dragged box, drawn polygon, watershed (HUC) boundary, or distance from a river.",
-      "The tabs above walk through four common workflows.",
+      "Around that documented core, RESST places national sedimentation context: modeled storage-loss trajectories for more than 57,000 reservoirs (RATTES), measured sedimentation surveys (RESSED), and the routed upstream–downstream dam network (ResNet). Every value is labeled <strong>Reported</strong>, <strong>Measured</strong>, <strong>Modeled</strong>, or <strong>Network-derived</strong> so observations and model estimates never blur — the ⓘ marks carry each source's citation.",
+      "The tabs above walk through five common workflows.",
     ],
     credits: [
       "Basemaps: Esri World Topographic Map and World Hillshade — Esri, TomTom, Garmin, FAO, NOAA, USGS, © OpenStreetMap contributors, and the GIS User Community; hillshade: Esri, Vantor, Airbus DS, USGS, NGA, NASA. USGS The National Map: National Boundaries Dataset, 3DEP Elevation Program, Geographic Names Information System, National Hydrography Dataset, National Land Cover Database, National Structures Dataset, and National Transportation Dataset.",
       "Reference layers: watershed boundaries from the USGS Watershed Boundary Dataset; rivers and lakes from the North American Environmental Atlas © Commission for Environmental Cooperation (Natural Resources Canada, INEGI, USGS), CC BY 4.0; National Inventory of Dams (USACE); Live Stream Gauges; SSURGO Soils (USDA NRCS).",
+      'Sedimentation datasets: modeled reservoir storage and sediment from <strong>RATTES v1.2</strong> (silt scenario) — Eckland, A.C., Foster, M.A., Hurst, A.A., Beyene, M.T., and Overeem, I. (2026), "Reservoir sedimentation diminishes water storage and coastal delta resiliency," <em>Nature Communications</em>, <a href="https://doi.org/10.1038/s41467-026-76986-3" target="_blank" rel="noopener noreferrer">doi:10.1038/s41467-026-76986-3</a>. Reservoir network from <strong>ResNet</strong> — Hurst, A.A., Foster, M.A., and Eckland, A.C. (2025), "The ResNet network of dams impounding storage reservoirs across the continental United States," <em>Scientific Data</em> 12:2044, <a href="https://doi.org/10.1038/s41597-025-06315-8" target="_blank" rel="noopener noreferrer">doi:10.1038/s41597-025-06315-8</a>. Measured surveys from the <strong>USGS RESSED</strong> Reservoir Sedimentation Database, 2013 public export, <a href="https://water.usgs.gov/osw/ressed/" target="_blank" rel="noopener noreferrer">water.usgs.gov/osw/ressed</a> (public domain).',
       "Place search: USGS Geographic Names Information System (GNIS).",
     ],
   },
   {
-    id: "by-reservoir",
-    name: "By Reservoir",
-    title: "Workflow 1 — Targeted Reservoir Analysis",
+    id: "assess",
+    name: "Assess a Reservoir",
+    title: "Workflow 1 — Reservoir Sediment Assessment",
     image: {
-      src: "help/by-reservoir.jpg",
-      alt: "A selected site on the map with its popup open and its details in the Selected Data panel.",
+      src: "help/assess.jpg",
+      alt: "A selected reservoir with its documented record, modeled storage trajectory chart, and network context in the Selected Data panel.",
     },
     facets: {
-      goal: "Find everything RESST knows about a specific dam, reservoir, or reach, then review the linked literature and export the results.",
-      when: "You already have a site in mind — by name, location, or known dam.",
-      get: "The site's key attributes, its <strong>Site Literature</strong>, and related <strong>General Literature</strong> to compare against.",
-      tip: "Start broad: select the site first, and narrow with filters only if you need to.",
+      goal: "From one selected reservoir, read what has been documented, how serious the modeled sedimentation problem is, how certain the evidence is, and how the reservoir sits in the river network.",
+      when: "You are starting an evaluation of a specific dam or reservoir — yours, or a potential analog.",
+      get: "The documented management record and literature, the RATTES storage/sediment trajectory, any measured RESSED surveys, and upstream/downstream context — each labeled with its source.",
+      tip: "Values badged <strong>Modeled</strong> are RATTES v1.2 estimates. Check the Evidence section for measured surveys before leaning on any single number.",
     },
     steps: [
       {
-        title: "Find the site",
-        body: "Type a reservoir, dam, or place name into the map's <strong>Search</strong> box, or pan and zoom to the area. Search matches site names and USGS place names — rivers, lakes, and towns included.",
+        title: "Select the reservoir",
+        body: "Find it with the map's <strong>Search</strong> box (site names and USGS place names) or click its point. Red points are RESST documented sites; with the national layer on, every other modeled reservoir is clickable too.",
       },
       {
-        title: "Select it on the map",
-        body: "Click the site's point. It becomes the active selection: a popup opens, the <strong>Selected Data</strong> panel fills in, and the tables highlight its rows.",
+        title: "Read the documented record first",
+        body: "The <strong>Sediment Management</strong> section carries the team-documented release methods, ecological concerns, and analyses; <strong>Site Literature</strong> lists the references for this location. This is RESST's core evidence — reported from real projects.",
       },
       {
-        title: "Review the Selected Data panel",
-        body: "Check the key attributes — Site Type, Sediment Release, Ecological Concern, Analysis — to judge whether the site is a useful analog for your project.",
+        title: "Open Reservoir Sustainability",
+        body: "Headline estimates — percent capacity lost, original versus estimated remaining storage, annual accumulation — over the modeled trajectory chart. The solid line is modeled history; the dashed part beyond 2025 is projection; whiskers mark the model's 95% range at 2025 and 2050.",
+        notes: [
+          { label: "Why it matters", text: "It answers, in seconds: how much storage is already gone, and where is this reservoir heading if nothing changes?" },
+        ],
       },
       {
-        title: "Open the Site Literature tab",
-        body: "In the results table, switch to <strong>Site Literature</strong> and scan the references documented for this location.",
-        notes: [{ label: "Tip", text: "This is the fastest route to location-specific reading." }],
+        title: "Check the Evidence",
+        body: "The Evidence badge says whether <strong>measured</strong> RESSED surveys exist and how recent they are. Measured capacities plot as dots on the chart — where dots and the modeled line agree, confidence grows; where they diverge, trust the surveys and read their notes.",
       },
       {
-        title: "Compare with General Literature",
-        body: "The <strong>General Literature</strong> tab holds methods, monitoring approaches, and modeling work not tied to one site — use it to broaden the reading list.",
+        title: "Explore the Reservoir Network",
+        body: "Upstream and downstream dam counts, the terminal-dam status, and the river mouth the system drains to. <strong>Upstream / Downstream / Full network</strong> highlight the connected dams on the map — the dashed downstream path is schematic, not the river course.",
+        notes: [
+          { label: "Tip", text: "The connectivity bar shows how much of the drainage area reaches this reservoir without first passing another dam (ResNet's SCA2025)." },
+        ],
       },
       {
-        title: "Refine with filters (optional)",
-        body: "Open <strong>Data Filters</strong> and toggle values one at a time; the map and tables update as you go.",
+        title: "Check provenance as you go",
+        body: "Every section badge (Reported / Modeled / Measured / Network-derived) and ⓘ popover states the source, version, and DOI. For engineering decisions, the original survey reports and agency records always outrank national model estimates.",
       },
       {
-        title: "Export",
-        body: "Use <strong>Actions</strong> on any table tab to export the current rows as CSV, GeoJSON, or shapefile. <strong>Download Data</strong> in the header carries the full datasets.",
+        title: "Export and go deeper",
+        body: "Export table rows with <strong>Actions</strong>, or the full datasets from <strong>Download Data</strong>. The trajectory chart's <strong>View data table</strong> exposes its numbers.",
       },
     ],
   },
   {
-    id: "by-huc",
-    name: "By HUC",
-    title: "Workflow 2 — Regional Analysis by Hydrologic Unit (HUC)",
+    id: "analogs",
+    name: "Find Analogs",
+    title: "Workflow 2 — Management Analog Finder",
+    image: {
+      src: "help/analogs.jpg",
+      alt: "The Comparable Reservoirs section listing documented analog sites with similarity scores and management keywords.",
+    },
+    facets: {
+      goal: "From your reservoir's characteristics, surface the most similar reservoirs in the country — documented RESST sites first — and read how they manage sediment.",
+      when: "You know the sedimentation situation and want precedent projects worth studying.",
+      get: "Ranked documented analogs with their management keywords, plus the nearest reservoirs overall.",
+      tip: "The similarity score is a relative screening index over storage, drainage area, age, modeled capacity loss, sedimentation rate, purpose, and region — verify real suitability in the analog's literature.",
+    },
+    steps: [
+      {
+        title: "Select your reservoir",
+        body: "A documented site or, with the national layer on, any modeled reservoir.",
+      },
+      {
+        title: "Run the finder",
+        body: "Expand <strong>Comparable Reservoirs</strong> and press <strong>Find similar reservoirs</strong>.",
+      },
+      {
+        title: "Read the documented analogs first",
+        body: "The top list ranks RESST documented sites — each row shows its similarity score, modeled capacity lost, and the site's <strong>Sediment Release</strong> keywords. These are the analogs with management records and literature behind them.",
+        notes: [{ label: "Why it matters", text: "This is the shortest path from “my reservoir has this problem” to “here is how comparable projects handled it.”" }],
+      },
+      {
+        title: "Open an analog",
+        body: "Click a row to select that reservoir — a documented site opens with its full management record and literature; an undocumented one opens its modeled profile.",
+      },
+      {
+        title: "Build the reading list",
+        body: "From each documented analog, collect its <strong>Site Literature</strong>; export tabs with <strong>Actions</strong> as you go.",
+      },
+    ],
+  },
+  {
+    id: "screen",
+    name: "Screen Nationally",
+    title: "Workflow 3 — National Screening and Gap Analysis",
+    image: {
+      src: "help/screen.jpg",
+      alt: "The national inventory layer styled by percent capacity lost, with the Screening panel's criteria and count open.",
+    },
+    facets: {
+      goal: "Filter the ~57,000 modeled reservoirs with transparent criteria to find where sediment management may deserve further evaluation — and where documented experience already exists.",
+      when: "Research prioritization, program planning, hunting case studies, or mapping data gaps.",
+      get: "A styled national map, a live matching count, and a CSV of the matching reservoirs.",
+      tip: "Screening results are <em>potential opportunities warranting further evaluation</em> — never a statement that a reservoir needs intervention.",
+    },
+    steps: [
+      {
+        title: "Turn on the national layer",
+        body: "Under <strong>Layers</strong>, check <strong>All modeled reservoirs</strong> and pick a <strong>Style by</strong> metric — percent capacity lost (2025 or projected 2050), annual sedimentation rate, storage, or evidence. The <strong>Legend</strong> explains the colors; the red RESST sites always stay on top.",
+      },
+      {
+        title: "Open Screening",
+        body: "The <strong>Screening</strong> popover sits beside Layers. Opening it switches the national layer on if it isn't already.",
+      },
+      {
+        title: "Start from a gap-analysis preset",
+        body: "The four chips are the management-versus-sedimentation quadrants — for example <strong>Undocumented + high sedimentation</strong> (potential opportunities) or <strong>Documented + high sedimentation</strong> (potential case studies).",
+      },
+      {
+        title: "Tighten the criteria",
+        body: "Raise the capacity-lost or rate thresholds, restrict to terminal dams or reservoirs with measured surveys, or cut by state, owner type, or purpose. Criteria combine with AND; the map hides non-matching reservoirs.",
+      },
+      {
+        title: "Read the count and zoom",
+        body: "The readout states how many of the modeled reservoirs match. <strong>Zoom to matches</strong> frames them; click any dot for its details panel.",
+      },
+      {
+        title: "Export the matches",
+        body: "<strong>Export matches (CSV)</strong> writes the matching reservoirs with their metrics and any linked RESST site — ready for offline prioritization.",
+      },
+    ],
+  },
+  {
+    id: "by-region",
+    name: "By Region & River",
+    title: "Workflow 4 — Regional and Corridor Compilation",
     image: {
       src: "help/by-huc.jpg",
       alt: "A HUC basin outlined on the map with the sites inside it selected.",
     },
     facets: {
-      goal: "Pull together the sites and literature inside a basin or sub-basin along its HUC boundary (HUC-2 through HUC-8).",
-      when: "You are scoping sediment management needs — or knowledge gaps — for a watershed or district area.",
-      get: "A basin-scoped site set plus its literature, ready to filter and export.",
+      goal: "Pull together the documented sites and literature for a watershed (HUC-2 through HUC-8) or a river corridor.",
+      when: "You are scoping sediment management needs — or knowledge gaps — for a basin, district area, or multi-dam reach.",
+      get: "A region- or corridor-scoped site set plus its literature, ready to filter and export.",
       tip: "Screen with a larger unit (HUC-2 or HUC-4) first, then repeat with smaller units for detail.",
     },
     steps: [
       {
-        title: "Pick the HUC level",
-        body: "Open the map's <strong>Select</strong> menu and choose <strong>HUC-2</strong>, <strong>HUC-4</strong>, <strong>HUC-6</strong>, or <strong>HUC-8</strong>. The matching boundary layer switches on so you can see the basins.",
+        title: "Scope by watershed: pick the HUC level",
+        body: "Open the map's <strong>Select</strong> menu and choose <strong>HUC-2</strong> through <strong>HUC-8</strong>; the matching boundary layer switches on.",
       },
       {
         title: "Click your basin",
-        body: "Click anywhere inside it. RESST looks up the basin's boundary and selects every site shown within.",
+        body: "Click anywhere inside it. RESST looks up the boundary and selects every documented site within.",
         notes: [
           { label: "Result", text: "The Selected Data panel and tables update to the basin." },
           { label: "Tip", text: "Shift+click adds another basin to the selection." },
         ],
       },
       {
-        title: "Confirm in the Sites tab",
-        body: "Check that the count and spread match your intent. <strong>Show selection</strong> in the table toolbar isolates the selected rows.",
+        title: "Or scope by river: arm the river tool",
+        body: "Choose <strong>Select → Near a river</strong> and click the river's blue line. RESST traces the full course and selects every site within the set distance; tune the <strong>within … mi</strong> box and press <strong>Done</strong>.",
+        notes: [
+          { label: "Tip", text: "River lines are generalized mapping data — allow a mile or two of slack. For a specific reach, draw it with <strong>Select → Polygon</strong> instead." },
+        ],
       },
       {
-        title: "Review the basin's literature",
+        title: "Confirm in the Sites tab",
+        body: "Check that the count and spread match your intent. <strong>Show selection</strong> isolates the selected rows.",
+      },
+      {
+        title: "Review the region's literature",
         body: "Switch to <strong>Site Literature</strong> and scan for recurring themes — dredging versus drawdown, fish passage, water quality, modeling approaches. What is missing is often the finding.",
       },
       {
         title: "Focus with filters (optional)",
-        body: "Use <strong>Data Filters</strong> to narrow within the basin — for example Sediment Source = bank erosion, or Analysis = sediment transport modeling.",
+        body: "Use <strong>Data Filters</strong> to narrow within the region — for example Sediment Source = bank erosion, or Analysis = sediment transport modeling.",
       },
       {
-        title: "Export the basin set",
-        body: "Export the <strong>Sites</strong> and literature tabs with <strong>Actions</strong> for offline analysis or comparison across basins. The boundary layer stays available under <strong>Layers</strong>.",
-      },
-    ],
-  },
-  {
-    id: "by-river",
-    name: "By River",
-    title: "Workflow 3 — River Corridor Compilation",
-    image: {
-      src: "help/by-river.jpg",
-      alt: "A river's course highlighted on the map with sites selected within the chosen distance.",
-    },
-    facets: {
-      goal: "Build a corridor-scale dataset — every site along a river or multi-dam reach — and compile its literature as one package.",
-      when: "You are evaluating sediment continuity, a multi-dam system, or downstream effects along a river.",
-      get: "A longitudinal site set you can review upstream-to-downstream and export together.",
-    },
-    steps: [
-      {
-        title: "Arm the river tool",
-        body: "Open <strong>Select</strong> and choose <strong>Near a river</strong>. The rivers layer switches on.",
-      },
-      {
-        title: "Click the river",
-        body: "Click its blue line. RESST fetches the river's full course — well beyond the current view — and selects every site within the set distance of it.",
-      },
-      {
-        title: "Tune the distance",
-        body: "Adjust the <strong>within … mi</strong> box in the strip under the toolbar; the selection recomputes as you type. Click <strong>Done</strong> when it looks right.",
-        notes: [
-          { label: "Tip", text: "The river lines are generalized mapping data — allow a mile or two of slack for tight corridors." },
-        ],
-      },
-      {
-        title: "Or draw the corridor yourself",
-        body: "For a specific reach — say, Dam A to Dam D — use <strong>Select → Polygon</strong> instead: click corners along the corridor and double-click to finish.",
-      },
-      {
-        title: "Validate in the Sites tab",
-        body: "Sort or scan the selected rows to confirm the corridor caught what you intended and nothing unrelated nearby.",
-      },
-      {
-        title: "Compile the literature",
-        body: "Review <strong>Site Literature</strong> for the corridor sites, then round it out with <strong>General Literature</strong> on methods and monitoring.",
-      },
-      {
-        title: "Export for longitudinal review",
-        body: "Export the corridor's sites and literature with <strong>Actions</strong>, and compare upstream to downstream in a spreadsheet or GIS.",
+        title: "Export the set",
+        body: "Export the <strong>Sites</strong> and literature tabs with <strong>Actions</strong> for offline analysis; boundary and river layers stay available under <strong>Layers</strong>.",
       },
     ],
   },
   {
     id: "by-category",
     name: "By Category",
-    title: "Workflow 4 — Thematic or Categorical Review",
+    title: "Workflow 5 — Thematic or Categorical Review",
     image: {
       src: "help/by-category.jpg",
       alt: "The map and tables narrowed to a theme by keyword filters.",

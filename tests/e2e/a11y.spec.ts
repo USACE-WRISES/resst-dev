@@ -30,7 +30,7 @@ test("no serious/critical violations with dialogs open", async ({ page }) => {
   await page.getByRole("button", { name: "Help" }).click();
   expect(serious(await scan(page)).map((v) => v.id)).toEqual([]);
   // A workflow tab carries the facets/steps markup the About tab lacks.
-  await page.locator(".help-pills .pill", { hasText: "By Reservoir" }).click();
+  await page.locator(".help-pills .pill", { hasText: "Assess a Reservoir" }).click();
   expect(serious(await scan(page)).map((v) => v.id)).toEqual([]);
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Download Data" }).click();
