@@ -3,6 +3,8 @@
 # Generated overlay snapshots (scripts/build-overlays.mjs) — huge single-line
 # JSON; keep diffs and language stats out of the way.
 public/overlays/*.json -diff linguist-generated
+# Generated sedimentation-data distillations (scripts/build-sediment.mjs).
+public/sediment/**/*.json -diff linguist-generated
 *.png binary
 *.jpg binary
 *.jpeg binary

@@ -8,3 +8,9 @@ playwright-report/
 Thumbs.db
 .DS_Store
 .claude/scheduled_tasks.lock
+
+# Raw sedimentation-dataset downloads (multi-GB; one RATTES CSV exceeds GitHub's
+# 100 MB hard limit). Re-fetch instructions + hashes: data/DATA-SOURCES.md.
+data/rattes/
+data/resnet/
+data/ressed/
