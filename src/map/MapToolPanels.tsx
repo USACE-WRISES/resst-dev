@@ -5,8 +5,10 @@
 
 import { useRef, useState, type ReactNode } from "react";
 import { OVERLAYS } from "./overlays";
-import { actions, type AppState } from "../state/store";
+import { actions, type AppState, type NationalMetric } from "../state/store";
+import { ensureCore } from "../sediment/data";
 import { mapCommands } from "./mapBus";
+import { NATIONAL_METRICS } from "./nationalLayer";
 import { NET_DOWN, NET_MOUTH, NET_UP } from "./palette";
 import { useDismissPopover } from "./useDismissPopover";
 
@@ -35,6 +37,52 @@ export function MapToolPanels({ state, zoom }: { state: AppState; zoom: number }
     <>
       <ToolPopover label="Layers" ariaLabel="Reference layers">
         <div className="layers-list">
+          <div className="layer-row nat-row">
+            <label className="value-option">
+              <input
+                type="checkbox"
+                checked={state.nationalLayer.on}
+                onChange={(e) => actions.setNationalLayer(e.target.checked)}
+              />
+              <span className="swatch nat-swatch" aria-hidden="true" />
+              <span>All modeled reservoirs (57,307)</span>
+            </label>
+            {state.nationalLayer.on && (
+              <span className="ov-status" role="status" data-status={state.sedimentStatus.core ?? "idle"}>
+                {state.sedimentStatus.core === "loading"
+                  ? "loading…"
+                  : state.sedimentStatus.core === "error"
+                    ? "failed"
+                    : ""}
+              </span>
+            )}
+            {state.nationalLayer.on && state.sedimentStatus.core === "error" && (
+              <button
+                type="button"
+                className="ov-retry"
+                aria-label="Retry loading the national reservoir dataset"
+                onClick={() => void ensureCore().catch(() => {})}
+              >
+                Retry
+              </button>
+            )}
+          </div>
+          {state.nationalLayer.on && (
+            <label className="nat-metric">
+              <span>Style by</span>
+              <select
+                className="metric-select"
+                value={state.nationalLayer.metric}
+                onChange={(e) => actions.setNationalMetric(e.target.value as NationalMetric)}
+              >
+                {(Object.keys(NATIONAL_METRICS) as NationalMetric[]).map((m) => (
+                  <option key={m} value={m}>
+                    {NATIONAL_METRICS[m].label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           {OVERLAYS.map((d) => {
             const on = !!state.overlays[d.key];
             const status = state.overlayStatus[d.key];
@@ -75,8 +123,19 @@ export function MapToolPanels({ state, zoom }: { state: AppState; zoom: number }
         <div className="legend-list">
           <div className="legend-row">
             <span className="legend-dot" style={{ background: "#ff0000", borderColor: "#ffff00" }} aria-hidden="true" />
-            <span>Sites</span>
+            <span>RESST documented site</span>
           </div>
+          {state.nationalLayer.on && (
+            <div className="legend-ramp">
+              <p className="legend-ramp-title">{NATIONAL_METRICS[state.nationalLayer.metric].label} (RATTES, modeled)</p>
+              {NATIONAL_METRICS[state.nationalLayer.metric].legend.map((e) => (
+                <div key={e.label} className="legend-row">
+                  <span className="legend-dot" style={{ background: e.color, borderColor: "#fff" }} aria-hidden="true" />
+                  <span>{e.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
           {state.networkView.mode !== "none" && (
             <>
               {state.networkView.mode !== "down" && (

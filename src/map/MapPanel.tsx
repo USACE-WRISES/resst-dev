@@ -34,7 +34,10 @@ import { SelectHintBar } from "./SelectHintBar";
 import { startSelectSession, recomputeRiver, type RiverPick, type SessionCtx, type ToolMsg } from "./selectTools";
 import { installOverlays, updateOverlays, scheduleOverlayRefresh, retryOverlay, disposeOverlays } from "./overlays";
 import { installNetworkLayers, updateNetworkHighlight } from "./networkLayer";
-import { getCore } from "../sediment/data";
+import { installNationalLayers, resetNationalLayerMemo, setNationalSelected, updateNationalLayer } from "./nationalLayer";
+import { ensureCore, getCore } from "../sediment/data";
+import { formatPct, formatVolumeAcft, pctLost } from "../sediment/format";
+import { FLAG, type SedimentCore } from "../sediment/types";
 import { applyBasemap, buildUsgsStyle, fetchEsriTopoStyle } from "./basemaps";
 import { BasemapControl } from "./BasemapControl";
 import { BasemapPicker } from "./BasemapPicker";
@@ -55,8 +58,9 @@ function sitesToGeoJSON(sites: Site[]): FeatureCollection {
   };
 }
 
+const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
 function popupHtml(site: Site): string {
-  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const rows = SITE_DETAIL_FIELDS.filter((f) => f !== "site_name")
     .map((f) => {
       const v = site[f];
@@ -66,12 +70,28 @@ function popupHtml(site: Site): string {
   return `<div class="site-popup"><h3>${esc(site.site_name)}</h3>${rows}</div>`;
 }
 
-export function MapPanel({ sites, allSites, siteById, state }: {
+/** Compact popup for a national-inventory reservoir (not a documented site). */
+function reservoirPopupHtml(core: SedimentCore, row: number): string {
+  const name = core.names[row] || `NID ${core.nids[row]}`;
+  const state = core.state[row] >= 0 ? core.dicts.state[core.state[row]] : "";
+  const lost = pctLost(Number.isFinite(core.sed2025[row]) ? core.sed2025[row] : null, Number.isFinite(core.capOrig[row]) ? core.capOrig[row] : null);
+  const rows = [
+    state ? `<div class="popup-row"><span>State</span><b>${esc(state)}</b></div>` : "",
+    `<div class="popup-row"><span>Max storage</span><b>${esc(formatVolumeAcft(core.maxStor[row]))}</b></div>`,
+    lost != null ? `<div class="popup-row"><span>Est. capacity lost (2025)</span><b>${esc(formatPct(lost))}</b></div>` : "",
+    `<div class="popup-row"><span>Evidence</span><b>${core.flags[row] & FLAG.HAS_SURVEYS ? "Measured surveys (RESSED)" : "Modeled only"}</b></div>`,
+  ].join("");
+  return `<div class="site-popup"><h3>${esc(name)}</h3>${rows}<p class="popup-note">No documented RESST sediment-management record — details in the panel.</p></div>`;
+}
+
+export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: {
   /** Filtered sites currently shown on the map. */
   sites: Site[];
   /** Full site list (search suggestions). */
   allSites: Site[];
   siteById: Map<string, Site>;
+  /** ResNet ShortID → site_id — routes national-layer clicks on documented dams to the site experience. */
+  siteByShortId: Map<number, string>;
   state: AppState;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -95,6 +115,10 @@ export function MapPanel({ sites, allSites, siteById, state }: {
   const selectedIds = state.selectedSiteIds;
   const overlaysRef = useRef(state.overlays);
   overlaysRef.current = state.overlays;
+  const siteByShortIdRef = useRef(siteByShortId);
+  siteByShortIdRef.current = siteByShortId;
+  const nationalRef = useRef(state.nationalLayer);
+  nationalRef.current = state.nationalLayer;
   const basemapRef = useRef(state.basemap);
   basemapRef.current = state.basemap;
   const [zoomTick, setZoomTick] = useState(4);
@@ -315,6 +339,26 @@ export function MapPanel({ sites, allSites, siteById, state }: {
       // Network-explorer highlight layers (nw-*), driven via mapBus by the
       // details panel's Reservoir Network section.
       installNetworkLayers(map);
+
+      // National inventory layer (nat-*): all ~57k modeled reservoirs beneath
+      // the documented sites; hidden until toggled on under Layers.
+      installNationalLayers(map);
+      map.on("click", "nat-circles", (e: MapLayerMouseEvent) => {
+        if (mapToolRef.current !== "none") return; // an armed Select session owns clicks
+        // A documented site under the cursor wins — its own handler fires.
+        if (map.queryRenderedFeatures(e.point, { layers: ["sites-circles"] }).length) return;
+        const shortId = e.features?.[0]?.properties?.shortId as number | undefined;
+        if (shortId == null) return;
+        const siteId = siteByShortIdRef.current.get(shortId);
+        if (siteId) actions.selectSite(siteId);
+        else actions.selectReservoir(String(shortId));
+      });
+      map.on("mouseenter", "nat-circles", () => {
+        if (mapToolRef.current === "none") map.getCanvas().style.cursor = "pointer";
+      });
+      map.on("mouseleave", "nat-circles", () => {
+        if (mapToolRef.current === "none") map.getCanvas().style.cursor = "";
+      });
       map.on("moveend", () => {
         // Debounced: rapid pans supersede each other instead of stacking fetches.
         scheduleOverlayRefresh(map, () => overlaysRef.current);
@@ -327,6 +371,10 @@ export function MapPanel({ sites, allSites, siteById, state }: {
       setZoomTick(Math.round(map.getZoom() * 10) / 10);
       (map.getSource("sites") as GeoJSONSource).setData(sitesToGeoJSON(sitesRef.current));
       updateOverlays(map, overlaysRef.current);
+      // National layer state set while the map was still loading applies now
+      // (the store effects below early-return until loadedRef flips).
+      updateNationalLayer(map, getCore(), siteByShortIdRef.current, nationalRef.current.on, nationalRef.current.metric);
+      if (nationalRef.current.on && !getCore()) void ensureCore().catch(() => {});
       // The constructor always boots the USGS style so an offline start still
       // renders a map; the active basemap (default Esri, or a persisted
       // choice) applies right after install.
@@ -351,6 +399,7 @@ export function MapPanel({ sites, allSites, siteById, state }: {
       ro.disconnect();
       registerMapCommands(null);
       disposeOverlays(); // cancel timers/aborts before the map goes away
+      resetNationalLayerMemo(); // the next map instance needs a fresh setData
       placeMarkerRef.current?.remove();
       placeMarkerRef.current = null;
       map.remove();
@@ -366,6 +415,16 @@ export function MapPanel({ sites, allSites, siteById, state }: {
     if (!map || !loadedRef.current) return;
     updateOverlays(map, state.overlays);
   }, [state.overlays]);
+
+  // National inventory layer: visibility + metric. The one-time 57k setData
+  // happens inside updateNationalLayer once the core arrives (the ensureCore
+  // resolution flips sedimentStatus.core, re-running this effect).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !loadedRef.current) return;
+    updateNationalLayer(map, getCore(), siteByShortId, state.nationalLayer.on, state.nationalLayer.metric);
+    if (state.nationalLayer.on && !getCore()) void ensureCore().catch(() => {});
+  }, [state.nationalLayer, state.sedimentStatus.core, siteByShortId]);
 
   // Basemap toggles → swap styles; app sources/layers ride across the swap.
   useEffect(() => {
@@ -410,6 +469,29 @@ export function MapPanel({ sites, allSites, siteById, state }: {
       .addTo(map);
     map.flyTo({ center: [site.longitude, site.latitude], zoom: Math.max(map.getZoom(), 8), duration: 700 });
   }, [selectedIds, siteById]);
+
+  // Selected national reservoir: highlight ring + compact popup + fly-to.
+  // Declared AFTER the site-selection effect so a site→reservoir switch runs
+  // the site cleanup (popup removal) FIRST and this popup survives the commit;
+  // the reverse switch clears the ring here, then the site effect popups.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !loadedRef.current) return;
+    const shortId = state.selectedReservoirId;
+    setNationalSelected(map, shortId ? Number(shortId) : null);
+    if (!shortId) return;
+    const core = getCore();
+    const row = core?.rowById.get(Number(shortId));
+    if (!core || row == null) return; // core still loading — re-runs on status flip
+    popupRef.current?.remove();
+    placeMarkerRef.current?.remove();
+    placeMarkerRef.current = null;
+    popupRef.current = new Popup({ closeButton: true, maxWidth: "320px", offset: 10 })
+      .setLngLat([core.lon[row], core.lat[row]])
+      .setHTML(reservoirPopupHtml(core, row))
+      .addTo(map);
+    map.flyTo({ center: [core.lon[row], core.lat[row]], zoom: Math.max(map.getZoom(), 8), duration: 700 });
+  }, [state.selectedReservoirId, state.sedimentStatus.core]);
 
   // Armed Select tool → one session per arming (selectTools.ts). The effect
   // cleanup IS the disarm path: Esc, Cancel/Done, one-shot completion, mode
