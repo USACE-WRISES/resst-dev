@@ -302,6 +302,8 @@ button { font: inherit; color: inherit; }
 /* reservoir network section */
 .nw-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
 .nw-sentence { margin: 6px 0 0; font-size: 12.5px; }
+.nw-flow-path { margin: 6px 0 0; font-size: 12.5px; }
+.nw-flow-note { margin: 2px 0 0; font-size: 11.5px; }
 .nw-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
 .nw-btn { font: inherit; font-size: 12px; padding: 4px 10px; border: 1px solid var(--line); background: var(--paper); border-radius: 14px; cursor: pointer; color: var(--ink-2); }
 .nw-btn:hover { border-color: var(--accent); color: var(--accent); }

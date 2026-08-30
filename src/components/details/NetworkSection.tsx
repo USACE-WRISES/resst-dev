@@ -8,7 +8,7 @@
 import { useEffect, useState } from "react";
 import { actions, useAppState, type NetworkMode } from "../../state/store";
 import { ensureCore, getCore } from "../../sediment/data";
-import { buildNetworkSentences, networkStats } from "../../sediment/network";
+import { buildNetworkSentences, downstreamRiverPath, networkStats } from "../../sediment/network";
 import { formatKm2 } from "../../sediment/format";
 import { basinBounds, fetchBasin, type BasinFeature } from "../../sediment/nldi";
 import { PROVENANCE } from "../../sediment/types";
@@ -129,6 +129,7 @@ export function NetworkSection({ row }: { row: number | null }) {
 
   const stats = networkStats(core, row);
   const sentences = buildNetworkSentences(core, row);
+  const flowPath = downstreamRiverPath(core, row);
   const modeBtn = (m: Exclude<NetworkMode, "none">, label: string) => (
     <button
       type="button"
@@ -176,6 +177,15 @@ export function NetworkSection({ row }: { row: number | null }) {
           {s}
         </p>
       ))}
+      {flowPath.length > 0 && (
+        <>
+          <p className="nw-flow-path muted">Flow path: {flowPath.join(" → ")}</p>
+          <p className="nw-flow-note muted">
+            Counts follow this flow path only. Dams on other tributaries that join the same rivers downstream are not
+            on this path.
+          </p>
+        </>
+      )}
       <ConnectivityBar daSqKm={core.da[row]} scaSqKm={core.sca[row]} />
       <div className="nw-actions" role="group" aria-label="Network map highlight">
         {modeBtn("up", "Upstream")}

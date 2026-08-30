@@ -8,6 +8,7 @@ import {
   buildNetworkSentences,
   downstreamChain,
   downstreamDamCount,
+  downstreamRiverPath,
   mouthOf,
   networkStats,
   upstreamCounts,
@@ -134,10 +135,18 @@ describe("networkStats / buildNetworkSentences", () => {
     expect(networkStats(core, 1).immediateDownRow).toBeNull(); // next hop is the mouth, not a dam
   });
 
-  it("headwater + downstream chain wording ('would encounter', never delivery)", () => {
+  it("headwater + downstream chain wording ('would encounter', never delivery; small counts name the dams)", () => {
     const s = buildNetworkSentences(core, 3);
     expect(s[0]).toContain("No mapped reservoirs upstream");
-    expect(s[1]).toBe("Sediment passing this dam would encounter 2 more reservoirs before the river reaches its mouth (Big River).");
+    expect(s[1]).toBe(
+      "Sediment passing this dam would encounter 2 more reservoirs (Mid Dam, Last Dam) before the river reaches its mouth (Big River).",
+    );
+  });
+
+  it("downstreamRiverPath lists the junction/mouth nodes in chain order", () => {
+    expect(downstreamRiverPath(core, 3)).toEqual(["Big River"]); // Head A → Mid → Last → mouth
+    expect(downstreamRiverPath(core, 1)).toEqual(["Big River"]); // terminal dam, next hop is the mouth
+    expect(downstreamRiverPath(core, 5)).toEqual([]); // isolated dam ends inland
   });
 
   it("terminal dam before the mouth", () => {

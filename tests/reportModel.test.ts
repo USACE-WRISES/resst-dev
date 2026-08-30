@@ -177,6 +177,8 @@ describe("buildReportModel: documented site with a crosswalk", () => {
   it("computes the network and comparables from the core", () => {
     expect(m.network!.chips).toEqual(["Terminal dam"]);
     expect(m.network!.sentences[1]).toBe("This is the last dam before the river reaches its mouth (Big River).");
+    expect(m.network!.flowPath).toBe("Big River");
+    expect(m.network!.flowNote).toContain("follow this flow path only");
     expect(m.network!.connectivity!.label).toContain("without first passing another dam");
     expect(m.comparables!.documented[0].name).toBe("Mid Dam");
     expect(m.comparables!.overall[0].name).toBe("Lone Dam");
@@ -195,6 +197,7 @@ describe("buildReportModel: documented site with a crosswalk", () => {
       m.evidence?.noneNote ?? "",
       m.evidence?.agencyLine ?? "",
       m.comparables?.caveat ?? "",
+      m.network?.flowNote ?? "",
       ...m.references.map((r) => r.note),
       ...(m.network?.sentences ?? []),
     ].join(" ");
