@@ -221,6 +221,18 @@ button { font: inherit; color: inherit; }
 .reservoir-kicker { font-size: 12px; margin: -4px 0 8px; }
 .popup-note { margin: 6px 0 0; font-size: 11px; color: var(--ink-3); }
 
+/* screening popover */
+.screening-panel { width: min(380px, 92vw); max-height: min(70vh, 560px); overflow-y: auto; }
+.screen-intro { margin: 0 0 8px; font-size: 12px; color: var(--ink-2); }
+.screen-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.screen-preset { font-size: 11.5px; }
+.screen-seg { margin: 6px 0; }
+.screen-seg-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-3); margin-bottom: 3px; }
+.screen-seg-btns { display: flex; flex-wrap: wrap; gap: 4px; }
+.screen-checks { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 0 4px; }
+.screen-select { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0; font-size: 12.5px; color: var(--ink-2); }
+.screen-count { margin: 10px 0 2px; font-size: 13px; border-top: 1px solid var(--panel); padding-top: 8px; }
+
 .footer-vintage { color: var(--ink-3); }
 @media (max-width: 760px) { .footer-vintage { display: none; } }
 

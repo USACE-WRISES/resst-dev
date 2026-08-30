@@ -7,6 +7,7 @@ import type { FilterState } from "../filters/engine";
 import { FILTER_DEFS } from "../config/filters.generated";
 import { emptyItemState } from "../filters/engine";
 import type { TabId } from "../config/tabs";
+import { EMPTY_SCREENING, type ScreeningState } from "../sediment/screen";
 
 export type OverlayStatus = "loading" | "ready" | "error";
 
@@ -88,6 +89,8 @@ export interface AppState {
   nationalLayer: { on: boolean; metric: NationalMetric };
   /** Network-explorer highlight mode for the current selection. */
   networkView: { mode: NetworkMode };
+  /** National screening criteria (session-only — an investigation, not a preference). */
+  screening: ScreeningState;
   /** Details-panel collapsible sections: section id -> open override. */
   panelSections: Record<string, boolean>;
 }
@@ -135,6 +138,7 @@ let state: AppState = {
   selectedReservoirId: null,
   nationalLayer: { on: false, metric: "pctLost2025" },
   networkView: { mode: "none" },
+  screening: EMPTY_SCREENING,
   panelSections: {},
   helpOpen: false,
   downloadsOpen: false,
@@ -319,7 +323,9 @@ export const actions = {
   },
   setNationalLayer(on: boolean): void {
     if (state.nationalLayer.on === on) return;
-    set({ nationalLayer: { ...state.nationalLayer, on } });
+    // Turning the layer off also ends any screening session (the criteria
+    // filter that layer — leaving them armed invisibly would be confusing).
+    set({ nationalLayer: { ...state.nationalLayer, on }, ...(on ? {} : { screening: EMPTY_SCREENING }) });
   },
   setNationalMetric(metric: NationalMetric): void {
     if (state.nationalLayer.metric === metric) return;
@@ -332,6 +338,17 @@ export const actions = {
   /** Collapsible details-panel sections (session-only; survives the pager). */
   setPanelSection(id: string, open: boolean): void {
     set({ panelSections: { ...state.panelSections, [id]: open } });
+  },
+  /** Merge screening criteria (marks the session active unless told otherwise). */
+  setScreening(partial: Partial<ScreeningState>): void {
+    set({ screening: { ...state.screening, active: true, ...partial } });
+  },
+  /** Replace the whole criteria set (the gap-analysis presets). */
+  applyScreeningPreset(criteria: Partial<ScreeningState>): void {
+    set({ screening: { ...EMPTY_SCREENING, ...criteria, active: true } });
+  },
+  clearScreening(): void {
+    set({ screening: EMPTY_SCREENING });
   },
   closeWelcome(dontShowAgain: boolean): void {
     if (dontShowAgain) {

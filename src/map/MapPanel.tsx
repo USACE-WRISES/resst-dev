@@ -35,6 +35,8 @@ import { startSelectSession, recomputeRiver, type RiverPick, type SessionCtx, ty
 import { installOverlays, updateOverlays, scheduleOverlayRefresh, retryOverlay, disposeOverlays } from "./overlays";
 import { installNetworkLayers, updateNetworkHighlight } from "./networkLayer";
 import { installNationalLayers, resetNationalLayerMemo, setNationalSelected, updateNationalLayer } from "./nationalLayer";
+import { buildScreenFilter } from "../sediment/screen";
+import { ScreeningPanel } from "./ScreeningPanel";
 import { ensureCore, getCore } from "../sediment/data";
 import { formatPct, formatVolumeAcft, pctLost } from "../sediment/format";
 import { FLAG, type SedimentCore } from "../sediment/types";
@@ -213,6 +215,9 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: {
       },
       fitNetwork() {
         if (networkCoordsRef.current?.length) fitCoords(networkCoordsRef.current);
+      },
+      fitToPoints(pts) {
+        if (pts.length) fitCoords(pts);
       },
     });
 
@@ -470,6 +475,14 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: {
     map.flyTo({ center: [site.longitude, site.latitude], zoom: Math.max(map.getZoom(), 8), duration: 700 });
   }, [selectedIds, siteById]);
 
+  // Screening criteria filter the national circles (hide non-matching —
+  // crisper than fading at 57k scale; the panel's count says what is hidden).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !loadedRef.current || !map.getLayer("nat-circles")) return;
+    map.setFilter("nat-circles", buildScreenFilter(state.screening));
+  }, [state.screening]);
+
   // Selected national reservoir: highlight ring + compact popup + fly-to.
   // Declared AFTER the site-selection effect so a site→reservoir switch runs
   // the site cleanup (popup removal) FIRST and this popup survives the commit;
@@ -532,6 +545,7 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: {
         <SearchControl sites={allSites} />
         <SelectMenu tool={state.mapTool} distance={state.riverDistanceMiles} hasSelection={selectedIds.length > 0} />
         <MapToolPanels state={state} zoom={zoomTick} />
+        <ScreeningPanel state={state} siteByShortId={siteByShortId} />
         {state.mapTool !== "none" && (
           <SelectHintBar
             tool={state.mapTool}
