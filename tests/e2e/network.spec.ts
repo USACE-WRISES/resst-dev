@@ -6,6 +6,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { stubEsri, waitForBasemap } from "./helpers/esriStub";
 import { stubSediment } from "./helpers/sedimentFixtures";
+import { openDetailSection } from "./helpers/sections";
 
 async function openOnTuttle(page: Page) {
   await stubEsri(page);
@@ -14,6 +15,7 @@ async function openOnTuttle(page: Page) {
   await page.getByRole("button", { name: "OK" }).click();
   await page.locator(".table-panel input").first().fill("Tuttle");
   await page.locator(".data-table tbody tr", { hasText: "Tuttle Creek" }).first().click();
+  await openDetailSection(page, "Reservoir Network");
 }
 
 const sourceKinds = (page: Page) =>

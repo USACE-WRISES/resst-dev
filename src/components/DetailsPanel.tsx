@@ -3,7 +3,9 @@
 // feature-info pager. Section order puts the team-collected data first
 // (attributes → Sediment Management → Site Literature), then the modeled
 // national context for crosswalked sites (Reservoir Sustainability →
-// Evidence), then the NID reference record (collapsed by default).
+// Evidence), then the NID reference record. Every collapsible section starts
+// collapsed (owner decision, round 3); the header badges still classify the
+// contents, and a user's open/close choices stick for the session.
 // Counters total across the whole selection.
 
 import { useEffect, useState } from "react";
@@ -57,7 +59,7 @@ function SiteDetails({ current, data }: { current: SelectedSite; data: AppData }
           }))}
         />
       </section>
-      <CollapsibleSection id="mgmt" title="Sediment Management" badge={<ProvBadge kind="reported" />}>
+      <CollapsibleSection id="mgmt" title="Sediment Management" defaultOpen={false} badge={<ProvBadge kind="reported" />}>
         {mgmtRows.every((r) => r.value === "") ? (
           <p className="muted">No sediment management keywords are recorded for this site.</p>
         ) : (
@@ -65,7 +67,7 @@ function SiteDetails({ current, data }: { current: SelectedSite; data: AppData }
         )}
         <ProvNote text="Documented by the RESST team from project records and literature" group={PROVENANCE.resst} />
       </CollapsibleSection>
-      <CollapsibleSection id="lit" title={`Site Literature (${current.entries.length})`}>
+      <CollapsibleSection id="lit" title={`Site Literature (${current.entries.length})`} defaultOpen={false}>
         {current.entries.length === 0 ? (
           <p className="muted">No literature entries are linked to this site.</p>
         ) : (
@@ -86,7 +88,7 @@ function SiteDetails({ current, data }: { current: SelectedSite; data: AppData }
       </CollapsibleSection>
       {current.sedimentLink ? (
         <>
-          <CollapsibleSection id="sust" title="Reservoir Sustainability" badge={<ProvBadge kind="modeled" />}>
+          <CollapsibleSection id="sust" title="Reservoir Sustainability" defaultOpen={false} badge={<ProvBadge kind="modeled" />}>
             <SustainabilitySection
               name={current.site.site_name}
               row={current.reservoirRow}
@@ -106,7 +108,7 @@ function SiteDetails({ current, data }: { current: SelectedSite; data: AppData }
               latestYear={current.sedimentLink.latest_survey_year}
             />
           </CollapsibleSection>
-          <CollapsibleSection id="net" title="Reservoir Network" badge={<ProvBadge kind="network" />}>
+          <CollapsibleSection id="net" title="Reservoir Network" defaultOpen={false} badge={<ProvBadge kind="network" />}>
             <NetworkSection row={current.reservoirRow} />
           </CollapsibleSection>
           <CollapsibleSection id="sim" title="Comparable Reservoirs" defaultOpen={false}>

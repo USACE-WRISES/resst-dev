@@ -78,13 +78,13 @@ export function ReservoirDetails({ shortId, data }: { shortId: string; data: App
         </dl>
         <ProvNote text="Identity and attributes: ResNet v1 (NID-derived)" group={PROVENANCE.resnet} />
       </section>
-      <CollapsibleSection id="sust" title="Reservoir Sustainability" badge={<ProvBadge kind="modeled" />}>
+      <CollapsibleSection id="sust" title="Reservoir Sustainability" defaultOpen={false} badge={<ProvBadge kind="modeled" />}>
         <SustainabilitySection name={name} row={row} link={null} hasSurveys={hasSurveys} />
       </CollapsibleSection>
       <CollapsibleSection id="evid" title="Evidence" defaultOpen={false} badge={evidenceBadgeFor(hasSurveys, null)}>
         <EvidenceSection row={row} hasSurveys={hasSurveys} />
       </CollapsibleSection>
-      <CollapsibleSection id="net" title="Reservoir Network" badge={<ProvBadge kind="network" />}>
+      <CollapsibleSection id="net" title="Reservoir Network" defaultOpen={false} badge={<ProvBadge kind="network" />}>
         <NetworkSection row={row} />
       </CollapsibleSection>
       <CollapsibleSection id="sim" title="Comparable Reservoirs" defaultOpen={false}>

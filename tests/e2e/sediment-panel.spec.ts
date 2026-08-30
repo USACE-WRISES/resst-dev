@@ -7,6 +7,7 @@ import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { stubEsri } from "./helpers/esriStub";
 import { stubSediment, type SedimentRouteOptions } from "./helpers/sedimentFixtures";
+import { openDetailSection } from "./helpers/sections";
 
 async function openApp(page: Page, options?: SedimentRouteOptions) {
   await stubEsri(page);
@@ -26,11 +27,12 @@ test("a crosswalked site shows modeled sustainability stats and the trajectory c
   await selectSite(page, "Tuttle Creek");
   const details = page.locator(".details-panel");
 
-  // Team-collected sections stay first and open.
-  await expect(details.locator(".detail-sec-head", { hasText: "Sediment Management" })).toHaveAttribute("aria-expanded", "true");
-  await expect(details.locator(".detail-sec-head", { hasText: "Site Literature" })).toHaveAttribute("aria-expanded", "true");
+  // Every card starts collapsed (round 3); the team sections still lead the order.
+  await expect(details.locator(".detail-sec-head", { hasText: "Sediment Management" })).toHaveAttribute("aria-expanded", "false");
+  await expect(details.locator(".detail-sec-head", { hasText: "Site Literature" })).toHaveAttribute("aria-expanded", "false");
 
   // Headline stats from the boot-loaded link (fixture: 2.0e8 / 1.2e9 = 17%).
+  await openDetailSection(page, "Reservoir Sustainability");
   const sust = details.locator("#detail-sec-sust");
   await expect(details).toContainText("Reservoir Sustainability");
   await expect(sust).toContainText("Est. capacity lost (2025)");
@@ -93,23 +95,27 @@ test("a site without a crosswalk degrades to one honest note", async ({ page }) 
   );
 });
 
-test("section collapse state survives switching sites (store-backed)", async ({ page }) => {
+test("all cards start collapsed; an opened section stays open across sites (store-backed)", async ({ page }) => {
   await openApp(page);
   await selectSite(page, "Tuttle Creek");
   const details = page.locator(".details-panel");
+  for (const title of ["Sediment Management", "Site Literature", "Reservoir Sustainability", "Evidence", "Reservoir Network", "Comparable Reservoirs", "National Inventory of Dams"]) {
+    await expect(details.locator(".detail-sec-head", { hasText: title })).toHaveAttribute("aria-expanded", "false");
+  }
   const mgmt = details.locator(".detail-sec-head", { hasText: "Sediment Management" });
   await mgmt.click();
-  await expect(mgmt).toHaveAttribute("aria-expanded", "false");
+  await expect(mgmt).toHaveAttribute("aria-expanded", "true");
   await selectSite(page, "Fall Creek");
   await expect(details.locator(".detail-sec-head", { hasText: "Sediment Management" })).toHaveAttribute(
     "aria-expanded",
-    "false",
+    "true",
   );
 });
 
 test("trajectory failure surfaces an error and Retry recovers", async ({ page }) => {
   const routes = await openApp(page, { failing: ["inventory", "trajectories"] });
   await selectSite(page, "Tuttle Creek");
+  await openDetailSection(page, "Reservoir Sustainability");
   const sust = page.locator("#detail-sec-sust");
   // Headline stats still render (boot link data); the chart area reports the failure.
   await expect(sust).toContainText("Est. capacity lost (2025)");
@@ -123,6 +129,7 @@ test("trajectory failure surfaces an error and Retry recovers", async ({ page })
 test("the expanded sedimentation panel is axe-clean", async ({ page }) => {
   await openApp(page);
   await selectSite(page, "Tuttle Creek");
+  await openDetailSection(page, "Reservoir Sustainability");
   await page.locator(".detail-sec-head", { hasText: "Evidence" }).click();
   await expect(page.locator(".traj-chart svg")).toBeVisible();
   await page.locator(".chart-data summary").click();
