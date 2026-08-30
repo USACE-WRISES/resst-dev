@@ -119,7 +119,10 @@ export const SITE_LINKS_FIXTURE = {
       cap2025_m3: 1.0e9,
       sed2025_m3: 2.0e8,
       sed2015_m3: 1.7e8,
+      cap2050_m3: 8.5e8,
+      sed2050_m3: 3.5e8,
       has_surveys: true,
+      latest_survey_year: 2000,
     },
   ],
 };

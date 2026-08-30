@@ -122,11 +122,14 @@ function parseYear(dateStr) {
  * XML-shaped export leaves `survey`/`stat` as bare objects when singular;
  * survey years outside [1750, 2013] are artifacts and are dropped; duplicate
  * stat_def_ids within one survey keep the first value. Surveys carrying none
- * of the four workhorse stats are dropped; reservoirs may end up with zero
- * surveys (the caller decides whether to keep them).
+ * of the four workhorse stats are KEPT as date-only records (all values
+ * null) — 830 surveys, including heavily-surveyed USACE reservoirs like
+ * Tuttle Creek, have dates but no public stat values, and the date alone is
+ * evidence that a measured survey occurred.
  */
 export function normalizeRessed(json) {
-  const dropped = { badYear: 0, emptySurvey: 0 };
+  const dropped = { badYear: 0 };
+  let dateOnly = 0;
   const reservoirs = [];
   for (const res of json.ressed.reservoir) {
     const surveys = [];
@@ -151,10 +154,7 @@ export function normalizeRessed(json) {
         sedTot: pick(RESSED_STAT.SED_INTERVAL, ACFT_TO_M3),
         dryWt: pick(RESSED_STAT.DRY_WEIGHT, PCF_TO_KGM3),
       };
-      if (survey.cap == null && survey.area == null && survey.sedTot == null && survey.dryWt == null) {
-        dropped.emptySurvey++;
-        continue;
-      }
+      if (survey.cap == null && survey.area == null && survey.sedTot == null && survey.dryWt == null) dateOnly++;
       surveys.push(survey);
     }
     surveys.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
@@ -169,7 +169,7 @@ export function normalizeRessed(json) {
       surveys,
     });
   }
-  return { reservoirs, dropped };
+  return { reservoirs, dropped, dateOnly };
 }
 
 /**

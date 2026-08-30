@@ -264,7 +264,7 @@ console.log(`capacity invariant: ${capXRows.size} rows need explicit capX series
 
 const ressedRaw = JSON.parse(await readFile(RESSED_JSON, "utf8"));
 if (ressedRaw.ressed.reservoir.length !== 2194) fail(`RESSED reservoirs ${ressedRaw.ressed.reservoir.length}, expected 2194`);
-const { reservoirs: ressedAll, dropped } = normalizeRessed(ressedRaw);
+const { reservoirs: ressedAll, dropped, dateOnly } = normalizeRessed(ressedRaw);
 const ressed = ressedAll.filter((r) => r.surveys.length > 0);
 ressed.sort((a, b) => {
   const ka = Number(a.id);
@@ -282,8 +282,13 @@ const ressedRow = ressed.map((r, i) => {
   return row;
 });
 const surveyRows = new Set(ressedRow.filter((r) => r != null));
+const latestSurveyYear = new Map(); // inventory row -> most recent survey year
+ressed.forEach((r, i) => {
+  const row = ressedRow[i];
+  if (row != null && r.surveys.length) latestSurveyYear.set(row, r.surveys[r.surveys.length - 1].year);
+});
 console.log(
-  `RESSED: ${ressed.length} reservoirs with surveys (dropped ${dropped.badYear} bad-year + ${dropped.emptySurvey} empty surveys), ` +
+  `RESSED: ${ressed.length} reservoirs with surveys (${dateOnly} date-only surveys kept; ${dropped.badYear} bad-year dropped), ` +
     `${joined} joined to ResNet by NID (${((100 * joined) / ressed.length).toFixed(0)}%)`,
 );
 
@@ -306,7 +311,10 @@ const siteLinks = xwalk
       cap2025_m3: hasTraj[row] ? p4(capGrid[row * NT + SLOT_2025]) : null,
       sed2025_m3: hasTraj[row] ? p4(sedGrid[row * NT + SLOT_2025]) : null,
       sed2015_m3: hasTraj[row] ? p4(sed2015[row]) : null,
+      cap2050_m3: hasTraj[row] ? p4(capGrid[row * NT + SLOT_2050]) : null,
+      sed2050_m3: hasTraj[row] ? p4(sedGrid[row * NT + SLOT_2050]) : null,
       has_surveys: surveyRows.has(row),
+      latest_survey_year: latestSurveyYear.get(row) ?? null,
     };
   })
   .sort((a, b) => (a.site_id < b.site_id ? -1 : 1));
