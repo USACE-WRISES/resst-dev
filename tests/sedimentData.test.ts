@@ -3,7 +3,16 @@
 // core — including the defensive cycle guard and the O(n) upstream counts.
 import { describe, expect, it } from "vitest";
 import { decodeCore, decodeSurveys, decodeTrajChunk } from "../src/sediment/decode";
-import { downstreamChain, downstreamDamCount, mouthOf, upstreamCounts, upstreamImmediate, upstreamSet } from "../src/sediment/network";
+import {
+  buildNetworkSentences,
+  downstreamChain,
+  downstreamDamCount,
+  mouthOf,
+  networkStats,
+  upstreamCounts,
+  upstreamImmediate,
+  upstreamSet,
+} from "../src/sediment/network";
 import { FLAG } from "../src/sediment/types";
 
 // Six-row network: mouth ← terminal ← mid ← {two headwaters}; plus an
@@ -112,6 +121,34 @@ describe("network traversal", () => {
     cyclic.to[2] = 1;
     expect(downstreamChain(cyclic, 3)).toEqual([2, 1]);
     expect(mouthOf(cyclic, 3)).toBeNull();
+  });
+});
+
+describe("networkStats / buildNetworkSentences", () => {
+  const core = decodeCore(makeInventory());
+
+  it("stats for a mid-network dam name the immediate downstream and the mouth", () => {
+    const s = networkStats(core, 3); // Head A → Mid Dam → Last Dam → mouth
+    expect(s).toMatchObject({ upCount: 0, downCount: 2, immediateDownRow: 2, mouthRow: 0, headwater: true });
+    expect(networkStats(core, 1).immediateDownRow).toBeNull(); // next hop is the mouth, not a dam
+  });
+
+  it("headwater + downstream chain wording ('would encounter', never delivery)", () => {
+    const s = buildNetworkSentences(core, 3);
+    expect(s[0]).toContain("No mapped reservoirs upstream");
+    expect(s[1]).toBe("Sediment passing this dam would encounter 2 more reservoirs before the river reaches its mouth (Big River).");
+  });
+
+  it("terminal dam before the mouth", () => {
+    const s = buildNetworkSentences(core, 1);
+    expect(s[0]).toContain("3 upstream reservoirs influence sediment delivery");
+    expect(s[1]).toBe("This is the last dam before the river reaches its mouth (Big River).");
+  });
+
+  it("isolated dam: chain ends inland", () => {
+    const s = buildNetworkSentences(core, 5);
+    expect(s[0]).toContain("No mapped reservoirs upstream");
+    expect(s[1]).toContain("ends inland of any mapped river mouth");
   });
 });
 

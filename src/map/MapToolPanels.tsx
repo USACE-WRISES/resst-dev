@@ -7,6 +7,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { OVERLAYS } from "./overlays";
 import { actions, type AppState } from "../state/store";
 import { mapCommands } from "./mapBus";
+import { NET_DOWN, NET_MOUTH, NET_UP } from "./palette";
 import { useDismissPopover } from "./useDismissPopover";
 
 function ToolPopover({ label, children, ariaLabel }: { label: string; children: ReactNode; ariaLabel: string }) {
@@ -76,6 +77,32 @@ export function MapToolPanels({ state, zoom }: { state: AppState; zoom: number }
             <span className="legend-dot" style={{ background: "#ff0000", borderColor: "#ffff00" }} aria-hidden="true" />
             <span>Sites</span>
           </div>
+          {state.networkView.mode !== "none" && (
+            <>
+              {state.networkView.mode !== "down" && (
+                <div className="legend-row">
+                  <span className="legend-dot" style={{ background: NET_UP, borderColor: "#fff" }} aria-hidden="true" />
+                  <span>Upstream dam</span>
+                </div>
+              )}
+              {state.networkView.mode !== "up" && (
+                <>
+                  <div className="legend-row">
+                    <span className="legend-dot" style={{ background: NET_DOWN, borderColor: "#fff" }} aria-hidden="true" />
+                    <span>Downstream dam</span>
+                  </div>
+                  <div className="legend-row">
+                    <span className="legend-line legend-dashed" style={{ color: NET_DOWN }} aria-hidden="true" />
+                    <span>Downstream path (schematic, not the river course)</span>
+                  </div>
+                  <div className="legend-row">
+                    <span className="legend-dot" style={{ background: NET_MOUTH, borderColor: "#fff" }} aria-hidden="true" />
+                    <span>River mouth</span>
+                  </div>
+                </>
+              )}
+            </>
+          )}
           {visibleOverlays.map((d) => (
             <div key={d.key} className="legend-row">
               <span
@@ -86,7 +113,9 @@ export function MapToolPanels({ state, zoom }: { state: AppState; zoom: number }
               <span>{d.label}</span>
             </div>
           ))}
-          {visibleOverlays.length === 0 && <p className="muted">Only Sites are visible. Turn on reference layers under Layers.</p>}
+          {visibleOverlays.length === 0 && state.networkView.mode === "none" && (
+            <p className="muted">Only Sites are visible. Turn on reference layers under Layers.</p>
+          )}
         </div>
       </ToolPopover>
     </>

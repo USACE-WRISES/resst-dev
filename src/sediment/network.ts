@@ -93,3 +93,58 @@ export function downstreamDamCount(core: SedimentCore, row: number): number {
   for (const r of downstreamChain(core, row)) if (!(core.flags[r] & FLAG.MOUTH)) n++;
   return n;
 }
+
+export interface NetworkStats {
+  upCount: number;
+  /** Downstream dams to the chain end, mouth node excluded. */
+  downCount: number;
+  immediateDownRow: number | null;
+  mouthRow: number | null;
+  terminal: boolean;
+  headwater: boolean;
+  lock: boolean;
+}
+
+export function networkStats(core: SedimentCore, row: number): NetworkStats {
+  const down = core.to[row];
+  const downIsMouth = down >= 0 && (core.flags[down] & FLAG.MOUTH) !== 0;
+  return {
+    upCount: upstreamCounts(core)[row],
+    downCount: downstreamDamCount(core, row),
+    immediateDownRow: down >= 0 && !downIsMouth ? down : null,
+    mouthRow: mouthOf(core, row),
+    terminal: (core.flags[row] & FLAG.TERMINAL) !== 0,
+    headwater: (core.flags[row] & FLAG.HEADWATER) !== 0,
+    lock: (core.flags[row] & FLAG.LOCK) !== 0,
+  };
+}
+
+/**
+ * The network summary, worded to prevent the "sediment passing this dam
+ * reaches the coast" misreading: downstream reservoirs are things sediment
+ * "would encounter", never guaranteed delivery (ideas doc §13).
+ */
+export function buildNetworkSentences(core: SedimentCore, row: number): string[] {
+  const s = networkStats(core, row);
+  const out: string[] = [];
+  out.push(
+    s.upCount === 0
+      ? "No mapped reservoirs upstream — this is a headwater dam."
+      : `${s.upCount.toLocaleString("en-US")} upstream reservoir${s.upCount === 1 ? "" : "s"} influence sediment delivery to this reservoir.`,
+  );
+  const mouthName = s.mouthRow != null ? core.names[s.mouthRow] : null;
+  if (mouthName) {
+    out.push(
+      s.downCount === 0
+        ? `This is the last dam before the river reaches its mouth (${mouthName}).`
+        : `Sediment passing this dam would encounter ${s.downCount.toLocaleString("en-US")} more reservoir${s.downCount === 1 ? "" : "s"} before the river reaches its mouth (${mouthName}).`,
+    );
+  } else {
+    out.push(
+      s.downCount === 0
+        ? "No mapped reservoirs downstream; the network chain ends inland of any mapped river mouth."
+        : `Sediment passing this dam would encounter ${s.downCount.toLocaleString("en-US")} more reservoir${s.downCount === 1 ? "" : "s"}; the mapped chain ends inland of any river mouth.`,
+    );
+  }
+  return out;
+}

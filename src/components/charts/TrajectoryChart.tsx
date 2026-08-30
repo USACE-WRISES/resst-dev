@@ -55,8 +55,8 @@ export function TrajectoryChart(props: TrajectoryChartInput) {
             <line x1={w.x - 3} x2={w.x + 3} y1={w.yLo} y2={w.yLo} />
           </g>
         ))}
-        {g.surveyPts.map((p) => (
-          <circle key={`s${p.year}-${p.x}`} className="traj-survey" cx={p.x} cy={p.y} r={3.5} />
+        {g.surveyPts.map((p, i) => (
+          <circle key={`s${i}`} className="traj-survey" cx={p.x} cy={p.y} r={3.5} />
         ))}
         {g.projectedX != null && (
           <text className="traj-projlabel" x={g.projectedX + 3} y={g.plot.y + g.plot.h - 4}>
@@ -96,8 +96,8 @@ export function TrajectoryChart(props: TrajectoryChartInput) {
                 <td>{acft(props.sedimentM3[i])}</td>
               </tr>
             ))}
-            {surveys.map((s) => (
-              <tr key={`sv${s.year}`}>
+            {surveys.map((s, i) => (
+              <tr key={`sv${i}`}>
                 <td>{s.year} (measured)</td>
                 <td>{acft(s.capM3)}</td>
                 <td>—</td>

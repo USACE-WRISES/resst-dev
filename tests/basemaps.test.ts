@@ -164,6 +164,30 @@ describe("mergeAppLayers", () => {
     expect(merged.sprite).toBe(fixed.sprite);
   });
 
+  it("carries the network (nw-) and national (nat-) layers across swaps", () => {
+    // The failure mode is silent — layers simply vanish on a basemap toggle —
+    // so the prefix predicates get their own case.
+    const prev: StyleSpecification = {
+      ...PREV_USGS_WITH_APP,
+      sources: {
+        ...PREV_USGS_WITH_APP.sources,
+        "nw-net": { type: "geojson", data: { type: "FeatureCollection", features: [POINT] } },
+        "nat-reservoirs": { type: "geojson", data: { type: "FeatureCollection", features: [POINT] } },
+      },
+      layers: [
+        ...PREV_USGS_WITH_APP.layers,
+        { id: "nw-up", type: "circle", source: "nw-net" },
+        { id: "nat-circles", type: "circle", source: "nat-reservoirs" },
+      ],
+    };
+    const merged = mergeAppLayers(prev, fixed);
+    expect(Object.keys(merged.sources)).toEqual(expect.arrayContaining(["nw-net", "nat-reservoirs"]));
+    const ids = merged.layers.map((l) => l.id);
+    expect(ids).toEqual(expect.arrayContaining(["nw-up", "nat-circles"]));
+    // Relative order among app layers is preserved (nw/nat after the sites stack).
+    expect(ids.indexOf("nw-up")).toBeGreaterThan(ids.indexOf("sites-labels"));
+  });
+
   it("swaps back to a sprite-less style cleanly", () => {
     const onEsri = mergeAppLayers(PREV_USGS_WITH_APP, fixed);
     const back = mergeAppLayers(onEsri, buildUsgsStyle("self://fonts/{fontstack}/{range}.pbf"));

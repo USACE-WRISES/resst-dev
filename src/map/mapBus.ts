@@ -2,6 +2,7 @@
 // (the map itself is imperative MapLibre, not React state).
 
 import type { Site } from "../lib/types";
+import type { NetworkMode } from "../state/store";
 
 export interface MapCommands {
   /** Fit the view to the given sites' extent. */
@@ -14,6 +15,13 @@ export interface MapCommands {
   clearPlaceMarker(): void;
   /** Re-fetch one reference overlay (the Layers panel's Retry). */
   refreshOverlay(key: string): void;
+  /** Render the network highlight for an inventory row (requires the national
+      core to be loaded — no-ops otherwise) and fit the view to it. */
+  highlightNetwork(row: number, mode: NetworkMode): void;
+  /** Clear the network highlight. */
+  clearNetworkHighlight(): void;
+  /** Re-fit the view to the current network highlight (no-op when none). */
+  fitNetwork(): void;
 }
 
 let current: MapCommands | null = null;
