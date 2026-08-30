@@ -62,7 +62,9 @@ button { font: inherit; color: inherit; }
 
 .app-main {
   flex: 1 1 auto; min-height: 0; min-width: 0; height: 0; display: grid;
-  grid-template-columns: 270px minmax(0, 1fr) 320px;
+  /* Third track = the Selected Data panel; the PanelResizer drag/keyboard
+     override writes --details-col inline on this element. */
+  grid-template-columns: 270px minmax(0, 1fr) var(--details-col, 320px);
   position: relative; /* offset parent for the side collapse pills */
 }
 .center-stack {
@@ -95,7 +97,14 @@ button { font: inherit; color: inherit; }
   display: flex; flex-direction: column; gap: 10px;
 }
 .filters-panel { border-right: 1px solid var(--line); }
-.details-panel { border-left: 1px solid var(--line); }
+.details-panel { border-left: 1px solid var(--line); position: relative; /* anchors the resizer grip */ }
+
+/* Selected Data panel resizer (desktop only; the drawers own narrow screens). */
+.panel-resizer-grip {
+  position: absolute; left: -4px; top: 0; bottom: 0; width: 9px;
+  cursor: col-resize; background: transparent; touch-action: none; z-index: 9;
+}
+@media (max-width: 1100px) { .panel-resizer-grip { display: none; } }
 .panel-title-row { display: flex; align-items: baseline; justify-content: space-between; }
 .panel-title-row h2, .filtered-counts h2 { font-size: 14px; margin: 0; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.04em; }
 
@@ -592,12 +601,12 @@ button { font: inherit; color: inherit; }
   .side-tab-filters svg { transform: rotate(90deg); } /* chevron points LEFT — the collapse direction */
   .app-main.filters-collapsed .side-tab-filters { left: 0; }
   .app-main.filters-collapsed .side-tab-filters svg { transform: rotate(-90deg); }
-  .side-tab-details { right: 320px; border-radius: 92px 0 0 92px; }
+  .side-tab-details { right: var(--details-col, 320px); border-radius: 92px 0 0 92px; }
   .side-tab-details svg { transform: rotate(-90deg); } /* chevron points RIGHT */
   .app-main.details-collapsed .side-tab-details { right: 0; }
   .app-main.details-collapsed .side-tab-details svg { transform: rotate(90deg); }
 
-  .app-main.filters-collapsed { grid-template-columns: 0px minmax(0, 1fr) 320px; }
+  .app-main.filters-collapsed { grid-template-columns: 0px minmax(0, 1fr) var(--details-col, 320px); }
   .app-main.details-collapsed { grid-template-columns: 270px minmax(0, 1fr) 0px; }
   .app-main.filters-collapsed.details-collapsed { grid-template-columns: 0px minmax(0, 1fr) 0px; }
   /* visibility, NOT display:none: the panel must stay a grid item — there is
