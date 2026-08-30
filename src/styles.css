@@ -223,8 +223,15 @@ button { font: inherit; color: inherit; }
 .reservoir-kicker { font-size: 12px; margin: -4px 0 8px; }
 .popup-note { margin: 6px 0 0; font-size: 11px; color: var(--ink-3); }
 
-/* screening popover */
-.screening-panel { width: min(380px, 92vw); max-height: min(70vh, 560px); overflow-y: auto; }
+/* screening popover — the compound selector outranks .tool-popover-panel's
+   330px max-width; dvh keeps it clear of phone browser chrome (vh fallback). */
+.tool-popover-panel.screening-panel { width: auto; min-width: 300px; max-width: min(380px, calc(100vw - 24px)); max-height: min(70vh, 560px); max-height: min(70dvh, 560px); overflow-y: auto; }
+@media (max-width: 480px) {
+  /* Anchored-absolute could overflow a phone viewport — pin it instead, above
+     the drawer-tier chrome (mobile bar z24, drawers z25, table pill). */
+  .tool-popover-panel.screening-panel { position: fixed; left: 12px; right: 12px; top: calc(var(--header-h) + 56px); min-width: 0; max-width: none; z-index: 26; }
+}
+.nat-screen-note { margin: 4px 0 8px 24px; font-size: 11.5px; color: var(--ink-2); border-bottom: 1px solid var(--panel); padding-bottom: 6px; }
 .screen-intro { margin: 0 0 8px; font-size: 12px; color: var(--ink-2); }
 .screen-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 .screen-preset { font-size: 11.5px; }

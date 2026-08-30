@@ -156,7 +156,12 @@ export default function App() {
           aria-pressed={state.mobilePanel === "details"}
           onClick={() => actions.setMobilePanel(state.mobilePanel === "details" ? null : "details")}
         >
-          Selected{derived.selection.sites.length > 0 ? ` (${derived.selection.sites.length})` : ""}
+          Selected
+          {derived.selection.sites.length > 0
+            ? ` (${derived.selection.sites.length})`
+            : state.selectedReservoirId
+              ? " (1)" // a national-inventory reservoir is selected
+              : ""}
         </button>
       </nav>
       <footer className="app-footer">

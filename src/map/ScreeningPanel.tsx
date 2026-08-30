@@ -122,6 +122,7 @@ export function ScreeningPanel({ state, siteByShortId }: { state: AppState; site
         type="button"
         className={open ? "map-tool active" : "map-tool"}
         aria-expanded={open}
+        aria-label={s.active ? "Screening (active — criteria are filtering the national layer)" : "Screening"}
         onClick={() => setOpen(!open)}
       >
         Screening{s.active ? " ●" : ""} ▾
