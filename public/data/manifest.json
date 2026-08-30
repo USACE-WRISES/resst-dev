@@ -1,17 +1,17 @@
 {
-  "generated": "2026-08-30T04:38:08.395Z",
+  "generated": "2026-08-30T04:39:57.579Z",
   "counts": {
     "sites.json": 978,
     "literature.json": 465,
     "literature_entries.json": 1408,
-    "nid.json": 46,
+    "nid.json": 45,
     "site_linked_entries": 1191,
     "general_literature": 214
   },
   "sha256": {
-    "sites.json": "2a6690c7f0b4dc31",
+    "sites.json": "5f2b233dbd6f8073",
     "literature.json": "3c6f18002b38ab51",
     "literature_entries.json": "fc35a697d9c96339",
-    "nid.json": "064f87abf7cbf291"
+    "nid.json": "a2d40e1e117526c3"
   }
 }

@@ -58,6 +58,18 @@ difference.
 
 - Approve fixes for the discovered value corruptions
   ("…maNot Applicablegement" ×93, "Depostion" ×8) — currently preserved as-is.
+- **Resolved 2026-08-30 (owner-approved):** the test-record cluster removed
+  (site "Narnia Test 123" + literature "This is a Test" and its two entries;
+  counts 979/466/1,410 → 978/465/1,408), and three `nid_id` name-collision
+  errors corrected with `data/nid_snapshot.csv` refreshed accordingly:
+  `harlan-county-dam` OK20717 → **NE01066** (the old ID was a 70 ac-ft private
+  Oklahoma pond named "Mitchell Harlan H."; the USACE dam matched at 646 m
+  with an exact name); `mercier-dam` GA05804 → **blank** (the site is Barrage
+  Mercier, Québec — the old ID was a 26 ac-ft Georgia fish pond, and no US NID
+  can be correct); `arroyo-seco` CA00613 → **CA00189, Devils Gate Dam** — an
+  informed **assumption** (the old ID was a same-named private irrigation dam
+  on the wrong watercourse; Devils Gate is the Arroyo Seco flood-control
+  structure, 5.9 km downstream of the site coordinates) — please confirm.
 - Same decision class, found in the launch review: mojibake in some
   international address/city values (48 `Ã` sequences in `data/sites.csv`,
   e.g. "HumaitÃ¡" for "Humaitá") — also preserved as-is.
