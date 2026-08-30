@@ -2,13 +2,24 @@
 // surveys) from what is MODELED (everything in the Sustainability section).
 // Works for crosswalked sites (badge year known at boot) and national-layer
 // reservoirs (badge year fills in once the survey slice loads). The section
-// badge classifies the evidence even while collapsed.
+// badge classifies the evidence even while collapsed. Survey rows spell out
+// the export's method/scope/pool codes (glossary popover for the rest), and
+// the Original records block links the scanned RESSED datasheet when the
+// legacy RESIS datasheet number exists.
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useAppState } from "../../state/store";
-import { ensureSurveys, getCore, surveysForRow } from "../../sediment/data";
+import { ensureSurveys, getCore, surveyProvenanceForRow, surveysForRow } from "../../sediment/data";
 import { formatVolumeAcft } from "../../sediment/format";
-import { PROVENANCE } from "../../sediment/types";
+import {
+  PROVENANCE,
+  SURVEY_METHOD_LABELS,
+  SURVEY_POOL_LABELS,
+  SURVEY_SUBTYPE_LABELS,
+  ressedDatasheetUrl,
+  type SurveyObs,
+} from "../../sediment/types";
+import { useDismissPopover } from "../../map/useDismissPopover";
 import { ProvBadge, ProvNote } from "./Provenance";
 
 /** The RATTES component that modeled this reservoir (null until the core loads). */
@@ -41,14 +52,94 @@ export function evidenceBadgeFor(hasSurveys: boolean, latestYear: number | null 
   return <ProvBadge kind="measured" label={latestYear ? `Measured · ${latestYear}` : "Measured"} />;
 }
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** Month name from the export date; Jan-1 dates are year-only placeholders and show nothing. */
+function surveyMonth(date: string): string {
+  const m = /^\d{4}-(\d{2})-(\d{2})/.exec(date);
+  if (!m || (m[1] === "01" && m[2] === "01")) return "";
+  const idx = Number(m[1]) - 1;
+  return MONTHS[idx] ?? "";
+}
+
+/** "range and contour survey, detailed" from the DS434 codes; unknown codes show verbatim. */
+function methodText(s: SurveyObs): string {
+  const method = s.method ? (SURVEY_METHOD_LABELS[s.method] ?? `survey type ${s.method}`) : "";
+  const scope = s.sub ? (SURVEY_SUBTYPE_LABELS[s.sub] ?? "") : "";
+  if (method && scope) return `${method}, ${scope}`;
+  return method || (scope ? `${scope} survey` : "");
+}
+
+/** Glossary for the export's survey codes; the honest wording is the contract. */
+function CodesInfo() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
+  useDismissPopover(open, ref, () => setOpen(false));
+  return (
+    <span className="prov-info codes-info" ref={ref}>
+      <button type="button" className="linklike" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        About these survey codes
+      </button>
+      {open && (
+        <span className="prov-pop codes-pop" role="group" aria-label="RESSED survey code glossary">
+          <b>Pool</b>
+          <span>
+            Which part of the reservoir the survey covered. The public export never defines the letters; survey notes
+            indicate T is the total pool and S is the sediment pool below the principal spillway. U appears only on
+            USACE-contributed records, almost always without published values.
+          </span>
+          <b>Survey type and scope</b>
+          <span>
+            Range, contour, and range-and-contour methods and the detailed / semi-detailed / reconnaissance scopes are
+            documented in USGS Data Series 434. Codes RLCS and TBS are not defined in the public documentation.
+          </span>
+          <b>Where the numbers live</b>
+          <span>
+            This app ships the 2013 public RESSED export. Some of its values are flagged as assumed rather than
+            measured, and many USACE survey dates carry no published values at all. Original survey reports for
+            Reclamation reservoirs are on RISE (data.usbr.gov); USACE district offices hold the records for Corps
+            reservoirs.
+          </span>
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** Links to the original RESSED records: the scanned datasheet (legacy dsnum ids) and the USGS list. */
+function OriginalRecords({ row }: { row: number | null }) {
+  const prov = row != null ? surveyProvenanceForRow(row) : null;
+  const dsUrl = ressedDatasheetUrl(prov?.ressedId ?? null);
+  return (
+    <>
+      <div className="evidence-links">
+        {dsUrl && (
+          <a href={dsUrl} target="_blank" rel="noopener noreferrer">
+            Original RESSED datasheet (PDF)
+          </a>
+        )}
+        <a href="https://water.usgs.gov/osw/ressed/list_reservoirs/index.html" target="_blank" rel="noopener noreferrer">
+          RESSED reservoir list and datasheets
+        </a>
+      </div>
+      {prov && (prov.agency || prov.supplier) && (
+        <p className="muted evidence-agency">
+          {prov.agency && <>Surveys by {prov.agency}.</>}
+          {prov.agency && prov.supplier ? " " : ""}
+          {prov.supplier && <>Data supplied by {prov.supplier}.</>}
+        </p>
+      )}
+    </>
+  );
+}
+
 export function EvidenceSection({
   row,
   hasSurveys,
-  latestYear,
 }: {
   row: number | null;
   hasSurveys: boolean;
-  /** Most recent survey year when known at render time (site links carry it). */
+  /** Most recent survey year when known at render time (site links carry it); badge-only, see evidenceBadgeFor. */
   latestYear?: number | null;
 }) {
   useAppState(); // re-render on sedimentStamp
@@ -93,17 +184,29 @@ export function EvidenceSection({
       ) : (
         <>
           <ul className="survey-list">
-            {surveys.map((s, i) => (
-              <li key={`${s.year}-${i}`}>
-                <b>{s.year}</b>
-                {s.capM3 != null && <> · measured capacity {formatVolumeAcft(s.capM3)}</>}
-                {s.sedTotM3 != null && <> · interval sediment {formatVolumeAcft(s.sedTotM3)}</>}
-                {s.capM3 == null && s.sedTotM3 == null && (
-                  <span className="muted"> · survey date on record; no measured values in the public 2013 export</span>
-                )}
-                {s.pool && <span className="muted"> · pool {s.pool}</span>}
-              </li>
-            ))}
+            {surveys.map((s, i) => {
+              const month = surveyMonth(s.date);
+              const method = methodText(s);
+              return (
+                <li key={`${s.year}-${i}`}>
+                  <b>{s.year}</b>
+                  {month && <span className="muted"> ({month})</span>}
+                  {s.capM3 != null && <> · measured capacity {formatVolumeAcft(s.capM3)}</>}
+                  {s.sedTotM3 != null && <> · interval sediment {formatVolumeAcft(s.sedTotM3)}</>}
+                  {s.capM3 == null && s.sedTotM3 == null && (
+                    <span className="muted"> · survey date on record; no measured values in the public 2013 export</span>
+                  )}
+                  {method && <span className="muted"> · {method}</span>}
+                  {s.pool && (
+                    <span className="muted" title={`RESSED pool code ${s.pool}`}>
+                      {" "}
+                      · {SURVEY_POOL_LABELS[s.pool] ?? `pool ${s.pool}`}
+                    </span>
+                  )}
+                  {s.note && <span className="survey-note muted">{s.note}</span>}
+                </li>
+              );
+            })}
           </ul>
           {surveys.every((s) => s.capM3 == null) && (
             <p className="muted">
@@ -111,6 +214,8 @@ export function EvidenceSection({
               the modeled trajectory without measured points.
             </p>
           )}
+          <CodesInfo />
+          <OriginalRecords row={row} />
         </>
       )}
       <RattesClassLine row={row} />

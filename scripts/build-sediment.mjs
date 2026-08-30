@@ -540,7 +540,11 @@ for (let k = 0; k < TRAJ_CHUNKS; k++) {
       sedTot: "m3 (ACFT × 1233.48184)",
       dryWt: "kg/m3 (lb/ft3 × 16.018463)",
     },
-    notes: "row = inventory row index of the joined ResNet dam (null when unjoined). sedTot is the per-interval deposit since the previous survey.",
+    notes:
+      "row = inventory row index of the joined ResNet dam (null when unjoined). sedTot is the per-interval deposit since the previous survey. " +
+      "reservoirs.id is the RESSED reservoir_id; values below 100000 are legacy RESIS-II datasheet numbers (dsnum) whose scanned SCS Form 34 sheet is " +
+      "https://water.usgs.gov/osw/ressed/datasheets/{floor(id/1000)}-{id mod 1000}.pdf (pattern verified; see data/DATA-SOURCES.md). " +
+      "method/sub are DS434 survey type and scope codes (case-folded; undocumented codes pass through verbatim); agency/supplier are the performing and contributing agencies.",
   };
   const json =
     `{"_meta":${JSON.stringify(meta)},` +
@@ -552,11 +556,17 @@ for (let k = 0; k < TRAJ_CHUNKS; k++) {
     `"lon":${buildJsonArray(ressed, (r) => fmtFixed(r.lon, 4))},` +
     `"lat":${buildJsonArray(ressed, (r) => fmtFixed(r.lat, 4))},` +
     `"state":${buildJsonArray(ressed, (r) => JSON.stringify(r.state))},` +
-    `"began":${buildJsonArray(ressed, (r) => (r.began == null ? "null" : String(r.began)))}},` +
+    `"began":${buildJsonArray(ressed, (r) => (r.began == null ? "null" : String(r.began)))},` +
+    `"agency":${buildJsonArray(ressed, (r) => JSON.stringify(r.agency))},` +
+    `"supplier":${buildJsonArray(ressed, (r) => JSON.stringify(r.supplier))}},` +
     `"surveys":{` +
     `"rIdx":${buildJsonArray(surveysFlat, (x) => String(x.ri))},` +
     `"year":${buildJsonArray(surveysFlat, (x) => String(x.s.year))},` +
+    `"date":${buildJsonArray(surveysFlat, (x) => JSON.stringify(x.s.date))},` +
     `"pool":${buildJsonArray(surveysFlat, (x) => JSON.stringify(x.s.pool))},` +
+    `"method":${buildJsonArray(surveysFlat, (x) => JSON.stringify(x.s.method))},` +
+    `"sub":${buildJsonArray(surveysFlat, (x) => JSON.stringify(x.s.sub))},` +
+    `"note":${buildJsonArray(surveysFlat, (x) => JSON.stringify(x.s.note))},` +
     `"cap":${buildJsonArray(surveysFlat, (x) => fmtSig(x.s.cap, 4))},` +
     `"area":${buildJsonArray(surveysFlat, (x) => fmtSig(x.s.area, 4))},` +
     `"sedTot":${buildJsonArray(surveysFlat, (x) => fmtSig(x.s.sedTot, 4))},` +

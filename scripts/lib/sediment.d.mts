@@ -18,10 +18,17 @@ export const AC_TO_M2: number;
 export const PCF_TO_KGM3: number;
 export const RESSED_STAT: { AREA: number; CAPACITY: number; SED_INTERVAL: number; DRY_WEIGHT: number };
 
+export function canonSurveyMethod(v: string | null | undefined): string;
+export function canonSurveySub(v: string | null | undefined): string;
+export function tidyAgency(v: string | null | undefined): string;
+
 export interface RessedSurvey {
   year: number;
   date: string;
   pool: string;
+  method: string;
+  sub: string;
+  note: string;
   cap: number | null;
   area: number | null;
   sedTot: number | null;
@@ -35,6 +42,8 @@ export interface RessedReservoir {
   lat: number | null;
   state: string;
   began: number | null;
+  agency: string;
+  supplier: string;
   surveys: RessedSurvey[];
 }
 export function normalizeRessed(json: unknown): {

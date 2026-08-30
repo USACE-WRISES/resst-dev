@@ -6,8 +6,8 @@
 // core/surveys loads report status for chips + Retry affordances.
 
 import { actions } from "../state/store";
-import { decodeCore, decodeSurveys, decodeTrajChunk } from "./decode";
-import type { SedimentCore, SurveyObs, Trajectory } from "./types";
+import { decodeCore, decodeSurveyProvenance, decodeSurveys, decodeTrajChunk } from "./decode";
+import type { SedimentCore, SurveyObs, SurveyProvenance, Trajectory } from "./types";
 
 async function fetchJson(rel: string): Promise<unknown> {
   const res = await fetch(`${import.meta.env.BASE_URL}sediment/${rel}`);
@@ -48,6 +48,7 @@ export const getCore = (): SedimentCore | null => core;
 
 let surveysPromise: Promise<Map<number, SurveyObs[]>> | null = null;
 let surveysByRow: Map<number, SurveyObs[]> | null = null;
+let surveyProvByRow: Map<number, SurveyProvenance> | null = null;
 
 /** Kick off (or join) the RESSED measured-surveys load (~0.1 MB gzipped). */
 export function ensureSurveys(): Promise<Map<number, SurveyObs[]>> {
@@ -56,6 +57,7 @@ export function ensureSurveys(): Promise<Map<number, SurveyObs[]>> {
     surveysPromise = fetchJson("surveys.json").then(
       (json) => {
         surveysByRow = decodeSurveys(json);
+        surveyProvByRow = decodeSurveyProvenance(json);
         actions.setSedimentStatus("surveys", "ready");
         actions.bumpSedimentStamp();
         return surveysByRow;
@@ -74,6 +76,11 @@ export function ensureSurveys(): Promise<Map<number, SurveyObs[]>> {
 export function surveysForRow(row: number): SurveyObs[] | null {
   if (!surveysByRow) return null;
   return surveysByRow.get(row) ?? [];
+}
+
+/** RESSED reservoir-level provenance (datasheet id, agencies) — null when unloaded or unjoined. */
+export function surveyProvenanceForRow(row: number): SurveyProvenance | null {
+  return surveyProvByRow?.get(row) ?? null;
 }
 
 // ------------------------------------------------------- trajectories -------
