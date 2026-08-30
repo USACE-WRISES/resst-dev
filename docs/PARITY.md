@@ -70,6 +70,19 @@ difference.
   informed **assumption** (the old ID was a same-named private irrigation dam
   on the wrong watercourse; Devils Gate is the Arroyo Seco flood-control
   structure, 5.9 km downstream of the site coordinates) — please confirm.
+- **Resolved 2026-08-30 (owner-approved):** the site↔ResNet crosswalk was
+  curated with conservative rules — 168 links confirmed (strong name or
+  co-location evidence), 87 rejected (river/study-reach sites whose nearest
+  dam was unrelated; those sites now correctly show no modeled sections).
+  **Still open:** 110 `auto` rows in `data/site_resnet_crosswalk.csv` carry
+  `review:` notes for your judgment (incl. `fairfield-lake`, whose site
+  coordinates sit 301 km from its NID dam — the coordinates may be wrong).
+- **Resolved 2026-08-30:** the RATTES evidence class shipped — the inventory's
+  `evd` column now distinguishes the 924 reservoirs with qualifying repeat
+  surveys in RATTES Supplementary Data 1 (survey-constrained) from statistical
+  predictions, cross-verified against the model's own input file. The paper's
+  "904" is a model-run count not reproducible from the public files, so the
+  app deliberately says "repeat surveys in the RATTES compilation".
 - Same decision class, found in the launch review: mojibake in some
   international address/city values (48 `Ã` sequences in `data/sites.csv`,
   e.g. "HumaitÃ¡" for "Humaitá") — also preserved as-is.
