@@ -77,6 +77,61 @@ test("changing the selection resets the highlight", async ({ page }) => {
   await expect(page.locator("#detail-sec-net")).toHaveCount(0); // non-crosswalked site
 });
 
+const BASIN_SQUARE = {
+  type: "Feature",
+  properties: {},
+  geometry: {
+    type: "Polygon",
+    coordinates: [
+      [
+        [-96.9, 39.0],
+        [-96.3, 39.0],
+        [-96.3, 39.5],
+        [-96.9, 39.5],
+        [-96.9, 39.0],
+      ],
+    ],
+  },
+};
+
+/** Stub the two USGS NLDI calls (position lookup, basin polygon). */
+async function stubNldi(page: Page, opts: { fail?: boolean } = {}) {
+  await page.route("**/api.water.usgs.gov/nldi/**", (route) => {
+    if (opts.fail) return route.fulfill({ status: 503, body: "unavailable" });
+    const url = route.request().url();
+    const body = url.includes("/position")
+      ? { type: "FeatureCollection", features: [{ type: "Feature", properties: { comid: 111 }, geometry: null }] }
+      : { type: "FeatureCollection", features: [BASIN_SQUARE] };
+    return route.fulfill({ status: 200, contentType: "application/geo+json", body: JSON.stringify(body) });
+  });
+}
+
+test("the drainage-area toggle draws the NLDI basin and notes the source", async ({ page }) => {
+  await stubNldi(page);
+  await openOnTuttle(page);
+  const net = page.locator("#detail-sec-net");
+  await net.locator(".nw-btn", { hasText: "Drainage area" }).click();
+  const basinCount = () =>
+    page.evaluate(async () => {
+      const src = (window as any).__resstMap.getSource("nw-basin");
+      return src ? (await src.getData()).features.length : 0;
+    });
+  await expect.poll(basinCount).toBe(1);
+  await expect(net.locator(".nw-basin-note")).toContainText("USGS NLDI");
+  // Toggling off clears the polygon.
+  await net.locator(".nw-btn", { hasText: "Drainage area" }).click();
+  await expect.poll(basinCount).toBe(0);
+});
+
+test("an NLDI failure reports a status line and offers Retry", async ({ page }) => {
+  await stubNldi(page, { fail: true });
+  await openOnTuttle(page);
+  const net = page.locator("#detail-sec-net");
+  await net.locator(".nw-btn", { hasText: "Drainage area" }).click();
+  await expect(net.locator(".sec-status[data-status='error']")).toContainText("Drainage area unavailable");
+  await expect(net.getByRole("button", { name: "Retry" })).toBeVisible();
+});
+
 test("the network highlight survives a basemap swap", async ({ page }) => {
   await openOnTuttle(page);
   await page.locator("#detail-sec-net .nw-btn", { hasText: "Downstream" }).click();

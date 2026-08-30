@@ -100,8 +100,8 @@ export interface AppState {
   selectedReservoirId: string | null;
   /** National inventory layer (all modeled reservoirs) — session-only. */
   nationalLayer: { on: boolean; metric: NationalMetric };
-  /** Network-explorer highlight mode for the current selection. */
-  networkView: { mode: NetworkMode };
+  /** Network-explorer highlight mode + drainage-area overlay for the current selection. */
+  networkView: { mode: NetworkMode; basin: boolean };
   /** National screening criteria (session-only — an investigation, not a preference). */
   screening: ScreeningState;
   /** Details-panel collapsible sections: section id -> open override. */
@@ -157,7 +157,7 @@ let state: AppState = {
   sedimentStatus: {},
   selectedReservoirId: null,
   nationalLayer: { on: false, metric: "pctLost2025" },
-  networkView: { mode: "none" },
+  networkView: { mode: "none", basin: false },
   screening: EMPTY_SCREENING,
   panelSections: {},
   helpOpen: false,
@@ -216,14 +216,14 @@ export const actions = {
       selectedSiteIds: siteId ? [siteId] : [],
       showSelectionOnly: siteId ? state.showSelectionOnly : false,
       selectedReservoirId: null,
-      networkView: { mode: "none" },
+      networkView: { mode: "none", basin: false },
     });
   },
   /** Multi-selection from the map Select tools. Dedupes and touches nothing
       else beyond the selection invariant — tool sessions disarm explicitly
       via setMapTool. */
   selectSites(siteIds: string[]): void {
-    set({ selectedSiteIds: [...new Set(siteIds)], selectedReservoirId: null, networkView: { mode: "none" } });
+    set({ selectedSiteIds: [...new Set(siteIds)], selectedReservoirId: null, networkView: { mode: "none", basin: false } });
   },
   /** National-inventory reservoir selection (non-documented dams). Clears any
       site selection — at most one selection model is active at a time. */
@@ -232,11 +232,11 @@ export const actions = {
       selectedReservoirId: shortId,
       selectedSiteIds: [],
       showSelectionOnly: false,
-      networkView: { mode: "none" },
+      networkView: { mode: "none", basin: false },
     });
   },
   clearSelection(): void {
-    set({ selectedSiteIds: [], showSelectionOnly: false, selectedReservoirId: null, networkView: { mode: "none" } });
+    set({ selectedSiteIds: [], showSelectionOnly: false, selectedReservoirId: null, networkView: { mode: "none", basin: false } });
   },
   setShowSelectionOnly(on: boolean): void {
     set({ showSelectionOnly: on });
@@ -365,7 +365,12 @@ export const actions = {
   },
   setNetworkMode(mode: NetworkMode): void {
     if (state.networkView.mode === mode) return;
-    set({ networkView: { mode } });
+    set({ networkView: { ...state.networkView, mode } });
+  },
+  /** Toggle the USGS NLDI drainage-area boundary for the selected reservoir. */
+  setNetworkBasin(on: boolean): void {
+    if (state.networkView.basin === on) return;
+    set({ networkView: { ...state.networkView, basin: on } });
   },
   /** Collapsible details-panel sections (session-only; survives the pager). */
   setPanelSection(id: string, open: boolean): void {

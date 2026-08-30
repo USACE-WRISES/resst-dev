@@ -18,6 +18,22 @@ import type { NetworkMode } from "../state/store";
 const EMPTY: FeatureCollection = { type: "FeatureCollection", features: [] };
 
 export function installNetworkLayers(map: MlMap): void {
+  // Drainage-area boundary (USGS NLDI, on demand) sits under everything else
+  // in the network stack: faint fill + dashed outline in the upstream purple.
+  map.addSource("nw-basin", { type: "geojson", data: EMPTY });
+  map.addLayer(
+    { id: "nw-basin-fill", type: "fill", source: "nw-basin", paint: { "fill-color": NET_UP, "fill-opacity": 0.07 } },
+    "sites-circles",
+  );
+  map.addLayer(
+    {
+      id: "nw-basin-line",
+      type: "line",
+      source: "nw-basin",
+      paint: { "line-color": NET_UP, "line-width": 1.5, "line-dasharray": [4, 2], "line-opacity": 0.8 },
+    },
+    "sites-circles",
+  );
   map.addSource("nw-net", { type: "geojson", data: EMPTY });
   // Connector under the site circles; dam dots above circles but under the
   // selection ring; mouth node + label on top of everything.
@@ -31,7 +47,10 @@ export function installNetworkLayers(map: MlMap): void {
     },
     "sites-circles",
   );
-  const dot = (id: string, kind: string, color: string) =>
+  // Downstream chain dams draw larger than the upstream fan: the fan is
+  // thousands of dots where size would be noise, the chain is a handful the
+  // owner needs to spot against the dashed connector (round-3 feedback).
+  const dot = (id: string, kind: string, color: string, radius: [number, number], stroke: number) =>
     map.addLayer(
       {
         id,
@@ -39,17 +58,17 @@ export function installNetworkLayers(map: MlMap): void {
         source: "nw-net",
         filter: ["==", ["get", "kind"], kind],
         paint: {
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 3, 9, 6],
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, radius[0], 9, radius[1]],
           "circle-color": color,
           "circle-stroke-color": "#ffffff",
-          "circle-stroke-width": 1,
+          "circle-stroke-width": stroke,
           "circle-opacity": 0.92,
         },
       },
       "sites-selected",
     );
-  dot("nw-up", "up", NET_UP);
-  dot("nw-down", "down", NET_DOWN);
+  dot("nw-up", "up", NET_UP, [3, 6], 1);
+  dot("nw-down", "down", NET_DOWN, [4.5, 7.5], 1.5);
   map.addLayer({
     id: "nw-mouth",
     type: "circle",
@@ -80,22 +99,18 @@ export function installNetworkLayers(map: MlMap): void {
   });
 }
 
+export interface NetworkFeatureSet {
+  features: Feature[];
+  /** Highlighted coordinates (selected dam first) for view fitting. */
+  coords: Array<[number, number]>;
+}
+
 /**
- * Render the highlight for `row` in the given mode; returns the highlighted
- * coordinates (selected dam included) for fitting, or null when cleared.
+ * Pure feature builder for a network highlight — shared by the live map
+ * source update below and the report's snapshot map (which installs its own
+ * rpt-* layers over the same kinds: up / down / mouth / conn).
  */
-export function updateNetworkHighlight(
-  map: MlMap,
-  core: SedimentCore,
-  row: number | null,
-  mode: NetworkMode,
-): Array<[number, number]> | null {
-  const src = map.getSource("nw-net") as GeoJSONSource | undefined;
-  if (!src) return null;
-  if (row == null || mode === "none") {
-    src.setData(EMPTY);
-    return null;
-  }
+export function buildNetworkFeatures(core: SedimentCore, row: number, mode: Exclude<NetworkMode, "none">): NetworkFeatureSet {
   const feats: Feature[] = [];
   const coords: Array<[number, number]> = [[core.lon[row], core.lat[row]]];
   const pt = (r: number, kind: string, withName = false): Feature => ({
@@ -121,6 +136,33 @@ export function updateNetworkHighlight(
       feats.push({ type: "Feature", geometry: { type: "LineString", coordinates: line }, properties: { kind: "conn" } });
     }
   }
-  src.setData({ type: "FeatureCollection", features: feats });
+  return { features: feats, coords };
+}
+
+/**
+ * Render the highlight for `row` in the given mode; returns the highlighted
+ * coordinates (selected dam included) for fitting, or null when cleared.
+ */
+export function updateNetworkHighlight(
+  map: MlMap,
+  core: SedimentCore,
+  row: number | null,
+  mode: NetworkMode,
+): Array<[number, number]> | null {
+  const src = map.getSource("nw-net") as GeoJSONSource | undefined;
+  if (!src) return null;
+  if (row == null || mode === "none") {
+    src.setData(EMPTY);
+    return null;
+  }
+  const { features, coords } = buildNetworkFeatures(core, row, mode);
+  src.setData({ type: "FeatureCollection", features });
   return coords;
+}
+
+/** Draw (or clear, with null) the NLDI drainage-basin polygon. */
+export function setNetworkBasin(map: MlMap, feature: Feature | null): void {
+  const src = map.getSource("nw-basin") as GeoJSONSource | undefined;
+  if (!src) return;
+  src.setData(feature ? { type: "FeatureCollection", features: [feature] } : EMPTY);
 }
