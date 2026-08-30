@@ -15,6 +15,7 @@ import { CollapsibleSection } from "./details/CollapsibleSection";
 import { ProvBadge, ProvNote } from "./details/Provenance";
 import { SustainabilitySection } from "./details/SustainabilitySection";
 import { EvidenceSection, evidenceBadge } from "./details/EvidenceSection";
+import { NetworkSection } from "./details/NetworkSection";
 
 function FieldList({ rows }: { rows: Array<{ label: string; value: string }> }) {
   return (
@@ -87,6 +88,9 @@ function SiteDetails({ current }: { current: SelectedSite }) {
           </CollapsibleSection>
           <CollapsibleSection id="evid" title="Evidence" defaultOpen={false} badge={evidenceBadge(current.sedimentLink)}>
             <EvidenceSection selected={current} />
+          </CollapsibleSection>
+          <CollapsibleSection id="net" title="Reservoir Network" badge={<ProvBadge kind="network" />}>
+            <NetworkSection row={current.reservoirRow} />
           </CollapsibleSection>
         </>
       ) : (

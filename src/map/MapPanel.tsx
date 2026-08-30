@@ -33,6 +33,8 @@ import { SelectMenu } from "./SelectMenu";
 import { SelectHintBar } from "./SelectHintBar";
 import { startSelectSession, recomputeRiver, type RiverPick, type SessionCtx, type ToolMsg } from "./selectTools";
 import { installOverlays, updateOverlays, scheduleOverlayRefresh, retryOverlay, disposeOverlays } from "./overlays";
+import { installNetworkLayers, updateNetworkHighlight } from "./networkLayer";
+import { getCore } from "../sediment/data";
 import { applyBasemap, buildUsgsStyle, fetchEsriTopoStyle } from "./basemaps";
 import { BasemapControl } from "./BasemapControl";
 import { BasemapPicker } from "./BasemapPicker";
@@ -87,6 +89,8 @@ export function MapPanel({ sites, allSites, siteById, state }: {
   const keepHighlightRef = useRef(false);
   // The live river pick (near-a-river refine stage) for distance recomputes.
   const riverRef = useRef<RiverPick | null>(null);
+  // The current network highlight's coordinates (for the Zoom-to-network refit).
+  const networkCoordsRef = useRef<Array<[number, number]> | null>(null);
   const [toolMsg, setToolMsg] = useState<ToolMsg | null>(null);
   const selectedIds = state.selectedSiteIds;
   const overlaysRef = useRef(state.overlays);
@@ -171,7 +175,27 @@ export function MapPanel({ sites, allSites, siteById, state }: {
       refreshOverlay(key) {
         retryOverlay(map, key, overlaysRef.current);
       },
+      highlightNetwork(row, mode) {
+        const core = getCore();
+        if (!core || !loadedRef.current) return;
+        const coords = updateNetworkHighlight(map, core, row, mode);
+        networkCoordsRef.current = coords;
+        if (coords && coords.length) fitCoords(coords);
+      },
+      clearNetworkHighlight() {
+        networkCoordsRef.current = null;
+        const core = getCore();
+        if (core && loadedRef.current) updateNetworkHighlight(map, core, null, "none");
+      },
+      fitNetwork() {
+        if (networkCoordsRef.current?.length) fitCoords(networkCoordsRef.current);
+      },
     });
+
+    function fitCoords(pts: Array<[number, number]>) {
+      const bounds = pts.reduce((b, p) => b.extend(p), new LngLatBounds(pts[0], pts[0]));
+      map.fitBounds(bounds, { padding: 60, maxZoom: 9, duration: 700 });
+    }
 
     map.on("load", () => {
       map.addSource("sites", { type: "geojson", data: sitesToGeoJSON([]) });
@@ -287,6 +311,10 @@ export function MapPanel({ sites, allSites, siteById, state }: {
           "circle-stroke-width": 2,
         },
       });
+
+      // Network-explorer highlight layers (nw-*), driven via mapBus by the
+      // details panel's Reservoir Network section.
+      installNetworkLayers(map);
       map.on("moveend", () => {
         // Debounced: rapid pans supersede each other instead of stacking fetches.
         scheduleOverlayRefresh(map, () => overlaysRef.current);

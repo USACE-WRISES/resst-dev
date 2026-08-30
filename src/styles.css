@@ -197,6 +197,20 @@ button { font: inherit; color: inherit; }
 .survey-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; max-height: 220px; overflow-y: auto; }
 .survey-list li { border-bottom: 1px solid var(--panel); padding-bottom: 3px; }
 
+/* reservoir network section */
+.nw-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+.nw-sentence { margin: 6px 0 0; font-size: 12.5px; }
+.nw-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+.nw-btn { font: inherit; font-size: 12px; padding: 4px 10px; border: 1px solid var(--line); background: var(--paper); border-radius: 14px; cursor: pointer; color: var(--ink-2); }
+.nw-btn:hover { border-color: var(--accent); color: var(--accent); }
+.nw-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.conn-wrap { margin-top: 10px; }
+.conn-bar { height: 10px; border-radius: 5px; background: repeating-linear-gradient(45deg, var(--panel), var(--panel) 4px, #e3d9cc 4px, #e3d9cc 8px); border: 1px solid var(--line); overflow: hidden; }
+.conn-fill { height: 100%; background: var(--accent); }
+.conn-caption { margin: 4px 0 0; font-size: 11.5px; color: var(--ink-2); }
+/* Dashed legend swatch: paints with currentColor — set `color` inline. */
+.legend-dashed { background: repeating-linear-gradient(90deg, currentColor, currentColor 4px, transparent 4px, transparent 7px); }
+
 .footer-vintage { color: var(--ink-3); }
 @media (max-width: 760px) { .footer-vintage { display: none; } }
 

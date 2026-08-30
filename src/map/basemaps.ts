@@ -48,10 +48,12 @@ const ESRI_ATTRIBUTION =
 const HILLSHADE_TILES =
   "https://services.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}";
 
-/** Sources the app owns and must carry across basemap swaps. */
-const isAppSource = (id: string) => id === "sites" || id.startsWith("ov-");
-/** Layers the app owns (sites-circles/-selected/-labels and every overlay). */
-const isAppLayer = (id: string) => id.startsWith("sites-") || id.startsWith("ov-");
+/** Sources the app owns and must carry across basemap swaps (sites, ov-*
+    overlays/select scratch, nw-* network highlight, nat-* national layer). */
+const isAppSource = (id: string) => id === "sites" || id.startsWith("ov-") || id.startsWith("nw-") || id.startsWith("nat-");
+/** Layers the app owns (sites-*, every overlay, network + national layers). */
+const isAppLayer = (id: string) =>
+  id.startsWith("sites-") || id.startsWith("ov-") || id.startsWith("nw-") || id.startsWith("nat-");
 /** Ids the composed Esri style reserves; colliding CDN layers get renamed. */
 const isReservedId = (id: string) => id === "background" || id === "esri-hillshade" || isAppLayer(id);
 
