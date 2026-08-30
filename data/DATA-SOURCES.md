@@ -183,6 +183,19 @@ these PDFs from the Evidence section (USGS hosts them; no bandwidth cost here).
 
 ---
 
+## USGS NLDI (runtime service, no local data)
+
+The Reservoir Network card's **Drainage area** toggle calls the USGS
+Network-Linked Data Index live (`api.water.usgs.gov/nldi/linked-data`):
+position snap to the nearest NHDPlusV2 flowline, then
+`/comid/{id}/basin?simplified=true` for the upstream basin polygon
+(CORS `*`, no key, ~0.6 s; verified 2026-08-30). Nothing is stored in the
+repo; results cache per reservoir for the browser session, and a miss or
+outage degrades to a status line. This and the basemap/overlay services are
+the app's only runtime network dependencies. Caveat: the basin reflects the
+dam's mapped location snapped to NHDPlus, so off-channel dams can snap to
+the wrong stream (the in-app provenance note says so).
+
 ## Rebuild runbook
 
 1. Place the raw downloads at the paths above (re-fetch from the DOIs/URLs if absent;
