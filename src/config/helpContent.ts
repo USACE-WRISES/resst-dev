@@ -119,6 +119,7 @@ export const HELP_VIEWS: HelpView[] = [
         body: "Upstream and downstream dam counts, the terminal-dam status, and the river mouth the system drains to. <strong>Upstream / Downstream / Full network</strong> highlight the connected dams on the map; the dashed downstream path is schematic, not the river course.",
         notes: [
           { label: "Tip", text: "The connectivity bar shows how much of the drainage area reaches this reservoir without first passing another dam (ResNet's SCA2025)." },
+          { label: "Note", text: "Downstream counts follow the flow path only. Dams on other tributaries that join the same rivers downstream are not on this path." },
         ],
       },
       {

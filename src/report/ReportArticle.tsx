@@ -225,6 +225,12 @@ export const ReportArticle = forwardRef<
               {s}
             </p>
           ))}
+          {m.network.flowPath && (
+            <>
+              <p className="nw-sentence">Flow path: {m.network.flowPath}</p>
+              <p className="rpt-note">{m.network.flowNote}</p>
+            </>
+          )}
           {m.network.connectivity && (
             <div>
               <div className="conn-bar">

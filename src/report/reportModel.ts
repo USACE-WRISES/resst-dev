@@ -17,7 +17,7 @@ import {
   surveyMethodText,
   surveyMonthLabel,
 } from "../sediment/format";
-import { buildNetworkSentences, networkStats } from "../sediment/network";
+import { buildNetworkSentences, downstreamRiverPath, networkStats } from "../sediment/network";
 import type { SimilarResults } from "../sediment/similar";
 import {
   PROVENANCE,
@@ -74,6 +74,9 @@ export interface ReportModel {
     chips: string[];
     stats: ReportField[];
     sentences: string[];
+    /** "Kansas River → Missouri River → …" (null when the chain ends inland). */
+    flowPath: string | null;
+    flowNote: string;
     connectivity: { pct: number; label: string } | null;
   } | null;
   comparables: {
@@ -294,7 +297,16 @@ export function buildReportModel(inputs: ReportInputs): ReportModel {
           (pct < 99.5 ? "; the rest drains through at least one upstream reservoir" : ""),
       };
     }
-    network = { chips, stats: netStats, sentences: buildNetworkSentences(core, row), connectivity };
+    const path = downstreamRiverPath(core, row);
+    network = {
+      chips,
+      stats: netStats,
+      sentences: buildNetworkSentences(core, row),
+      flowPath: path.length ? path.join(" → ") : null,
+      flowNote:
+        "Counts follow this flow path only. Dams on other tributaries that join the same rivers downstream are not on this path.",
+      connectivity,
+    };
   }
 
   // ---- comparables --------------------------------------------------------
