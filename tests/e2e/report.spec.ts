@@ -76,7 +76,9 @@ test("a site report compiles every section and downloads a standalone file", asy
   expect(body).toContain("Reservoir Sustainability");
   expect(body).not.toContain("data-report-strip"); // the live map container never serializes
 
-  await dialog.getByRole("button", { name: "Print / save as PDF" }).click();
+  // Footer order is an owner decision: PDF first, HTML second, Close last.
+  await expect(dialog.locator(".report-footer button")).toHaveText(["Save as PDF", "Download HTML", "Close"]);
+  await dialog.getByRole("button", { name: "Save as PDF" }).click();
   expect(await page.evaluate(() => (window as unknown as { __printCalls: number }).__printCalls)).toBe(1);
   expect(await page.evaluate(() => document.body.classList.contains("report-open"))).toBe(true);
 
