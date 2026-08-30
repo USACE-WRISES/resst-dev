@@ -28,6 +28,9 @@ export default function App() {
       ? `${(state.tableHeightFrac * 100).toFixed(2)}%`
       : undefined;
   const tableRowStyle = tableRow !== undefined ? ({ "--table-row": tableRow } as CSSProperties) : undefined;
+  // Custom Selected Data panel width (drag/keyboard); null keeps the 320px track.
+  const mainStyle =
+    state.detailsWidthPx != null ? ({ "--details-col": `${state.detailsWidthPx}px` } as CSSProperties) : undefined;
 
   useEffect(() => {
     loadAppData().then(setData, (e) => setLoadError(String(e)));
@@ -86,6 +89,7 @@ export default function App() {
           (state.filtersCollapsed ? " filters-collapsed" : "") +
           (state.detailsCollapsed ? " details-collapsed" : "")
         }
+        style={mainStyle}
       >
         <div className={state.mobilePanel === "filters" ? "panel-slot filters open" : "panel-slot filters"}>
           <FiltersPanel data={data} filters={state.filters} derived={derived} />

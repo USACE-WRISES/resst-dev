@@ -158,6 +158,44 @@ test("the table divider drags to resize and the size persists", async ({ page })
   await expect.poll(() => mapHeight(page)).toBeLessThan(before - 120);
 });
 
+test("the details panel divider drags wider, persists, and keyboard hits the clamps", async ({ page }) => {
+  await openApp(page);
+  await waitForMapReady(page);
+  const panelWidth = () =>
+    page.evaluate(() => (document.querySelector(".details-panel") as HTMLElement).offsetWidth);
+  const before = await panelWidth();
+  expect(before).toBe(320); // stylesheet default track
+
+  const grip = page.getByRole("separator", { name: "Resize selected data panel" });
+  const box = (await grip.boundingBox())!;
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x - 150, y, { steps: 6 });
+  await page.mouse.up();
+  await expect.poll(panelWidth).toBeGreaterThan(before + 120);
+  expect(await page.evaluate(() => localStorage.getItem("resst.detailsWidth"))).toMatch(/^\d+$/);
+
+  // The dragged width survives a reload.
+  await page.reload();
+  await page.getByRole("button", { name: "OK" }).click();
+  await waitForMapReady(page);
+  await expect.poll(panelWidth).toBeGreaterThan(before + 120);
+
+  // Keyboard: Home/End hit the clamps; double-click restores the default.
+  const grip2 = page.getByRole("separator", { name: "Resize selected data panel" });
+  await grip2.focus();
+  await page.keyboard.press("Home");
+  await expect(grip2).toHaveAttribute("aria-valuenow", "280");
+  await page.keyboard.press("End");
+  await expect(grip2).toHaveAttribute("aria-valuenow", "620");
+  await expect.poll(panelWidth).toBe(620);
+  await grip2.dblclick();
+  await expect.poll(panelWidth).toBe(320);
+  expect(await page.evaluate(() => localStorage.getItem("resst.detailsWidth"))).toBeNull();
+});
+
 test("the results table collapses to a tab and expands back", async ({ page }) => {
   await openApp(page);
   await waitForMapReady(page);

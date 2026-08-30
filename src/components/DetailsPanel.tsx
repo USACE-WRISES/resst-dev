@@ -15,6 +15,7 @@ import { NID_DETAIL_FIELDS, SITE_FIELD_LABELS, SITE_ID_FIELDS, SITE_MGMT_FIELDS 
 import { actions, type AppState } from "../state/store";
 import { PROVENANCE } from "../sediment/types";
 import { CollapsibleSection } from "./details/CollapsibleSection";
+import { PanelResizer } from "./PanelResizer";
 import { ProvBadge, ProvNote } from "./details/Provenance";
 import { SustainabilitySection } from "./details/SustainabilitySection";
 import { EvidenceSection, evidenceBadgeFor } from "./details/EvidenceSection";
@@ -148,6 +149,7 @@ export function DetailsPanel({ derived, state, data }: { derived: Derived; state
 
   return (
     <aside className="details-panel" id="details-panel" aria-label="Selected data">
+      <PanelResizer widthPx={state.detailsWidthPx} />
       <div className="panel-title-row">
         <h2>Selected Data</h2>
         <span className="panel-title-tools">

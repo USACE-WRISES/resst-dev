@@ -42,6 +42,17 @@ export const parseTableHeight = (raw: string | null): number | null => {
   return Math.min(TABLE_ROW_MAX, Math.max(TABLE_ROW_MIN, n));
 };
 
+export const DETAILS_COL_MIN = 280;
+export const DETAILS_COL_MAX = 620;
+/** Persisted Selected Data panel width in px (desktop only — the drawers own
+    narrow screens). Unparseable → the stylesheet's 320px track (null). */
+export const parseDetailsWidth = (raw: string | null): number | null => {
+  if (raw == null || raw.trim() === "") return null;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return null;
+  return Math.min(DETAILS_COL_MAX, Math.max(DETAILS_COL_MIN, Math.round(n)));
+};
+
 export interface AppState {
   filters: FilterState;
   /** Selected sites — one from a click, several from the map Select tools. */
@@ -73,6 +84,8 @@ export interface AppState {
   tableHeightFrac: number | null;
   /** Results table collapsed to the half-pill tab (all breakpoints). */
   tableCollapsed: boolean;
+  /** Selected Data panel width in px (null = the stylesheet's 320px track). */
+  detailsWidthPx: number | null;
   helpOpen: boolean;
   downloadsOpen: boolean;
   welcomeOpen: boolean;
@@ -131,6 +144,13 @@ let state: AppState = {
       return localStorage.getItem("resst.tableCollapsed") === "1";
     } catch {
       return false;
+    }
+  })(),
+  detailsWidthPx: (() => {
+    try {
+      return parseDetailsWidth(localStorage.getItem("resst.detailsWidth"));
+    } catch {
+      return null;
     }
   })(),
   sedimentStamp: 0,
@@ -305,6 +325,18 @@ export const actions = {
       /* storage unavailable — persists for this session only */
     }
     set({ tableCollapsed: collapsed });
+  },
+  /** Drag/keyboard resize of the Selected Data panel; null restores the 320px default. */
+  setDetailsWidth(px: number | null): void {
+    const next = px == null ? null : Math.min(DETAILS_COL_MAX, Math.max(DETAILS_COL_MIN, Math.round(px)));
+    if (state.detailsWidthPx === next) return; // no-op guard
+    try {
+      if (next == null) localStorage.removeItem("resst.detailsWidth");
+      else localStorage.setItem("resst.detailsWidth", String(next));
+    } catch {
+      /* storage unavailable — the size lasts for this session only */
+    }
+    set({ detailsWidthPx: next });
   },
   setDownloadsOpen(open: boolean): void {
     set({ downloadsOpen: open });
