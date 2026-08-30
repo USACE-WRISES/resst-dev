@@ -22,6 +22,8 @@ export interface MapCommands {
   clearNetworkHighlight(): void;
   /** Re-fit the view to the current network highlight (no-op when none). */
   fitNetwork(): void;
+  /** Fit the view to arbitrary coordinates (screening's zoom-to-matches). */
+  fitToPoints(pts: Array<[number, number]>): void;
 }
 
 let current: MapCommands | null = null;
