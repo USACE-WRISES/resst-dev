@@ -57,8 +57,8 @@ test("toggle + metric picker style the layer and the legend follows", async ({ p
   await page.locator(".metric-select").selectOption("evidence");
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Legend" }).click();
-  await expect(page.locator(".legend-ramp-title")).toContainText("Evidence");
-  await expect(page.locator(".legend-ramp")).toContainText("Measured surveys on record");
+  await expect(page.locator(".legend-ramp-title")).toContainText("RATTES model class");
+  await expect(page.locator(".legend-ramp")).toContainText("Survey-constrained");
   // The paint switched to the categorical match expression.
   const paint = await page.evaluate(() => (window as any).__resstMap.getPaintProperty("nat-circles", "circle-color"));
   expect(JSON.stringify(paint)).toContain("match");

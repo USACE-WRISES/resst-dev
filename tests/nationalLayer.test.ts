@@ -35,7 +35,7 @@ const INVENTORY = {
     sed2015: [null, 1.7e8, 0],
     sed2025: [null, 2.0e8, 0],
     sed2050: [null, 3.5e8, 0],
-    evd: [0, 0, 0],
+    evd: [0, 1, 2],
   },
 };
 
@@ -54,14 +54,14 @@ describe("buildNationalGeoJSON", () => {
     expect(a.pl50).toBeCloseTo(29.2, 1);
     expect(a.rateAf).toBeCloseTo((2.0e8 - 1.7e8) / 10 / M3_PER_ACFT, 0);
     expect(a.storAf).toBe(Math.round(1.2e9 / M3_PER_ACFT));
-    expect(a).toMatchObject({ ev: 1, doc: 1, term: 1, st: 0 });
+    expect(a).toMatchObject({ ev: 1, cls: 1, doc: 1, term: 1, st: 0 });
     expect(a.rs).toBeGreaterThan(1); // big reservoir draws larger
   });
 
   it("uses -1 sentinels for unknowable metrics (no-storage rows)", () => {
     const b = fc.features[1].properties!;
     expect(b.pl25).toBe(-1); // capOrig null → unknown, never 0%
-    expect(b).toMatchObject({ ev: 0, doc: 0, term: 0 });
+    expect(b).toMatchObject({ ev: 0, cls: 2, doc: 0, term: 0 });
   });
 });
 

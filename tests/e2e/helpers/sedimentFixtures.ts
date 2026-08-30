@@ -48,7 +48,7 @@ export const INVENTORY_FIXTURE = {
     sed2015: [null, 1.7e8, 2.2e7, 6e5],
     sed2025: [null, 2.0e8, 2.5e7, 1e6],
     sed2050: [null, 3.5e8, 3.5e7, 1.6e6],
-    evd: [0, 0, 0, 0],
+    evd: [0, 1, 2, 2], // Tuttle stand-in is survey-constrained; the rest statistical
   },
 };
 

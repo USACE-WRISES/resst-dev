@@ -186,7 +186,7 @@ export const HELP_VIEWS: HelpView[] = [
     steps: [
       {
         title: "Turn on the national layer",
-        body: "Under <strong>Layers</strong>, check <strong>All modeled reservoirs</strong> and pick a <strong>Style by</strong> metric — percent capacity lost (2025 or projected 2050), annual sedimentation rate, storage, or evidence. The <strong>Legend</strong> explains the colors; the red RESST sites always stay on top.",
+        body: "Under <strong>Layers</strong>, check <strong>All modeled reservoirs</strong> and pick a <strong>Style by</strong> metric — percent capacity lost (2025 or projected 2050), annual sedimentation rate, storage, or RATTES model class (survey-constrained versus statistical prediction). The <strong>Legend</strong> explains the colors; the red RESST sites always stay on top.",
       },
       {
         title: "Open Screening",

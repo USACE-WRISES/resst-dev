@@ -126,6 +126,18 @@ try {
   else throw e;
 }
 try {
+  const surveySites = await readCsvFile("data/rattes_survey_sites.csv");
+  requireColumns("rattes_survey_sites.csv", surveySites, ["short_id", "dam_name", "survey_yr1", "survey_yr2"]);
+  unique("rattes_survey_sites.csv", surveySites, "short_id");
+  // A pinned distillation of RATTES Supplementary Data 1 — the count is a fact
+  // of that publication, so drift means the file was edited or re-derived wrong.
+  if (surveySites.length !== 924)
+    err(`rattes_survey_sites.csv: ${surveySites.length} rows, expected the 924 qualifying repeat-survey reservoirs`);
+} catch (e) {
+  if (e?.code === "ENOENT") warn("data/rattes_survey_sites.csv not found — RATTES evidence-class checks skipped");
+  else throw e;
+}
+try {
   const { createHash } = await import("node:crypto");
   const sedManifest = JSON.parse(await readFile("public/sediment/manifest.json", "utf8"));
   for (const [rel, expected] of Object.entries(sedManifest.sha256)) {

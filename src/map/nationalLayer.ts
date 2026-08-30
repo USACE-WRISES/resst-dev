@@ -87,11 +87,11 @@ export const NATIONAL_METRICS: Record<NationalMetric, MetricDef> = {
     ],
   },
   evidence: {
-    label: "Evidence",
-    prop: "ev",
+    label: "RATTES model class",
+    prop: "cls",
     legend: [
-      { color: EV_MEASURED, label: "Measured surveys on record (RESSED)" },
-      { color: EV_MODELED, label: "Modeled only" },
+      { color: EV_MEASURED, label: "Survey-constrained (repeat surveys in the RATTES compilation)" },
+      { color: EV_MODELED, label: "Statistical prediction" },
     ],
   },
 };
@@ -134,6 +134,7 @@ export function buildNationalGeoJSON(core: SedimentCore, siteByShortId: Readonly
         rateAf: Number.isFinite(rate) ? r1(rate / M3_PER_ACFT) : -1,
         storAf: Number.isFinite(core.maxStor[i]) ? Math.round(core.maxStor[i] / M3_PER_ACFT) : -1,
         ev: core.flags[i] & FLAG.HAS_SURVEYS ? 1 : 0,
+        cls: core.evd[i],
         doc: siteByShortId.has(core.ids[i]) ? 1 : 0,
         term: core.flags[i] & FLAG.TERMINAL ? 1 : 0,
         st: core.state[i],
