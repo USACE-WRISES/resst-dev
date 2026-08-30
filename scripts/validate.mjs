@@ -98,6 +98,46 @@ literature.forEach((l, i) => {
   }
 });
 
+// ------------------------------------------- sediment crosswalk + outputs
+// The crosswalk is curated + tracked; the public/sediment files are committed
+// pipeline outputs. Both exist from the sedimentation expansion onward — the
+// checks skip quietly if the files are absent (pre-expansion branches).
+try {
+  const xwalk = await readCsvFile("data/site_resnet_crosswalk.csv");
+  requireColumns("site_resnet_crosswalk.csv", xwalk, ["site_id", "short_id", "nid", "method", "confidence", "status", "notes"]);
+  unique("site_resnet_crosswalk.csv", xwalk, "site_id");
+  const METHODS = new Set(["nid", "spatial_name", "manual"]);
+  const CONF = new Set(["high", "medium", "low"]);
+  const STATUS = new Set(["auto", "confirmed", "rejected"]);
+  xwalk.forEach((r, i) => {
+    const at = `site_resnet_crosswalk.csv row ${i + 2} (${r.site_id})`;
+    if (!METHODS.has(r.method)) err(`${at}: method "${r.method}" not one of ${[...METHODS].join("/")}`);
+    if (!CONF.has(r.confidence)) err(`${at}: confidence "${r.confidence}" not one of ${[...CONF].join("/")}`);
+    if (!STATUS.has(r.status)) err(`${at}: status "${r.status}" not one of ${[...STATUS].join("/")}`);
+    if (!siteIds.has(r.site_id)) err(`${at}: site_id not found in sites.csv`);
+    if (r.status !== "rejected" && !/^-?\d+$/.test(String(r.short_id))) err(`${at}: short_id "${r.short_id}" must be an integer for non-rejected rows`);
+  });
+  const sharedDams = new Map();
+  for (const r of xwalk) if (r.status !== "rejected" && r.short_id !== "") sharedDams.set(r.short_id, (sharedDams.get(r.short_id) ?? 0) + 1);
+  const multi = [...sharedDams.entries()].filter(([, c]) => c > 1);
+  if (multi.length) warn(`site_resnet_crosswalk.csv: ${multi.length} dams matched by more than one site (legal — verify intent): ${multi.slice(0, 5).map(([id, c]) => `${id}×${c}`).join(", ")}`);
+} catch (e) {
+  if (e?.code === "ENOENT") warn("data/site_resnet_crosswalk.csv not found — sediment crosswalk checks skipped");
+  else throw e;
+}
+try {
+  const { createHash } = await import("node:crypto");
+  const sedManifest = JSON.parse(await readFile("public/sediment/manifest.json", "utf8"));
+  for (const [rel, expected] of Object.entries(sedManifest.sha256)) {
+    if (rel === "manifest.json") continue;
+    const actual = createHash("sha256").update(await readFile(`public/sediment/${rel}`)).digest("hex").slice(0, 16);
+    if (actual !== expected) err(`public/sediment/${rel}: content hash ${actual} != manifest ${expected} — generated file edited by hand or manifest stale (rerun build:sediment)`);
+  }
+} catch (e) {
+  if (e?.code === "ENOENT") warn("public/sediment/manifest.json not found — sediment output checks skipped");
+  else throw e;
+}
+
 // -------------------------------------------------- keyword vocabulary drift
 // New keyword tokens that no filter option covers are legal but usually mean
 // the filter config in src/config should gain an option (or the value has a

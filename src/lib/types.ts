@@ -2,6 +2,8 @@
 // public/data/*.json by scripts/build-data.mjs). All keyword fields hold
 // comma-delimited multi-value strings; blank string = no value.
 
+import type { SiteSedimentLink } from "../sediment/types";
+
 export interface Site {
   site_id: string;
   site_name: string;
@@ -120,4 +122,8 @@ export interface AppData {
   siteById: Map<string, Site>;
   /** lit_id -> literature survey. */
   litById: Map<string, LiteratureSurvey>;
+  /** site_id -> its ResNet/RATTES link (curated crosswalk; most sites have none). */
+  siteSediment: Map<string, SiteSedimentLink>;
+  /** ResNet ShortID -> site_id — routes national-layer clicks on documented dams to the site experience. */
+  siteByShortId: Map<number, string>;
 }

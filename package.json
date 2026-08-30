@@ -9,6 +9,8 @@
     "validate": "node scripts/validate.mjs",
     "build:data": "node scripts/build-data.mjs",
     "build:overlays": "node scripts/build-overlays.mjs",
+    "build:crosswalk": "node scripts/build-crosswalk.mjs",
+    "build:sediment": "node scripts/build-sediment.mjs",
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "test": "vitest run",

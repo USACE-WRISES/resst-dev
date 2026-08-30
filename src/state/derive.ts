@@ -3,6 +3,8 @@
 // the store replaces objects on every change.
 
 import type { AppData, LiteratureEntry, LiteratureSurvey, NidRecord, Site } from "../lib/types";
+import type { SiteSedimentLink } from "../sediment/types";
+import { getCore } from "../sediment/data";
 import { applyFilters, type FilterState } from "../filters/engine";
 import { FILTER_DEFS } from "../config/filters.generated";
 import type { AppState } from "./store";
@@ -11,6 +13,12 @@ export interface SelectedSite {
   site: Site;
   entries: LiteratureEntry[];
   nid: NidRecord | null;
+  /** Curated crosswalk link to the modeled reservoir (null = no link — the
+      panel's sediment sections don't render). */
+  sedimentLink: SiteSedimentLink | null;
+  /** Inventory row of the linked reservoir — resolves once the national core
+      has loaded (state.sedimentStamp invalidates the cache when it arrives). */
+  reservoirRow: number | null;
 }
 
 export interface Derived {
@@ -34,7 +42,7 @@ export interface Derived {
   };
 }
 
-let cacheKey: { data: AppData; filters: FilterState; selected: string[] } | null = null;
+let cacheKey: { data: AppData; filters: FilterState; selected: string[]; stamp: number } | null = null;
 let cacheVal: Derived | null = null;
 
 export function derive(data: AppData, state: AppState): Derived {
@@ -43,7 +51,8 @@ export function derive(data: AppData, state: AppState): Derived {
     cacheKey &&
     cacheKey.data === data &&
     cacheKey.filters === state.filters &&
-    cacheKey.selected === state.selectedSiteIds
+    cacheKey.selected === state.selectedSiteIds &&
+    cacheKey.stamp === state.sedimentStamp
   ) {
     return cacheVal;
   }
@@ -54,16 +63,22 @@ export function derive(data: AppData, state: AppState): Derived {
   const literatureAll = applyFilters(data.literature, FILTER_DEFS, state.filters, "generalLit");
   const generalLit = literatureAll.filter((l) => l.site_names === "");
 
+  const core = getCore();
   const selectedSites: SelectedSite[] = state.selectedSiteIds
     .map((id) => data.siteById.get(id))
     .filter((s): s is Site => !!s)
-    .map((site) => ({
-      site,
-      entries: data.entriesBySite.get(site.site_id) ?? [],
-      nid: site.nid_id ? (data.nidById.get(site.nid_id) ?? null) : null,
-    }));
+    .map((site) => {
+      const sedimentLink = data.siteSediment.get(site.site_id) ?? null;
+      return {
+        site,
+        entries: data.entriesBySite.get(site.site_id) ?? [],
+        nid: site.nid_id ? (data.nidById.get(site.nid_id) ?? null) : null,
+        sedimentLink,
+        reservoirRow: sedimentLink && core ? (core.rowById.get(sedimentLink.short_id) ?? null) : null,
+      };
+    });
 
-  cacheKey = { data, filters: state.filters, selected: state.selectedSiteIds };
+  cacheKey = { data, filters: state.filters, selected: state.selectedSiteIds, stamp: state.sedimentStamp };
   cacheVal = {
     sites,
     entriesAll,
