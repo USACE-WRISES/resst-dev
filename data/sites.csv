@@ -9,7 +9,7 @@ madeira-river,Madeira River,,Union of South American Nations (USAN),"Rua 53, Hum
 mississippi-river,Mississippi River,,"USACE,New Orleans District","LA 44, Lutcher, Louisiana, 70763","New Orleans, LA",,Not Applicable,Not Applicable,Field Monitoring,-90.739139,30.014667
 dahla-dam,Dahla Dam,,Helmand and Arghandab Valley Authority (HAVA),,"Kandahar, Afghanistan",Water supply,Not Applicable,Not Applicable,1D Unsteady Sediment,65.892413,31.8555440000001
 big-rapids-dam,Big Rapids Dam,,City of Big Rapids,"Maple Street, Big Rapids, Michigan, 49307","Big Rapids, MI","Water supply,Hydropower",Dam Removal,Water Quality,Field Monitoring,-85.4836109999999,43.6980560000001
-arroyo-seco,Arroyo Seco,CA00613,California,"Mount Lukens Road, Pasadena, California, 91011","La Cañada Flintridge, CA",,Not Applicable,Not Applicable,Field Monitoring,-118.194907,34.2359520000001
+arroyo-seco,Arroyo Seco,CA00189,California,"Mount Lukens Road, Pasadena, California, 91011","La Cañada Flintridge, CA",,Not Applicable,Not Applicable,Field Monitoring,-118.194907,34.2359520000001
 jesusita,Jesusita,,California,"Mission Canyon Catway, California, 93103","Santa Barbara, CA",,Not Applicable,Not Applicable,Field Monitoring,-119.700106,34.4664530000001
 dunsmore-2,Dunsmore 2,,California,"Crescenta View Trail, Glendale, California, 91214","La Crescenta-Montrose, CA",,Not Applicable,Not Applicable,Field Monitoring,-118.246525,34.2528780000001
 dunsmore-1,Dunsmore 1,,California,"Dunsmore Canyon Trail, Glendale, California, 91214","La Crescenta-Montrose, CA",,Not Applicable,Not Applicable,Field Monitoring,-118.242018,34.2594800000001
@@ -33,7 +33,7 @@ aswan-high-dam,Aswan High Dam,,High Aswan Dam Authority (HADA),,"Aswan, Egypt",W
 lower-fox-river,Lower Fox River,,Wisconsin,"South 5th Street, De Pere, Wisconsin, 54115","De Pere, WI",,Not Applicable,Water Quality,1D Unsteady Sediment,-88.074167,44.446111
 great-lakes,Great Lakes,,"USACE,Detroit District,Buffalo District",Michigan,,,Not Applicable,Water Quality,Field Monitoring,-82.4,44.8000000000001
 mill-creek-channel,Mill Creek Channel,,"USACE,Walla Walla District","Double River Road, Washington","Walla Walla, WA","Flood control,Water supply",Diversion,Fish Passage,Hydraulic,-118.478611,46.0386110000001
-mercier-dam,Mercier Dam,GA05804,"Antoine-Labelle Regional County Municipality,La Vallée-de-la-Gatineau Regional County Municipality","Grand-Remous, QuÃ©bec, J0W 1E0","Quebec, Canada",Hydropower,Not Applicable,Not Applicable,"Field Monitoring,Hydraulic",-75.8,46.8000000000001
+mercier-dam,Mercier Dam,,"Antoine-Labelle Regional County Municipality,La Vallée-de-la-Gatineau Regional County Municipality","Grand-Remous, QuÃ©bec, J0W 1E0","Quebec, Canada",Hydropower,Not Applicable,Not Applicable,"Field Monitoring,Hydraulic",-75.8,46.8000000000001
 conowingo-dam,Conowingo Dam,MD00097,Constellation Energy Corporation,"Conowingo Road, Maryland, 21918","Conowingo, MD",Hydropower,Not Applicable,Not Applicable,"1D Unsteady Sediment,2D Sediment,3D Sediment",-76.173889,39.66
 west-bay-sediment-diversion-wbsd,West Bay Sediment Diversion (WBSD),,"USACE,New Orleans District",Louisiana,"Pilottown, LA",Flood Control,Diversion,Not Applicable,"1D Unsteady Sediment,2D Sediment,3D Sediment",-89.3072779999999,29.176472
 h-j-andrews-experimental-forest,H.J. Andrews Experimental Forest,,United States Forest Service (USFS),"National Forest Development Road 132, Oregon","Eugene, OR",,Not Applicable,Not Applicable,Field Monitoring,-122.255278,44.212278
@@ -110,7 +110,7 @@ upper-english-turn,Upper English Turn,,"USACE,New Orleans District","New Orleans
 lower-english-turn,Lower English Turn,,"USACE,New Orleans District","Patterson Road, New Orleans, Louisiana, 70092","New Orleans, LA",,Not Applicable,Not Applicable,"Field Monitoring,Hydraulic",-89.907944,29.89725
 venice,Venice,,"USACE,New Orleans District",Louisiana,"Pilottown, LA",,Not Applicable,Not Applicable,"Field Monitoring,Hydraulic",-89.275389,29.195639
 little-granite-creek,Little Granite Creek,,United States Forest Service,Wyoming,"Jackson, WY",,Not Applicable,Not Applicable,Field Monitoring,-110.518194,43.297944
-harlan-county-dam,Harlan County Dam,OK20717,"USACE,Kansas City District","Corp Road A, Nebraska, 68971","Franklin, NE",Flood control,Not Applicable,Water Quality,Field Monitoring,-99.211417,40.0709170000001
+harlan-county-dam,Harlan County Dam,NE01066,"USACE,Kansas City District","Corp Road A, Nebraska, 68971","Franklin, NE",Flood control,Not Applicable,Water Quality,Field Monitoring,-99.211417,40.0709170000001
 glen-elder-dam,Glen Elder Dam,KS00021,US Bureau of Reclamation,"2015 Glen Elder Dam Road, Kansas, 67446","Glen Elder, KS","Flood control,Water supply",Not Applicable,Water Quality,Field Monitoring,-98.314972,39.4828610000001
 wilson-dam,Wilson Dam,KS00013,"USACE,Kansas City District","State Highway 232, Kansas","Sylvan Grove, KS",Flood control,Not Applicable,Water Quality,Field Monitoring,-98.495861,38.966528
 kanopolis-dam,Kanopolis Dam,KS00005,"USACE,Kansas City District","Venango Terrace, Venango, Kansas, 67464","Marquette, KS","Flood control,Water supply",Not Applicable,Water Quality,Field Monitoring,-97.998056,38.632778
