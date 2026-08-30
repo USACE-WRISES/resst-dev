@@ -12,8 +12,8 @@ async function openApp(page: Page): Promise<void> {
 test("loads with the verified counters and a rendered map", async ({ page }) => {
   await openApp(page);
   const counts = page.locator(".filtered-counts");
-  await expect(counts).toContainText("Sites: 979");
-  await expect(counts).toContainText("Site Literature: 1,192");
+  await expect(counts).toContainText("Sites: 978");
+  await expect(counts).toContainText("Site Literature: 1,191");
   await expect(counts).toContainText("General Literature: 214");
 
   // The map must settle on the Esri default (the bare loaded() wait can catch
@@ -45,7 +45,7 @@ test("filter baselines reproduce through the UI: 8 → 77 → 42", async ({ page
   await expect(page.locator(".table-footer")).toContainText("Total: 42");
 
   await page.getByRole("button", { name: "Clear all" }).click();
-  await expect(page.locator(".filtered-counts")).toContainText("Sites: 979");
+  await expect(page.locator(".filtered-counts")).toContainText("Sites: 978");
 });
 
 test("selecting Tuttle Creek shows its literature and NID record", async ({ page }) => {

@@ -91,14 +91,14 @@ test("selecting a site centers the camera on that site", async ({ page }) => {
 
 test("tables are virtualized: full totals with a bounded DOM", async ({ page }) => {
   await openApp(page);
-  await expect(page.locator(".table-footer")).toContainText("Total: 979");
+  await expect(page.locator(".table-footer")).toContainText("Total: 978");
   await expect(page.locator(".data-table tbody tr").first()).toContainText("Tuttle Creek");
   const siteRows = await page.locator(".data-table tbody tr").count();
   expect(siteRows).toBeGreaterThan(5);
   expect(siteRows).toBeLessThan(200);
 
   await page.getByRole("tab", { name: "Site Literature" }).click();
-  await expect(page.locator(".table-footer")).toContainText("Total: 1,192");
+  await expect(page.locator(".table-footer")).toContainText("Total: 1,191");
   const litRows = await page.locator(".data-table tbody tr").count();
   expect(litRows).toBeGreaterThan(5);
   expect(litRows).toBeLessThan(200);

@@ -1,4 +1,4 @@
-// Details for a national-inventory reservoir that is NOT one of the 979
+// Details for a national-inventory reservoir that is NOT one of the
 // documented RESST sites: ResNet identity attributes, then the shared
 // Sustainability / Evidence / Network sections. No literature, no pager —
 // and a standing pointer back to the app's purpose: documented analogs are

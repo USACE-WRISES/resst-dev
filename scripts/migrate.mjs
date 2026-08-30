@@ -4,8 +4,16 @@
 // key, snapshots the NID records referenced by sites, and writes
 // data/MIGRATION-LOG.md documenting every transformation.
 //
-// Deterministic: source rows are processed in objectid order. Safe to re-run;
-// it rebuilds data/ from the archived extracts every time.
+// Deterministic: source rows are processed in objectid order. It rebuilds
+// data/ from the archived extracts every time.
+//
+// WARNING (2026-08-30): data/ now carries POST-MIGRATION edits made per
+// docs/DATA-EDITING.md (e.g. the owner-approved removal of the "Narnia Test
+// 123"/"This is a Test" test-record cluster, NID identity corrections). This
+// script knows nothing about those edits — rerunning it OVERWRITES them and
+// resurrects the removed records. Do not re-run against the live data/ unless
+// you intend exactly that; its acceptance gates still assert the original
+// migration output (979 sites / 466 literature / 1,410 entries).
 
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { writeCsvFile } from "./lib/csv.mjs";

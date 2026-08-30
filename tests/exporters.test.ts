@@ -12,7 +12,7 @@ describe("toCsv", () => {
   it("writes header labels + all rows, quoting commas", () => {
     const csv = toCsv(sites, sitesTab.columns);
     const lines = csv.trimEnd().split("\r\n");
-    expect(lines).toHaveLength(1 + 979);
+    expect(lines).toHaveLength(1 + 978);
     expect(lines[0]).toContain("Site Name");
     // Multi-value keyword cells (contain commas) must be quoted.
     const tuttle = lines.find((l) => l.includes("Tuttle Creek"))!;
@@ -23,7 +23,7 @@ describe("toCsv", () => {
 describe("toGeoJSON", () => {
   it("exports one point per located site and skips coordinate-less sites", () => {
     const fc = toGeoJSON(sites, sitesTab.columns);
-    expect(fc.features).toHaveLength(979 - 15); // 15 sites have no geometry
+    expect(fc.features).toHaveLength(978 - 15); // 15 sites have no geometry
     const f = fc.features.find((x) => x.properties?.site_name === "Tuttle Creek")!;
     expect(f.geometry.type).toBe("Point");
     expect(f.properties?.nid_id).toBe("KS00012");

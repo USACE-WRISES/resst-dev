@@ -66,5 +66,6 @@ app's lists).
 
 `data/MIGRATION-LOG.md` documents: the "…maNot Applicablegement" and
 "Depostion" value corruptions (fix in a dedicated PR when approved), keyword
-case variants, 15 coordinate-less sites, 92 unlinked legacy entry site names,
-and the placeholder `nid_id` "11111".
+case variants, 15 coordinate-less sites, and 92 unlinked legacy entry site
+names. (The placeholder `nid_id` "11111" belonged to a test-record cluster
+removed with owner approval on 2026-08-30.)

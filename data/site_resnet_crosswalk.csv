@@ -226,7 +226,6 @@ mountain-creek,353522,SC02331,spatial_name,low,4669,0.00,auto,
 mud-mountain-dam,30343,WA00300,nid,high,153,,auto,
 muddy-creek,357063,TN06923,spatial_name,low,4980,0.50,auto,
 nantahala-dam,120981,NC00371,spatial_name,high,111,1.00,auto,
-narnia-test-123,308411,KS02627,spatial_name,low,4213,0.00,rejected,test record in sites.csv (not a real site) — see pending data-cleanup task
 new-bullards-bar-dam,31847,CA00863,spatial_name,high,170,1.00,auto,
 new-bullards-bar-reservoir-watershed,31847,CA00863,nid,high,16404,,auto,
 new-croton-dam,90130,NY00046,spatial_name,high,214,1.00,auto,
