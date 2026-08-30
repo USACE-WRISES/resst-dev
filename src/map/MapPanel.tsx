@@ -544,7 +544,7 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: {
       <div className="map-toolbar">
         <SearchControl sites={allSites} />
         <SelectMenu tool={state.mapTool} distance={state.riverDistanceMiles} hasSelection={selectedIds.length > 0} />
-        <MapToolPanels state={state} zoom={zoomTick} />
+        <MapToolPanels state={state} zoom={zoomTick} siteByShortId={siteByShortId} />
         <ScreeningPanel state={state} siteByShortId={siteByShortId} />
         {state.mapTool !== "none" && (
           <SelectHintBar

@@ -6,7 +6,8 @@
 import { useRef, useState, type ReactNode } from "react";
 import { OVERLAYS } from "./overlays";
 import { actions, type AppState, type NationalMetric } from "../state/store";
-import { ensureCore } from "../sediment/data";
+import { ensureCore, getCore } from "../sediment/data";
+import { screenCore } from "../sediment/screen";
 import { mapCommands } from "./mapBus";
 import { NATIONAL_METRICS } from "./nationalLayer";
 import { NET_DOWN, NET_MOUTH, NET_UP } from "./palette";
@@ -30,8 +31,15 @@ function ToolPopover({ label, children, ariaLabel }: { label: string; children: 
   );
 }
 
-export function MapToolPanels({ state, zoom }: { state: AppState; zoom: number }) {
+export function MapToolPanels({ state, zoom, siteByShortId }: { state: AppState; zoom: number; siteByShortId: Map<number, string> }) {
   const visibleOverlays = OVERLAYS.filter((d) => state.overlays[d.key]);
+  // A checked "All modeled reservoirs" silently showing a fraction of them
+  // would be confusing — say so whenever screening filters the layer.
+  const core = getCore();
+  const screenSummary =
+    state.nationalLayer.on && state.screening.active && core
+      ? screenCore(core, new Set(siteByShortId.keys()), state.screening)
+      : null;
 
   return (
     <>
@@ -67,6 +75,16 @@ export function MapToolPanels({ state, zoom }: { state: AppState; zoom: number }
               </button>
             )}
           </div>
+          {state.nationalLayer.on && state.screening.active && (
+            <p className="nat-screen-note" role="status">
+              Screening is filtering this layer
+              {screenSummary ? ` — ${screenSummary.matches.toLocaleString("en-US")} of ${screenSummary.total.toLocaleString("en-US")} shown` : ""}
+              .{" "}
+              <button type="button" className="linklike" onClick={() => actions.clearScreening()}>
+                Clear
+              </button>
+            </p>
+          )}
           {state.nationalLayer.on && (
             <label className="nat-metric">
               <span>Style by</span>
