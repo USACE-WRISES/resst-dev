@@ -2,7 +2,7 @@
 // maplibre, so vitest exercises them directly (tests/sedimentData.test.ts).
 // File formats are produced by scripts/build-sediment.mjs; keep in sync.
 
-import type { SedimentCore, SurveyObs, Trajectory } from "./types";
+import type { SedimentCore, SurveyObs, SurveyProvenance, Trajectory } from "./types";
 
 interface InventoryJson {
   _meta: { trajSpan: number; trajChunks: number };
@@ -135,11 +135,17 @@ interface SurveysJson {
     lat: Array<number | null>;
     state: string[];
     began: Array<number | null>;
+    agency?: string[];
+    supplier?: string[];
   };
   surveys: {
     rIdx: number[];
     year: number[];
+    date?: string[];
     pool: string[];
+    method?: string[];
+    sub?: string[];
+    note?: string[];
     cap: Array<number | null>;
     area: Array<number | null>;
     sedTot: Array<number | null>;
@@ -159,7 +165,11 @@ export function decodeSurveys(json: unknown): Map<number, SurveyObs[]> {
     if (!list) out.set(row, (list = []));
     list.push({
       year: s.surveys.year[i],
+      date: s.surveys.date?.[i] ?? "",
       pool: s.surveys.pool[i],
+      method: s.surveys.method?.[i] ?? "",
+      sub: s.surveys.sub?.[i] ?? "",
+      note: s.surveys.note?.[i] ?? "",
       capM3: s.surveys.cap[i],
       areaM2: s.surveys.area[i],
       sedTotM3: s.surveys.sedTot[i],
@@ -167,4 +177,21 @@ export function decodeSurveys(json: unknown): Map<number, SurveyObs[]> {
     });
   }
   return out; // build emits surveys date-sorted per reservoir — order survives
+}
+
+/** Reservoir-level RESSED provenance keyed by joined inventory row. */
+export function decodeSurveyProvenance(json: unknown): Map<number, SurveyProvenance> {
+  const s = json as SurveysJson;
+  const out = new Map<number, SurveyProvenance>();
+  for (let i = 0; i < s.reservoirs.row.length; i++) {
+    const row = s.reservoirs.row[i];
+    if (row == null) continue;
+    const idNum = Number(s.reservoirs.id[i]);
+    out.set(row, {
+      ressedId: Number.isFinite(idNum) ? idNum : null,
+      agency: s.reservoirs.agency?.[i] ?? "",
+      supplier: s.reservoirs.supplier?.[i] ?? "",
+    });
+  }
+  return out;
 }

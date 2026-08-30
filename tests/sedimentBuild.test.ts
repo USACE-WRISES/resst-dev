@@ -8,6 +8,8 @@ import {
   GRID,
   buildJsonArray,
   canonNid,
+  canonSurveyMethod,
+  canonSurveySub,
   dedupeRessedNids,
   fmtFixed,
   fmtSig,
@@ -18,6 +20,7 @@ import {
   normalizeRessed,
   parsePyIdList,
   rattesCol,
+  tidyAgency,
   type RessedReservoir,
 } from "../scripts/lib/sediment.mjs";
 
@@ -102,6 +105,38 @@ describe("parsePyIdList / canonNid", () => {
   });
 });
 
+describe("survey code canonicalization (round 3)", () => {
+  it("folds the export's dirty method variants onto DS434 codes, passes unknowns verbatim", () => {
+    expect(canonSurveyMethod("RNG")).toBe("RNG");
+    expect(canonSurveyMethod("Range")).toBe("RNG");
+    expect(canonSurveyMethod("RANGE")).toBe("RNG");
+    expect(canonSurveyMethod("RGN")).toBe("RNG");
+    expect(canonSurveyMethod("Contour")).toBe("CON");
+    expect(canonSurveyMethod("Range-Contour")).toBe("RCT");
+    expect(canonSurveyMethod("RLCS")).toBe("RLCS"); // undocumented USACE code stays honest
+    expect(canonSurveyMethod("  ")).toBe("");
+    expect(canonSurveyMethod(null)).toBe("");
+  });
+
+  it("collapses subtype word forms to the DS434 letter", () => {
+    expect(canonSurveySub("D")).toBe("D");
+    expect(canonSurveySub("Detailed")).toBe("D");
+    expect(canonSurveySub("DETAILED")).toBe("D");
+    expect(canonSurveySub("detailed")).toBe("D");
+    expect(canonSurveySub("R")).toBe("R");
+    expect(canonSurveySub("S")).toBe("S");
+    expect(canonSurveySub("G")).toBe("G"); // unmapped letter passes through
+    expect(canonSurveySub(null)).toBe("");
+  });
+
+  it("tidyAgency strips the export's trailing '; ' filler", () => {
+    expect(tidyAgency("DOD; CE; ")).toBe("DOD; CE");
+    expect(tidyAgency("USDA; SCS; Region 4, Fort Worth, Tx")).toBe("USDA; SCS; Region 4, Fort Worth, Tx");
+    expect(tidyAgency("  LAFCD;  ")).toBe("LAFCD");
+    expect(tidyAgency(null)).toBe("");
+  });
+});
+
 describe("normalizeRessed", () => {
   const wrap = (reservoir: unknown[]) => ({ ressed: { reservoir } });
 
@@ -116,10 +151,15 @@ describe("normalizeRessed", () => {
           longitude: -115.45,
           state_fips_alpha_cd: "ID",
           date_storage_began: "1950-06-30",
+          agency_performing_survey: "USDI; BR; ",
+          agency_supplying_data: "USDI; BR; ",
           survey: {
             survey_id: 1,
             survey_date: "1998-06-01",
-            pool_type_cd: "CON",
+            pool_type_cd: "A",
+            survey_type_cd: "Contour",
+            survey_subtype_cd: "Detailed",
+            note_tx: "  5-Ft. Contour Map.  ",
             stat: { stat_def_id: 3, stat_value: 474942 }, // bare object, not array
           },
         },
@@ -130,8 +170,14 @@ describe("normalizeRessed", () => {
     const r = reservoirs[0];
     expect(r.nid).toBe("ID00279");
     expect(r.began).toBe(1950);
+    expect(r.agency).toBe("USDI; BR");
+    expect(r.supplier).toBe("USDI; BR");
     expect(r.surveys).toHaveLength(1);
     expect(r.surveys[0].year).toBe(1998);
+    expect(r.surveys[0].date).toBe("1998-06-01");
+    expect(r.surveys[0].method).toBe("CON");
+    expect(r.surveys[0].sub).toBe("D");
+    expect(r.surveys[0].note).toBe("5-Ft. Contour Map.");
     expect(r.surveys[0].cap).toBeCloseTo(474942 * ACFT_TO_M3, 3);
     expect(r.surveys[0].area).toBeNull();
   });
@@ -174,7 +220,20 @@ describe("dedupeRessedNids", () => {
     lat: null,
     state: "",
     began: null,
-    surveys: years.map((year) => ({ year, date: `${year}-01-01`, pool: "", cap: 1, area: null, sedTot: null, dryWt: null })),
+    agency: "",
+    supplier: "",
+    surveys: years.map((year) => ({
+      year,
+      date: `${year}-01-01`,
+      pool: "",
+      method: "",
+      sub: "",
+      note: "",
+      cap: 1,
+      area: null,
+      sedTot: null,
+      dryWt: null,
+    })),
   });
 
   it("prefers most surveys, then latest year, then lowest id — deterministically", () => {

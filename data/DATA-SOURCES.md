@@ -138,6 +138,31 @@ Access `.mdb` is superseded. Quirks:
 - `nid_id` has trailing whitespace and 20 duplicate values across reservoirs.
 - Units are Inch/Pound (capacity ACFT × 1233.48 → m³; area AC × 4046.86 → m²;
   dry weight lb/ft³ × 16.01846 → kg/m³). Bad survey years exist (e.g. `2975`).
+- `survey_type_cd` is dirty (RNG/Range/RANGE/RGN; CON/Contour/CONTOUR;
+  RCT/Range-Contour) — the pipeline case-folds those onto the DS434 codes and
+  passes everything else through verbatim. **RLCS, TBS, and pool code U are not
+  defined anywhere public** — checked in the JSON/XML exports (no lookup table),
+  the Data Explorer source, the 2009 `.mdb`, DS434 (defines only
+  `pool_id (A, G, S, T)` without expansions and `surv_type` RaNGe/CONtour/
+  Range-ConTour, `surv_subtype` (R)econnaissance/(D)etailed/(S)emi-detailed),
+  and `db_doc2013/index.html` (2026-08-30). `U` appears only on the FY2012
+  USACE tranche (739 of 780 rows COE-owned; 772 of 780 carry no stat values).
+  Structural evidence for T = total pool / S = sediment pool: 559 same-date
+  S+T pairs and notes like "Sediment Pool Only." — the UI labels these as
+  evidence-based, not documented.
+
+### Scanned original datasheets (verified 2026-08-30)
+
+The per-reservoir scanned SCS Form 34 datasheets are live at
+`https://water.usgs.gov/osw/ressed/datasheets/{D}-{N}.pdf`, indexed from
+`https://water.usgs.gov/osw/ressed/list_reservoirs/index.html`. **The RESSED
+`reservoir_id` below 100000 IS the legacy RESIS-II datasheet number (`dsnum`)
+encoded as `D*1000 + N`**: 32003 (Kanopolis Lake) ↔ `32-3.pdf`,
+45025 (Adair) ↔ `45-25.pdf`, 46026 (Adams) ↔ `46-26.pdf`. A 20-reservoir
+random sample of constructed URLs (seed 42, restricted to `id < 100000` with
+an `nid_id`) returned HTTP 200 for **20/20**. Post-RESIS additions carry
+`100xxx` ids (Tuttle Creek Lake = 100080) and have no datasheet. The app links
+these PDFs from the Evidence section (USGS hosts them; no bandwidth cost here).
 
 | File | Bytes | SHA-256/16 |
 |---|---:|---|

@@ -145,6 +145,22 @@ try {
     const actual = createHash("sha256").update(await readFile(`public/sediment/${rel}`)).digest("hex").slice(0, 16);
     if (actual !== expected) err(`public/sediment/${rel}: content hash ${actual} != manifest ${expected} — generated file edited by hand or manifest stale (rerun build:sediment)`);
   }
+  // surveys.json columnar integrity: parallel arrays stay parallel, and the
+  // round-3 evidence columns (date/method/sub/note; agency/supplier) exist.
+  const surveysJson = JSON.parse(await readFile("public/sediment/surveys.json", "utf8"));
+  const resCols = ["id", "name", "nid", "row", "lon", "lat", "state", "began", "agency", "supplier"];
+  const svCols = ["rIdx", "year", "date", "pool", "method", "sub", "note", "cap", "area", "sedTot", "dryWt"];
+  const nRes = surveysJson.reservoirs?.id?.length ?? 0;
+  const nSv = surveysJson.surveys?.rIdx?.length ?? 0;
+  for (const c of resCols) {
+    const len = surveysJson.reservoirs?.[c]?.length;
+    if (len !== nRes) err(`surveys.json reservoirs.${c}: length ${len} != ${nRes}`);
+  }
+  for (const c of svCols) {
+    const len = surveysJson.surveys?.[c]?.length;
+    if (len !== nSv) err(`surveys.json surveys.${c}: length ${len} != ${nSv}`);
+  }
+  if (sedManifest.counts?.surveys !== nSv) err(`surveys.json: ${nSv} surveys != manifest count ${sedManifest.counts?.surveys}`);
 } catch (e) {
   if (e?.code === "ENOENT") warn("public/sediment/manifest.json not found — sediment output checks skipped");
   else throw e;

@@ -116,6 +116,44 @@ function parseYear(dateStr) {
   return m ? Number(m[1]) : null;
 }
 
+/** Case-fold the export's dirty survey_type_cd variants onto the DS434 codes
+    (RNG range / CON contour / RCT range-and-contour). Codes DS434 never
+    defined (RLCS, TBS, O, BATH…) pass through verbatim so the UI can show
+    them honestly. */
+const METHOD_CANON = new Map([
+  ["RNG", "RNG"],
+  ["RANGE", "RNG"],
+  ["RGN", "RNG"],
+  ["CON", "CON"],
+  ["CONTOUR", "CON"],
+  ["RCT", "RCT"],
+  ["RANGE-CONTOUR", "RCT"],
+]);
+export function canonSurveyMethod(v) {
+  const raw = String(v ?? "").trim();
+  return raw ? (METHOD_CANON.get(raw.toUpperCase()) ?? raw) : "";
+}
+
+/** Survey scope per DS434: D(etailed) / R(econnaissance) / S(emi-detailed).
+    Word-form variants ("Detailed", "DETAILED"…) collapse to the letter;
+    anything else passes through verbatim. */
+export function canonSurveySub(v) {
+  const raw = String(v ?? "").trim();
+  if (!raw) return "";
+  const up = raw.toUpperCase();
+  if (up === "D" || up === "DETAILED") return "D";
+  if (up === "R" || up === "RECONNAISSANCE") return "R";
+  if (up === "S" || up === "SEMI-DETAILED") return "S";
+  return raw;
+}
+
+/** Agency strings carry "; " filler in the export ("DOD; CE; " → "DOD; CE"). */
+export function tidyAgency(v) {
+  return String(v ?? "")
+    .trim()
+    .replace(/[;\s]+$/, "");
+}
+
 /**
  * Normalize the 2013 RESSED JSON export into flat reservoir records with
  * converted-unit survey lists. Quirks handled (see data/DATA-SOURCES.md):
@@ -149,6 +187,9 @@ export function normalizeRessed(json) {
         year,
         date: String(s.survey_date),
         pool: String(s.pool_type_cd ?? ""),
+        method: canonSurveyMethod(s.survey_type_cd),
+        sub: canonSurveySub(s.survey_subtype_cd),
+        note: String(s.note_tx ?? "").trim(),
         cap: pick(RESSED_STAT.CAPACITY, ACFT_TO_M3),
         area: pick(RESSED_STAT.AREA, AC_TO_M2),
         sedTot: pick(RESSED_STAT.SED_INTERVAL, ACFT_TO_M3),
@@ -166,6 +207,8 @@ export function normalizeRessed(json) {
       lat: Number.isFinite(Number(res.latitude)) && res.latitude != null ? Number(res.latitude) : null,
       state: String(res.state_fips_alpha_cd ?? "").trim(),
       began: parseYear(res.date_storage_began),
+      agency: tidyAgency(res.agency_performing_survey),
+      supplier: tidyAgency(res.agency_supplying_data),
       surveys,
     });
   }

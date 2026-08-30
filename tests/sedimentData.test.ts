@@ -2,7 +2,8 @@
 // chunks / surveys) and the pure network traversal that runs on the decoded
 // core — including the defensive cycle guard and the O(n) upstream counts.
 import { describe, expect, it } from "vitest";
-import { decodeCore, decodeSurveys, decodeTrajChunk } from "../src/sediment/decode";
+import { decodeCore, decodeSurveyProvenance, decodeSurveys, decodeTrajChunk } from "../src/sediment/decode";
+import { ressedDatasheetUrl } from "../src/sediment/types";
 import {
   buildNetworkSentences,
   downstreamChain,
@@ -196,30 +197,83 @@ describe("decodeTrajChunk", () => {
 });
 
 describe("decodeSurveys", () => {
+  const SURVEYS_JSON = {
+    reservoirs: {
+      id: ["7002", "9"],
+      name: ["A", "B"],
+      nid: ["KS00001", null],
+      row: [1, null],
+      lon: [-96.2, null],
+      lat: [39.2, null],
+      state: ["KS", ""],
+      began: [1950, null],
+      agency: ["USDI; BR", ""],
+      supplier: ["DOD; CE", ""],
+    },
+    surveys: {
+      rIdx: [0, 0, 1],
+      year: [1960, 1980, 1970],
+      date: ["1960-06-15", "1980-01-01", "1970-01-01"],
+      pool: ["S", "T", ""],
+      method: ["RCT", "RLCS", ""],
+      sub: ["D", "", ""],
+      note: ["", "hydrographic & field surveys", ""],
+      cap: [1.2e6, 1.1e6, 5e5],
+      area: [null, 4e6, null],
+      sedTot: [8e4, 9e4, null],
+      dryWt: [960, null, null],
+    },
+  };
+
   it("groups converted observations by joined inventory row, skipping unjoined reservoirs", () => {
-    const byRow = decodeSurveys({
-      reservoirs: {
-        id: ["7", "9"],
-        name: ["A", "B"],
-        nid: ["KS00001", null],
-        row: [1, null],
-        lon: [-96.2, null],
-        lat: [39.2, null],
-        state: ["KS", ""],
-        began: [1950, null],
-      },
-      surveys: {
-        rIdx: [0, 0, 1],
-        year: [1960, 1980, 1970],
-        pool: ["S", "CON", ""],
-        cap: [1.2e6, 1.1e6, 5e5],
-        area: [null, 4e6, null],
-        sedTot: [8e4, 9e4, null],
-        dryWt: [960, null, null],
-      },
-    });
+    const byRow = decodeSurveys(SURVEYS_JSON);
     expect(byRow.get(1)).toHaveLength(2);
-    expect(byRow.get(1)![0]).toEqual({ year: 1960, pool: "S", capM3: 1.2e6, areaM2: null, sedTotM3: 8e4, dryWtKgM3: 960 });
+    expect(byRow.get(1)![0]).toEqual({
+      year: 1960,
+      date: "1960-06-15",
+      pool: "S",
+      method: "RCT",
+      sub: "D",
+      note: "",
+      capM3: 1.2e6,
+      areaM2: null,
+      sedTotM3: 8e4,
+      dryWtKgM3: 960,
+    });
+    expect(byRow.get(1)![1].note).toBe("hydrographic & field surveys");
     expect([...byRow.keys()]).toEqual([1]); // reservoir B is unjoined — dropped
+  });
+
+  it("tolerates pre-round-3 payloads without the new columns", () => {
+    const legacy = JSON.parse(JSON.stringify(SURVEYS_JSON));
+    delete legacy.reservoirs.agency;
+    delete legacy.reservoirs.supplier;
+    delete legacy.surveys.date;
+    delete legacy.surveys.method;
+    delete legacy.surveys.sub;
+    delete legacy.surveys.note;
+    const byRow = decodeSurveys(legacy);
+    expect(byRow.get(1)![0]).toMatchObject({ year: 1960, date: "", method: "", sub: "", note: "" });
+    expect(decodeSurveyProvenance(legacy).get(1)).toEqual({ ressedId: 7002, agency: "", supplier: "" });
+  });
+
+  it("decodeSurveyProvenance keys agencies and the RESSED id by joined row", () => {
+    const prov = decodeSurveyProvenance(SURVEYS_JSON);
+    expect(prov.get(1)).toEqual({ ressedId: 7002, agency: "USDI; BR", supplier: "DOD; CE" });
+    expect(prov.size).toBe(1); // unjoined reservoir dropped
+  });
+});
+
+describe("ressedDatasheetUrl", () => {
+  it("maps legacy RESIS ids onto the verified datasheet URL pattern", () => {
+    expect(ressedDatasheetUrl(32003)).toBe("https://water.usgs.gov/osw/ressed/datasheets/32-3.pdf"); // Kanopolis
+    expect(ressedDatasheetUrl(45025)).toBe("https://water.usgs.gov/osw/ressed/datasheets/45-25.pdf");
+    expect(ressedDatasheetUrl(70110)).toBe("https://water.usgs.gov/osw/ressed/datasheets/70-110.pdf");
+  });
+
+  it("returns null for post-RESIS ids and non-ids", () => {
+    expect(ressedDatasheetUrl(100080)).toBeNull(); // Tuttle Creek — no legacy datasheet
+    expect(ressedDatasheetUrl(0)).toBeNull();
+    expect(ressedDatasheetUrl(null)).toBeNull();
   });
 });

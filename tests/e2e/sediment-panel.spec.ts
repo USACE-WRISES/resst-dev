@@ -76,6 +76,22 @@ test("evidence section: badge from boot data, measured surveys after the lazy lo
   await expect(ev).toContainText("1970");
   await expect(ev).toContainText("measured capacity");
   await expect(ev).toContainText("RESSED");
+  // Round-3 enrichment: codes spelled out, month from the full date, free-text note.
+  const first = ev.locator(".survey-list li").first();
+  await expect(first).toContainText("(Jul)");
+  await expect(first).toContainText("range and contour survey, detailed");
+  await expect(first).toContainText("sediment pool");
+  await expect(ev.locator(".survey-list li").nth(1)).toContainText("hydrographic & field surveys");
+  // The glossary popover opens and stays honest about undocumented codes.
+  await ev.getByRole("button", { name: "About these survey codes" }).click();
+  await expect(ev.locator(".codes-pop")).toContainText("total pool");
+  await expect(ev.locator(".codes-pop")).toContainText("not defined in the public documentation");
+  await page.keyboard.press("Escape");
+  // Original records: fixture id 32003 is a legacy dsnum → the scanned datasheet links.
+  const dsLink = ev.getByRole("link", { name: "Original RESSED datasheet (PDF)" });
+  await expect(dsLink).toHaveAttribute("href", "https://water.usgs.gov/osw/ressed/datasheets/32-3.pdf");
+  await expect(ev.getByRole("link", { name: "RESSED reservoir list and datasheets" })).toBeVisible();
+  await expect(ev.locator(".evidence-agency")).toContainText("Surveys by USACE Kansas City District");
   // The RATTES model-class line (fixture Tuttle is evd=1, survey-constrained).
   await expect(ev.locator(".rattes-class")).toContainText("calibrates this reservoir's estimate");
 });

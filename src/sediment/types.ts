@@ -84,13 +84,66 @@ export interface Trajectory {
 /** One measured RESSED survey observation (converted to metric at build). */
 export interface SurveyObs {
   year: number;
+  /** Full survey date from the export (ISO-ish, e.g. "2000-07-01"; "" when absent). */
+  date: string;
   /** Pool type code from the 2013 export ("" when absent). */
   pool: string;
+  /** Survey method code, case-folded onto DS434's RNG/CON/RCT; undocumented codes verbatim. */
+  method: string;
+  /** Survey scope code per DS434 (D detailed / R reconnaissance / S semi-detailed). */
+  sub: string;
+  /** Free-text note from the export ("" when absent). */
+  note: string;
   capM3: number | null;
   areaM2: number | null;
   /** Per-interval sediment deposit since the previous survey. */
   sedTotM3: number | null;
   dryWtKgM3: number | null;
+}
+
+/** Reservoir-level RESSED provenance for the Evidence section's source links. */
+export interface SurveyProvenance {
+  /** RESSED reservoir_id (numeric); below 100000 it is the legacy RESIS-II datasheet number. */
+  ressedId: number | null;
+  /** Agency that performed the surveys ("" when the export has none). */
+  agency: string;
+  /** Agency that supplied the data ("" when the export has none). */
+  supplier: string;
+}
+
+/** DS434-documented survey method codes; codes it never defined (RLCS, TBS…) render as themselves. */
+export const SURVEY_METHOD_LABELS: Record<string, string> = {
+  RNG: "range survey",
+  CON: "contour survey",
+  RCT: "range and contour survey",
+};
+
+/** DS434 survey scope codes. */
+export const SURVEY_SUBTYPE_LABELS: Record<string, string> = {
+  D: "detailed",
+  R: "reconnaissance",
+  S: "semi-detailed",
+};
+
+/** Pool letters are not expanded anywhere in the public RESSED documentation;
+    these labels follow the structural evidence in the export (nested S/T pool
+    pairs; notes like "Sediment Pool Only") and the U-only USACE tranche.
+    Unlisted letters (A, G, O) render as "pool {code}". */
+export const SURVEY_POOL_LABELS: Record<string, string> = {
+  T: "total pool",
+  S: "sediment pool",
+  U: "pool not specified",
+};
+
+/**
+ * Scanned SCS Form 34 datasheet URL for legacy RESIS reservoirs. The RESSED
+ * reservoir_id below 100000 IS the datasheet number: id 32003 ↔ 32-3.pdf
+ * (Kanopolis), 45025 ↔ 45-25.pdf; 20/20 sampled ids resolve (2026-08-30,
+ * see data/DATA-SOURCES.md). Post-RESIS ids (100xxx) have no sheet.
+ */
+export function ressedDatasheetUrl(ressedId: number | null): string | null {
+  if (ressedId == null || !Number.isFinite(ressedId) || ressedId <= 0 || ressedId >= 100000) return null;
+  return `https://water.usgs.gov/osw/ressed/datasheets/${Math.floor(ressedId / 1000)}-${ressedId % 1000}.pdf`;
 }
 
 /** One row of public/sediment/sites.json — RESST site ↔ ResNet/RATTES link

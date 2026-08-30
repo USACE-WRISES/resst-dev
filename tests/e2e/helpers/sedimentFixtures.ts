@@ -86,7 +86,8 @@ export const TRAJ_CHUNK_FIXTURE = {
 export const SURVEYS_FIXTURE = {
   _meta: { source: "fixture", type: "measured" },
   reservoirs: {
-    id: ["101"],
+    // id below 100000 = legacy RESIS datasheet number → 32-3.pdf link renders.
+    id: ["32003"],
     name: ["TUTTLE CREEK"],
     nid: ["KS00012"],
     row: [1],
@@ -94,11 +95,17 @@ export const SURVEYS_FIXTURE = {
     lat: [39.2562],
     state: ["KS"],
     began: [1962],
+    agency: ["USACE Kansas City District"],
+    supplier: ["DOD; CE"],
   },
   surveys: {
     rIdx: [0, 0],
     year: [1970, 2000],
+    date: ["1970-07-15", "2000-07-01"],
     pool: ["S", "S"],
+    method: ["RCT", "RNG"],
+    sub: ["D", ""],
+    note: ["", "hydrographic & field surveys"],
     cap: [1.15e9, 1.05e9],
     area: [null, null],
     sedTot: [3e7, 6e7],

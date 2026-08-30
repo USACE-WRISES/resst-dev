@@ -208,6 +208,14 @@ button { font: inherit; color: inherit; }
 .survey-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; max-height: 220px; overflow-y: auto; }
 .survey-list li { border-bottom: 1px solid var(--panel); padding-bottom: 3px; }
 
+/* evidence extras (round 3): per-survey notes, the code glossary, original-record links */
+.survey-note { display: block; margin: 1px 0 2px 14px; font-size: 12px; }
+.codes-info { display: block; margin: 8px 0 0; }
+.codes-info .linklike { font-size: 12px; }
+.codes-pop { left: 0; right: auto; bottom: auto; top: calc(100% + 4px); width: 280px; }
+.evidence-links { display: flex; flex-direction: column; gap: 2px; margin: 8px 0 0; font-size: 12.5px; }
+.evidence-agency { font-size: 12px; margin: 4px 0 0; }
+
 /* reservoir network section */
 .nw-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
 .nw-sentence { margin: 6px 0 0; font-size: 12.5px; }
