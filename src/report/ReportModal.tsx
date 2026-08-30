@@ -64,6 +64,11 @@ export function ReportModal({ target, data, onClose }: { target: ReportTarget; d
             <>
               <ReportArticle ref={articleRef} model={model} mapFeatures={mapFeatures} onMapStatus={setMapStatus} />
               <div className="report-footer">
+                {/* window.print() opens the browser dialog whose destination is Save as PDF —
+                    the only PDF path a static app has. Owner order: PDF first, HTML second. */}
+                <button type="button" className="btn-outline" disabled={!downloadsReady} onClick={() => window.print()}>
+                  Save as PDF
+                </button>
                 <button
                   type="button"
                   className="btn-outline"
@@ -71,9 +76,6 @@ export function ReportModal({ target, data, onClose }: { target: ReportTarget; d
                   onClick={() => articleRef.current && downloadReportHtml(articleRef.current, model)}
                 >
                   Download HTML
-                </button>
-                <button type="button" className="btn-outline" disabled={!downloadsReady} onClick={() => window.print()}>
-                  Print / save as PDF
                 </button>
                 <button type="button" className="btn-primary" onClick={onClose}>
                   Close
