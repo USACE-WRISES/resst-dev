@@ -295,18 +295,21 @@ export async function runAllBenchmarks(
     const message = err instanceof Error ? err.message : String(err);
     const failed = { layerCount: null, stats: null, loadMs: null, loadTimedOut: false, error: `style unavailable: ${message}` };
     runs.push({ key: "esri", label: "Esri vector basemap", ...failed });
-    runs.push({ key: "esri-dpr1", label: "Esri vector basemap at pixelRatio 1", ...failed });
+    runs.push({ key: "esri-half", label: "Esri vector basemap at half resolution", ...failed });
   }
   if (esriStyle) {
     onProgress("Esri vector basemap");
     runs.push(await runBenchmark(container, { key: "esri", label: "Esri vector basemap", style: esriStyle }));
-    onProgress("Esri vector basemap at pixelRatio 1");
+    // Half the linear resolution is a quarter of the pixels. Under software
+    // rasterization fill rate dominates, so this is the one lever left when
+    // the GPU is unavailable — measure how much it actually buys.
+    onProgress("Esri vector basemap at half resolution");
     runs.push(
       await runBenchmark(container, {
-        key: "esri-dpr1",
-        label: "Esri vector basemap at pixelRatio 1",
+        key: "esri-half",
+        label: "Esri vector basemap at half resolution",
         style: esriStyle,
-        pixelRatio: 1,
+        pixelRatio: Math.max(0.5, window.devicePixelRatio / 2),
       }),
     );
   }

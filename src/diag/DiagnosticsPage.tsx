@@ -210,7 +210,7 @@ export default function DiagnosticsPage() {
               <dt>Classified as</dt>
               <dd className={report.renderClass === "software" ? "bad" : undefined}>{report.renderClass}</dd>
               <dt>No-caveat context</dt>
-              <dd className={report.strictContextOk ? "ok" : "bad"}>{report.strictContextOk ? "granted" : "REFUSED"}</dd>
+              <dd>{report.strictContextOk ? "granted" : "refused"} (advisory only)</dd>
               <dt>WebGL version</dt>
               <dd>{report.webglVersion ?? "unavailable"}</dd>
               <dt>devicePixelRatio</dt>
