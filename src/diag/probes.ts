@@ -187,6 +187,51 @@ export function detectProxySignals(sameOrigin: HostTiming | undefined, origin = 
   return { protocolDowngrade, compressionStripped, notes };
 }
 
+/** One WebGL context configuration and the renderer it actually produced. */
+export interface ContextProbe {
+  label: string;
+  /** Matches MapLibre's canvasContextAttributes.contextType. */
+  contextType: "webgl2" | "webgl";
+  powerPreference: string;
+  failIfMajorPerformanceCaveat: boolean;
+  ok: boolean;
+  renderer: string;
+  renderClass: RenderClass;
+}
+
+/**
+ * Find a configuration that escapes software rendering. Chrome can hand a
+ * SwiftShader context for one WebGL version while the compositor stays on the
+ * GPU — chrome://gpu reports the compositor, not this. If some row comes back
+ * hardware, MapLibre can be pinned to it via canvasContextAttributes.
+ */
+export function summarizeContextMatrix(probes: readonly ContextProbe[]): string[] {
+  const out: string[] = [];
+  if (probes.length === 0) return out;
+  const hw = probes.filter((p) => p.ok && p.renderClass === "hardware");
+  if (hw.length === 0) {
+    out.push(
+      "Every WebGL configuration tried returned a software renderer, so no in-app setting can recover the GPU here — " +
+        "this is a browser or driver problem, not an app problem.",
+    );
+    return out;
+  }
+  if (hw.length === probes.filter((p) => p.ok).length) {
+    out.push("Every WebGL configuration returned a hardware renderer.");
+    return out;
+  }
+  const best = hw[0];
+  out.push(
+    `A hardware context IS available with ${best.contextType} / powerPreference "${best.powerPreference}" ` +
+      `(${best.renderer}). The app can be pinned to it via canvasContextAttributes.`,
+  );
+  const versions = [...new Set(hw.map((p) => p.contextType))];
+  if (versions.length === 1 && versions[0] === "webgl") {
+    out.push("Only WebGL1 gets hardware — WebGL2 is falling back to software. Forcing contextType \"webgl\" should fix this machine.");
+  }
+  return out;
+}
+
 export interface ReachResult {
   host: string;
   ok: boolean;
@@ -224,6 +269,7 @@ export interface DiagReport {
       2026-08-31). Recorded for completeness; the renderer string decides. */
   strictContextOk: boolean;
   maxTextureSize: number | null;
+  contexts: ContextProbe[];
   runs: BenchRun[];
   hosts: HostTiming[];
   proxy: ProxySignals;
@@ -244,6 +290,7 @@ export function summarize(r: DiagReport): string[] {
         "a background update can drop GPU access until a real relaunch. Then re-check chrome://gpu and chrome://policy.",
     );
   }
+  out.push(...summarizeContextMatrix(r.contexts ?? []));
   const byKey = new Map(r.runs.map((x) => [x.key, x]));
   const usgs = byKey.get("usgs")?.stats;
   const esri = byKey.get("esri")?.stats;
@@ -319,6 +366,13 @@ export function formatReport(r: DiagReport): string {
   L.push(`- Classified as: ${r.renderClass}`);
   L.push(`- No-caveat context: ${r.strictContextOk ? "granted" : "refused"} (advisory only — Chrome grants this on SwiftShader too)`);
   L.push(`- MAX_TEXTURE_SIZE: ${r.maxTextureSize ?? "unavailable"}`);
+  L.push("");
+  L.push("## WebGL context matrix", "");
+  L.push("| Configuration | Result | Class | Renderer |");
+  L.push("|---|---|---|---|");
+  for (const c of r.contexts ?? []) {
+    L.push(`| ${c.label} | ${c.ok ? "created" : "refused"} | ${c.renderClass} | ${c.renderer} |`);
+  }
   L.push("");
   L.push("## Render benchmark", "");
   L.push("| Run | Layers | Load ms | Frames | FPS | Median | p90 | p99 | Worst | >50ms | >100ms |");

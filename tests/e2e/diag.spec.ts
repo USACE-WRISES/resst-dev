@@ -44,9 +44,14 @@ test("renders a complete report and finishes", async ({ page }) => {
     await expect(rows.nth(i)).not.toHaveText(/^\s*$/);
   }
 
+  // The context matrix must enumerate every configuration, not silently skip any.
+  await expect(page.getByTestId("diag-context-table").locator("tbody tr")).toHaveCount(8);
+  await expect(page.getByTestId("diag-context-table")).toContainText("webgl2 / high-performance");
+  await expect(page.getByTestId("diag-context-table")).toContainText("webgl / high-performance");
+
   await expect(page.getByTestId("diag-copy")).toBeVisible();
   await expect(page.getByTestId("diag-markdown")).toContainText("# RESST diagnostics");
-  await expect(page.getByTestId("diag-markdown")).toContainText("## Render benchmark");
+  await expect(page.getByTestId("diag-markdown")).toContainText("## WebGL context matrix");
   await expect(page.getByTestId("diag-markdown")).toContainText("## Host reachability");
 });
 
