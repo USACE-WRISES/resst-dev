@@ -200,8 +200,16 @@ describe("summarize", () => {
     expect(out[0]).toContain("CRITICAL");
   });
 
-  it("warns when the browser refuses a no-caveat context even on a named GPU", () => {
-    expect(summarize(baseReport({ strictContextOk: false })).join(" ")).toContain("WARNING");
+  it("tells a software-rendering machine that a basemap change will not save it", () => {
+    const out = summarize(baseReport({ renderClass: "software" })).join(" ");
+    expect(out).toContain("no basemap or layer change will fix it");
+    expect(out).toContain("FULL Chrome restart");
+  });
+
+  it("does not treat a granted no-caveat context as proof of hardware rendering", () => {
+    // Observed on the USACE laptop: SwiftShader with the strict context GRANTED.
+    const out = summarize(baseReport({ renderClass: "software", strictContextOk: true }));
+    expect(out[0]).toContain("CRITICAL");
   });
 
   it("quantifies the vector-vs-raster basemap gap and recommends the switch", () => {
@@ -217,16 +225,42 @@ describe("summarize", () => {
     expect(out).toContain("USGS Topo basemap should measurably help");
   });
 
-  it("does not recommend a switch when the two basemaps cost the same", () => {
+  it("says plainly when the two basemaps cost the same, instead of a bare 1x", () => {
     const out = summarize(
       baseReport({
         runs: [
           run({ key: "usgs", label: "USGS", layerCount: 2, stats: frameStats(new Array(60).fill(16), 1000) }),
-          run({ key: "esri", label: "Esri", layerCount: 421, stats: frameStats(new Array(58).fill(17), 1000) }),
+          run({ key: "esri", label: "Esri", layerCount: 396, stats: frameStats(new Array(58).fill(17), 1000) }),
         ],
       }),
     ).join(" ");
     expect(out).not.toContain("should measurably help");
+    expect(out).toContain("switching basemaps is not the fix on this machine");
+  });
+
+  it("quantifies the half-resolution lever when it pays", () => {
+    const out = summarize(
+      baseReport({
+        runs: [
+          run({ key: "esri", label: "Esri", stats: frameStats(new Array(15).fill(216), 3700) }),
+          run({ key: "esri-half", label: "Esri half", stats: frameStats(new Array(60).fill(54), 3700) }),
+        ],
+      }),
+    ).join(" ");
+    expect(out).toContain("4x faster");
+    expect(out).toContain("Performance Mode would help here");
+  });
+
+  it("says so when half resolution does not help, so fill rate is not blamed wrongly", () => {
+    const out = summarize(
+      baseReport({
+        runs: [
+          run({ key: "esri", label: "Esri", stats: frameStats(new Array(15).fill(216), 3700) }),
+          run({ key: "esri-half", label: "Esri half", stats: frameStats(new Array(16).fill(210), 3700) }),
+        ],
+      }),
+    ).join(" ");
+    expect(out).toContain("not pixel fill rate");
   });
 
   it("names unreachable hosts", () => {

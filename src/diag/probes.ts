@@ -219,7 +219,9 @@ export interface DiagReport {
   vendor: string;
   renderer: string;
   renderClass: RenderClass;
-  /** A failIfMajorPerformanceCaveat context is refused on software stacks. */
+  /** Whether a failIfMajorPerformanceCaveat context was granted. NOT a software
+      detector: observed granted on a machine running SwiftShader (Chrome 152,
+      2026-08-31). Recorded for completeness; the renderer string decides. */
   strictContextOk: boolean;
   maxTextureSize: number | null;
   runs: BenchRun[];
@@ -231,22 +233,50 @@ export interface DiagReport {
 /** Verdict lines derived from the numbers, so a pasted report interprets itself. */
 export function summarize(r: DiagReport): string[] {
   const out: string[] = [];
-  if (r.renderClass === "software") {
-    out.push("CRITICAL: WebGL is running on a software rasterizer. Enable GPU acceleration.");
-  } else if (!r.strictContextOk) {
-    out.push("WARNING: the browser reports a major performance caveat for WebGL on this machine.");
+  const software = r.renderClass === "software";
+  if (software) {
+    out.push(
+      "CRITICAL: WebGL is running on a software rasterizer (CPU), not the GPU. " +
+        "This alone explains slow panning and zooming, and no basemap or layer change will fix it.",
+    );
+    out.push(
+      "First try a FULL Chrome restart (close every window, end leftover chrome.exe processes, reopen) — " +
+        "a background update can drop GPU access until a real relaunch. Then re-check chrome://gpu and chrome://policy.",
+    );
   }
   const byKey = new Map(r.runs.map((x) => [x.key, x]));
   const usgs = byKey.get("usgs")?.stats;
   const esri = byKey.get("esri")?.stats;
   if (usgs && esri && usgs.medianMs > 0) {
     const ratio = esri.medianMs / usgs.medianMs;
-    out.push(
-      `Basemap cost: raster ${usgs.fps} fps vs vector ${esri.fps} fps ` +
-        `(vector frames are ${round1(ratio)}x slower).`,
-    );
     if (ratio >= 1.5) {
-      out.push("Switching to the USGS Topo basemap should measurably help on this machine.");
+      out.push(
+        `Basemap cost: raster ${usgs.fps} fps vs vector ${esri.fps} fps ` +
+          `(vector frames are ${round1(ratio)}x slower). Switching to the USGS Topo basemap should measurably help.`,
+      );
+    } else {
+      out.push(
+        `Basemap cost: raster ${usgs.fps} fps vs vector ${esri.fps} fps — the two cost the same here, ` +
+          "so switching basemaps is not the fix on this machine.",
+      );
+    }
+  }
+  // Fill rate is the dominant cost under software rasterization, so a smaller
+  // drawing buffer is the one lever that still pays. Quantify it rather than
+  // assuming it.
+  const half = byKey.get("esri-half")?.stats;
+  if (esri && half && esri.medianMs > 0) {
+    const gain = esri.medianMs / half.medianMs;
+    if (gain >= 1.3) {
+      out.push(
+        `Half-resolution rendering is ${round1(gain)}x faster (${esri.fps} → ${half.fps} fps). ` +
+          "A reduced-resolution Performance Mode would help here.",
+      );
+    } else {
+      out.push(
+        `Half-resolution rendering changes little (${esri.fps} → ${half.fps} fps), ` +
+          "so the bottleneck is not pixel fill rate.",
+      );
     }
   }
   for (const run of r.runs) {
@@ -287,7 +317,7 @@ export function formatReport(r: DiagReport): string {
   L.push(`- Vendor: ${r.vendor}`);
   L.push(`- Renderer: ${r.renderer}`);
   L.push(`- Classified as: ${r.renderClass}`);
-  L.push(`- Strict (no-caveat) context: ${r.strictContextOk ? "granted" : "REFUSED"}`);
+  L.push(`- No-caveat context: ${r.strictContextOk ? "granted" : "refused"} (advisory only — Chrome grants this on SwiftShader too)`);
   L.push(`- MAX_TEXTURE_SIZE: ${r.maxTextureSize ?? "unavailable"}`);
   L.push("");
   L.push("## Render benchmark", "");

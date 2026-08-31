@@ -36,7 +36,7 @@ test("renders a complete report and finishes", async ({ page }) => {
   // One row per benchmark leg, each either measured or explained.
   const rows = page.getByTestId("diag-bench-table").locator("tbody tr");
   await expect(rows).toHaveCount(4);
-  for (const label of ["USGS raster basemap", "Esri vector basemap", "pixelRatio 1", "site circles"]) {
+  for (const label of ["USGS raster basemap", "Esri vector basemap", "half resolution", "site circles"]) {
     await expect(rows.filter({ hasText: label }).first()).toBeVisible();
   }
   for (let i = 0; i < 4; i += 1) {
