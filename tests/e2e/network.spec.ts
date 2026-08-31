@@ -5,6 +5,7 @@
 // Big River mouth(-5); Lone Reservoir(30) isolated).
 import { test, expect, type Page } from "@playwright/test";
 import { stubEsri, waitForBasemap } from "./helpers/esriStub";
+import { waitForMapIdle } from "./helpers/mapReady";
 import { stubSediment } from "./helpers/sedimentFixtures";
 import { openDetailSection } from "./helpers/sections";
 
@@ -16,6 +17,10 @@ async function openOnTuttle(page: Page) {
   await page.locator(".table-panel input").first().fill("Tuttle");
   await page.locator(".data-table tbody tr", { hasText: "Tuttle Creek" }).first().click();
   await openDetailSection(page, "Reservoir Network");
+  // Selecting a site flies the camera and rewrites the sites source. Every
+  // test below reads nw-* sources through the worker, so settle first rather
+  // than racing the poll budget against style and tile work.
+  await waitForMapIdle(page);
 }
 
 const sourceKinds = (page: Page) =>
@@ -120,11 +125,13 @@ test("the drainage-area toggle draws the NLDI basin and notes the source", async
       const src = (window as any).__resstMap.getSource("nw-basin");
       return src ? (await src.getData()).features.length : 0;
     });
-  await expect.poll(basinCount).toBe(1);
+  // Two NLDI round-trips (position, then basin) plus a setData — more work
+  // than a DOM assertion, so this one poll states its own budget.
+  await expect.poll(basinCount, { timeout: 15_000 }).toBe(1);
   await expect(net.locator(".nw-basin-note")).toContainText("USGS NLDI");
   // Toggling off clears the polygon.
   await net.locator(".nw-btn", { hasText: "Drainage area" }).click();
-  await expect.poll(basinCount).toBe(0);
+  await expect.poll(basinCount, { timeout: 15_000 }).toBe(0);
 });
 
 test("an NLDI failure reports a status line and offers Retry", async ({ page }) => {

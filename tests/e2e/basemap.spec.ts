@@ -6,19 +6,13 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { stubEsri, waitForBasemap } from "./helpers/esriStub";
+import { waitForMapIdle } from "./helpers/mapReady";
 import { HUC2_FC } from "./helpers/overlayFixtures";
 
 async function openApp(page: Page, opts: { settled?: boolean } = {}): Promise<void> {
   await page.goto("./");
   await page.getByRole("button", { name: "OK" }).click(); // welcome dialog
-  await page.waitForFunction(
-    () => {
-      const m = (window as any).__resstMap;
-      return m && m.isStyleLoaded() && m.loaded();
-    },
-    undefined,
-    { timeout: 30_000 },
-  );
+  await waitForMapIdle(page);
   // The bare wait can settle on the interim USGS boot style; settled (the
   // default) means "the Esri default has fully applied".
   if (opts.settled !== false) await waitForBasemap(page, true);
