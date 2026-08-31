@@ -15,6 +15,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { stubEsri, waitForBasemap } from "./helpers/esriStub";
+import { waitForMapIdle } from "./helpers/mapReady";
 import { KANSAS_BASIN_FC, TEST_RIVER_FC } from "./helpers/overlayFixtures";
 
 interface StubFlags {
@@ -45,10 +46,7 @@ async function jumpToFixtureArea(page: Page): Promise<void> {
   await page.evaluate(() => {
     (window as unknown as { __resstMap: any }).__resstMap.jumpTo({ center: [-96.6, 39.25], zoom: 8 });
   });
-  await page.waitForFunction(() => {
-    const m = (window as unknown as { __resstMap: any }).__resstMap;
-    return !m.isMoving() && m.loaded();
-  });
+  await waitForMapIdle(page);
 }
 
 const screenPt = (page: Page, lon: number, lat: number) =>

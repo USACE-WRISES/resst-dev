@@ -36,7 +36,7 @@ export function WelcomeDialog() {
             <input type="checkbox" checked={dontShow} onChange={(e) => setDontShow(e.target.checked)} />
             <span>Don't show this again</span>
           </label>
-          <button type="button" className="btn-primary" autoFocus onClick={() => actions.closeWelcome(dontShow)}>
+          <button type="button" className="btn-primary" onClick={() => actions.closeWelcome(dontShow)}>
             OK
           </button>
         </div>

@@ -37,20 +37,55 @@ test("no serious/critical violations with dialogs open", async ({ page }) => {
   expect(serious(await scan(page)).map((v) => v.id)).toEqual([]);
 });
 
+/** Matches useFocusTrap's own FOCUSABLE selector — kept in sync deliberately
+    so the test tabs exactly as far as the trap thinks it needs to. */
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+const inDialog = (page: import("@playwright/test").Page) =>
+  page.evaluate(() => !!document.activeElement?.closest(".dialog"));
+
 test("welcome dialog traps focus and the skip link works", async ({ page }) => {
   await stubEsri(page); // the default basemap boots from Esri endpoints — keep CI hermetic
   await page.goto("./");
   // Wait until the trap has taken focus (React mounts after load).
   await page.waitForFunction(() => !!document.activeElement?.closest(".dialog"));
-  // Tab cycles within the dialog.
-  for (let i = 0; i < 6; i++) await page.keyboard.press("Tab");
-  const inDialog = await page.evaluate(() => !!document.activeElement?.closest(".dialog"));
-  expect(inDialog).toBe(true);
+
+  // Tab a full cycle plus one, derived from the dialog's own controls rather
+  // than a hard-coded count — and assert after EVERY press, so a failure names
+  // the press that escaped instead of only the end state.
+  const controls = await page.evaluate(
+    (sel) =>
+      [...document.querySelectorAll<HTMLElement>(`.dialog ${sel}`)].filter((el) => el.offsetParent !== null).length,
+    FOCUSABLE,
+  );
+  expect(controls).toBeGreaterThan(0);
+  for (let i = 1; i <= controls + 1; i++) {
+    await page.keyboard.press("Tab");
+    expect(await inDialog(page), `focus left the dialog on Tab press ${i}`).toBe(true);
+  }
+
   await page.getByRole("button", { name: "OK" }).click();
   // From the top of the document, the first Tab lands on the skip link.
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   await page.keyboard.press("Tab");
   await expect(page.locator(".skip-link")).toBeFocused();
+});
+
+test("welcome dialog recovers focus that escaped the trap", async ({ page }) => {
+  await stubEsri(page); // the default basemap boots from Esri endpoints — keep CI hermetic
+  await page.goto("./");
+  await page.waitForFunction(() => !!document.activeElement?.closest(".dialog"));
+
+  // The dialog mounts in the same commit as the whole app shell and MapLibre,
+  // so focus can land outside it during boot. Simulate that directly: a trap
+  // whose listener lives on its own container never hears the next keypress
+  // and stays inert, which is what made this spec flaky on slower CI runners.
+  await page.locator(".skip-link").focus();
+  expect(await inDialog(page)).toBe(false); // precondition: focus really did escape
+
+  await page.keyboard.press("Tab");
+  expect(await inDialog(page), "Tab did not pull focus back into the modal").toBe(true);
 });
 
 test("phone layout keeps full function: filters drawer changes counts, details drawer shows selection", async ({ page }) => {
