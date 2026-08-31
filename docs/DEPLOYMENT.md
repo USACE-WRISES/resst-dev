@@ -44,6 +44,46 @@ self-hosted under `public/fonts/`. Cold loads fetch the Esri style at boot;
 the e2e suite stays hermetic by route-stubbing every Esri endpoint
 (`tests/e2e/helpers/esriStub.ts`).
 
+## Diagnosing a slow map on someone's machine
+
+Append `?diag=1` to the deployed URL — <https://usace-wrises.github.io/resst-dev/?diag=1> —
+and the performance diagnostics mount **instead of** the app. Reach for it when
+a user reports that panning, zooming, or the fly-to-a-dam animation is sluggish
+on their computer but not on others.
+
+It exists because the usual tools are not always available: a managed
+workstation may have DevTools disabled by policy, so the address bar has to be
+enough. Mounting it in place of `App` also keeps its measurements clear of the
+app's own map layers. Let it run to "Finished." (30–60 s), then use **Copy
+report** to get a Markdown summary that can be pasted into an email or ticket.
+
+What it measures, and how to read it:
+
+| Section | What to look for |
+| --- | --- |
+| GPU | The `Renderer` string. `ANGLE (Intel…)` or `ANGLE (NVIDIA…)` is healthy; **`SwiftShader`** means WebGL is running on the CPU, which caps the map near 5 fps no matter what the app does. |
+| WebGL context matrix | Eight context configurations (`webgl2`/`webgl` × three power preferences, ± `failIfMajorPerformanceCaveat`). If any row reports `hardware`, MapLibre can be pinned to it via `canvasContextAttributes`. If all eight are `software`, no app-side setting can recover the GPU. |
+| Render benchmark | Four fixed camera circuits. Healthy machines land in the low tens of milliseconds per frame; a software rasterizer sits near 215 ms. Frame cost that does **not** change between the 2-layer raster basemap and the 396-layer vector one means the bottleneck is not the app's workload. |
+| Network | Same-origin rows expose `nextHopProtocol` and encoded-vs-decoded size, so an `http/1.1` downgrade or stripped compression identifies a TLS-inspecting proxy. Cross-origin tile rows are opaque by design — only their durations are meaningful. |
+
+Note that `chrome://gpu` reporting "WebGL: Hardware accelerated" does **not**
+settle the question: that line describes the compositor, and an individual page
+context can still fall back to SwiftShader. The matrix is what distinguishes the
+two. This was the finding on a USACE workstation in August 2026, where all eight
+configurations returned SwiftShader while the browser's own GPU process held a
+working Direct3D 11 context — a browser/driver problem with no application fix.
+
+The page sends nothing anywhere. It reads local browser and WebGL state,
+contacts only hosts the app already uses (the reachability probe), and builds
+the report client-side for the user to copy. There is no telemetry.
+
+`src/diag/` holds it: `probes.ts` is DOM-free so vitest's node environment can
+cover the arithmetic and heuristics, `collect.ts` holds the browser-side
+collectors, and `DiagnosticsPage.tsx` is the UI. It is **lazily imported** in
+`src/main.tsx`, so it compiles to its own chunk and a normal page load never
+fetches it — keep it that way when editing. `tests/e2e/diag.spec.ts` guards it,
+including an assertion that the flag does not leak into the default app path.
+
 ## Local development
 
 `.claude/launch.json` starts `npm run dev` on port 5173. Playwright tests
