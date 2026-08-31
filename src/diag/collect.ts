@@ -4,7 +4,7 @@
 
 import { Map as MlMap, type StyleSpecification } from "maplibre-gl";
 import { buildUsgsStyle, fetchEsriTopoStyle } from "../map/basemaps";
-import { frameStats, type BenchRun, type ReachResult, type TimingLike } from "./probes";
+import { classifyRenderer, frameStats, type BenchRun, type ContextProbe, type ReachResult, type TimingLike } from "./probes";
 
 export interface WebglInfo {
   webglVersion: number | null;
@@ -46,6 +46,56 @@ export function probeWebgl(): WebglInfo {
     maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE) as number,
     strictContextOk,
   };
+}
+
+/**
+ * Try each WebGL configuration MapLibre could be pinned to and record the
+ * renderer it actually yields. Contexts are released immediately — a browser
+ * only allows a limited number live at once, and the benchmark needs them.
+ */
+export function probeContextMatrix(): ContextProbe[] {
+  const combos: { contextType: "webgl2" | "webgl"; powerPreference: string; caveat: boolean }[] = [
+    { contextType: "webgl2", powerPreference: "high-performance", caveat: false },
+    { contextType: "webgl2", powerPreference: "low-power", caveat: false },
+    { contextType: "webgl2", powerPreference: "default", caveat: false },
+    { contextType: "webgl2", powerPreference: "high-performance", caveat: true },
+    { contextType: "webgl", powerPreference: "high-performance", caveat: false },
+    { contextType: "webgl", powerPreference: "low-power", caveat: false },
+    { contextType: "webgl", powerPreference: "default", caveat: false },
+    { contextType: "webgl", powerPreference: "high-performance", caveat: true },
+  ];
+  return combos.map(({ contextType, powerPreference, caveat }) => {
+    const label = `${contextType} / ${powerPreference}${caveat ? " / no-caveat" : ""}`;
+    let renderer = "no context";
+    let ok = false;
+    let gl: WebGLRenderingContext | WebGL2RenderingContext | null = null;
+    try {
+      const canvas = document.createElement("canvas");
+      gl = canvas.getContext(contextType, {
+        powerPreference,
+        failIfMajorPerformanceCaveat: caveat,
+      } as WebGLContextAttributes) as WebGLRenderingContext | WebGL2RenderingContext | null;
+      if (gl) {
+        ok = true;
+        const dbg = gl.getExtension("WEBGL_debug_renderer_info");
+        renderer = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : "masked";
+      }
+    } catch (err) {
+      renderer = err instanceof Error ? err.message : String(err);
+    } finally {
+      // Free it straight away; the four benchmark maps need contexts of their own.
+      gl?.getExtension("WEBGL_lose_context")?.loseContext();
+    }
+    return {
+      label,
+      contextType,
+      powerPreference,
+      failIfMajorPerformanceCaveat: caveat,
+      ok,
+      renderer,
+      renderClass: ok ? classifyRenderer(renderer) : "unknown",
+    };
+  });
 }
 
 export interface EnvironmentInfo {

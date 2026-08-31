@@ -9,8 +9,10 @@ import {
   frameStats,
   percentile,
   summarize,
+  summarizeContextMatrix,
   summarizeTimings,
   type BenchRun,
+  type ContextProbe,
   type DiagReport,
   type HostTiming,
 } from "../src/diag/probes";
@@ -187,6 +189,7 @@ const baseReport = (over: Partial<DiagReport> = {}): DiagReport => ({
   renderClass: "hardware",
   strictContextOk: true,
   maxTextureSize: 16384,
+  contexts: [],
   runs: [],
   hosts: [],
   proxy: { protocolDowngrade: false, compressionStripped: false, notes: [] },
@@ -302,6 +305,58 @@ describe("summarize", () => {
   });
 });
 
+const ctx = (over: Partial<ContextProbe> & Pick<ContextProbe, "label" | "contextType">): ContextProbe => ({
+  powerPreference: "high-performance",
+  failIfMajorPerformanceCaveat: false,
+  ok: true,
+  renderer: "ANGLE (Intel, Intel(R) UHD Graphics Direct3D11)",
+  renderClass: "hardware",
+  ...over,
+});
+
+const SW = { renderer: "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device))", renderClass: "software" as const };
+
+describe("summarizeContextMatrix", () => {
+  it("names WebGL1 as the escape hatch when only it gets hardware", () => {
+    const out = summarizeContextMatrix([
+      ctx({ label: "webgl2 / high-performance", contextType: "webgl2", ...SW }),
+      ctx({ label: "webgl / high-performance", contextType: "webgl" }),
+    ]).join(" ");
+    expect(out).toContain("A hardware context IS available with webgl");
+    expect(out).toContain('Forcing contextType "webgl" should fix this machine');
+  });
+
+  it("says the app cannot help when every configuration is software", () => {
+    const out = summarizeContextMatrix([
+      ctx({ label: "webgl2 / high-performance", contextType: "webgl2", ...SW }),
+      ctx({ label: "webgl / high-performance", contextType: "webgl", ...SW }),
+    ]).join(" ");
+    expect(out).toContain("no in-app setting can recover the GPU here");
+    expect(out).toContain("not an app problem");
+  });
+
+  it("stays quiet-ish when everything is already hardware", () => {
+    const out = summarizeContextMatrix([
+      ctx({ label: "webgl2 / high-performance", contextType: "webgl2" }),
+      ctx({ label: "webgl / high-performance", contextType: "webgl" }),
+    ]);
+    expect(out).toEqual(["Every WebGL configuration returned a hardware renderer."]);
+  });
+
+  it("does not recommend WebGL1 when WebGL2 also works, just a slower power preference", () => {
+    const out = summarizeContextMatrix([
+      ctx({ label: "webgl2 / high-performance", contextType: "webgl2", ...SW }),
+      ctx({ label: "webgl2 / low-power", contextType: "webgl2" }),
+    ]).join(" ");
+    expect(out).toContain("A hardware context IS available with webgl2");
+    expect(out).not.toContain("Forcing contextType");
+  });
+
+  it("returns nothing for an empty matrix", () => {
+    expect(summarizeContextMatrix([])).toEqual([]);
+  });
+});
+
 describe("formatReport", () => {
   it("renders every section, and a failed run as its error not a blank row", () => {
     const md = formatReport(
@@ -314,7 +369,7 @@ describe("formatReport", () => {
         reach: [{ host: "api.water.usgs.gov", ok: false, ms: 8000, detail: "no response within 8000 ms" }],
       }),
     );
-    for (const heading of ["# RESST diagnostics", "## Verdict", "## Environment", "## GPU", "## Render benchmark", "## Network", "## Host reachability"]) {
+    for (const heading of ["# RESST diagnostics", "## Verdict", "## Environment", "## GPU", "## WebGL context matrix", "## Render benchmark", "## Network", "## Host reachability"]) {
       expect(md).toContain(heading);
     }
     expect(md).toContain("| Run | Layers | Load ms |");

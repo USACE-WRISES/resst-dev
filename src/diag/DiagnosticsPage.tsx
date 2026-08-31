@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   collectEnvironment,
   collectTimings,
+  probeContextMatrix,
   probeReach,
   probeWebgl,
   runAllBenchmarks,
@@ -70,6 +71,7 @@ export default function DiagnosticsPage() {
     setStatus("Reading GPU and environment…");
     const env = collectEnvironment();
     const gl = probeWebgl();
+    const contexts = probeContextMatrix();
 
     let runs: BenchRun[] = [];
     try {
@@ -93,6 +95,7 @@ export default function DiagnosticsPage() {
       ...env,
       ...gl,
       renderClass: classifyRenderer(gl.renderer),
+      contexts,
       runs,
       hosts,
       proxy,
@@ -154,6 +157,32 @@ export default function DiagnosticsPage() {
                 </li>
               ))}
             </ul>
+          </div>
+
+          <h2>WebGL context matrix</h2>
+          <div className="card">
+            <table data-testid="diag-context-table">
+              <thead>
+                <tr>
+                  <th>Configuration</th>
+                  <th>Result</th>
+                  <th>Class</th>
+                  <th>Renderer</th>
+                </tr>
+              </thead>
+              <tbody>
+                {report.contexts.map((c) => (
+                  <tr key={c.label}>
+                    <td>{c.label}</td>
+                    <td>{c.ok ? "created" : "refused"}</td>
+                    <td className={c.renderClass === "software" ? "bad" : c.renderClass === "hardware" ? "ok" : undefined}>
+                      {c.renderClass}
+                    </td>
+                    <td>{c.renderer}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
           <h2>Render benchmark</h2>
