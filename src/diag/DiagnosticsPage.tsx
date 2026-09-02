@@ -13,6 +13,7 @@ import {
   probeWebgl,
   runAllBenchmarks,
 } from "./collect";
+import { DomTrialPanel } from "./DomTrialPanel";
 import {
   classifyRenderer,
   detectProxySignals,
@@ -49,6 +50,13 @@ const STYLES = `
 .diag pre { background: #16242c; color: #e6eef1; padding: 12px; border-radius: 6px;
   overflow: auto; max-height: 340px; font-size: 12px; user-select: all; }
 .diag .status { margin: 12px 0; color: #52646d; }
+.diag .trial-map { width: 800px; max-width: 100%; height: 500px; border: 1px solid #ccd7dc;
+  border-radius: 6px; background: #e8ede9; }
+.diag button[aria-pressed="true"] { box-shadow: inset 0 0 0 2px #00707b; }
+.diag .leaflet-tooltip.diag-site-label { background: transparent; border: 0; box-shadow: none; padding: 0;
+  color: #0044ff; font: 600 11px/1.2 "Noto Sans", Arial, sans-serif;
+  text-shadow: 1px 1px 0 #f7f7f7, -1px -1px 0 #f7f7f7, 1px -1px 0 #f7f7f7, -1px 1px 0 #f7f7f7; }
+.diag .leaflet-tooltip.diag-site-label::before { display: none; }
 `;
 
 type Phase = "idle" | "running" | "done";
@@ -100,6 +108,7 @@ export default function DiagnosticsPage() {
       hosts,
       proxy,
       reach,
+      domTrial: null,
     });
     setStatus("");
     setPhase("done");
@@ -152,12 +161,25 @@ export default function DiagnosticsPage() {
           <div className="card">
             <ul className="verdict" data-testid="diag-verdict">
               {summarize(report).map((s) => (
-                <li key={s} className={/CRITICAL|WARNING|FAILED|Unreachable|stripped|proxy/i.test(s) ? "bad" : undefined}>
+                <li
+                  key={s}
+                  className={
+                    /CRITICAL|WARNING|FAILED|Unreachable|stripped|proxy|NO-GO/i.test(s)
+                      ? "bad"
+                      : /^DOM map trial: GO/.test(s)
+                        ? "ok"
+                        : undefined
+                  }
+                >
                   {s}
                 </li>
               ))}
             </ul>
           </div>
+
+          {phase === "done" && (
+            <DomTrialPanel onUpdate={(domTrial) => setReport((r) => r && { ...r, domTrial })} />
+          )}
 
           <h2>WebGL context matrix</h2>
           <div className="card">

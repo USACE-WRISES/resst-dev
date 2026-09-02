@@ -7,6 +7,10 @@ export default defineConfig({
   // Another session may hold 5173; the launcher injects PORT when it picks a free one.
   server: { port: Number(process.env.PORT) || 5173 },
   plugins: [react()],
+  // Leaflet is reached only through a dynamic import on the diagnostics page;
+  // pre-bundling it up front spares the dev server a reload the first time
+  // that import runs.
+  optimizeDeps: { include: ["leaflet"] },
   build: { outDir: "dist", sourcemap: true },
   test: {
     environment: "node",

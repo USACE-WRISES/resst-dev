@@ -57,6 +57,13 @@ const isAppLayer = (id: string) =>
 /** Ids the composed Esri style reserves; colliding CDN layers get renamed. */
 const isReservedId = (id: string) => id === "background" || id === "esri-hillshade" || isAppLayer(id);
 
+/** USGS National Map topo raster tiles: the one definition shared by the
+    MapLibre style below and the diagnostics page's Leaflet trial. */
+export const USGS_TOPO_TILES =
+  "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}";
+export const USGS_TOPO_ATTRIBUTION =
+  "USGS The National Map: National Boundaries Dataset, 3DEP Elevation Program, Geographic Names Information System, National Hydrography Dataset, National Land Cover Database, National Structures Dataset, and National Transportation Dataset";
+
 export function buildUsgsStyle(glyphs?: string): StyleSpecification {
   return {
     version: 8,
@@ -70,11 +77,10 @@ export function buildUsgsStyle(glyphs?: string): StyleSpecification {
     sources: {
       usgsTopo: {
         type: "raster",
-        tiles: ["https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}"],
+        tiles: [USGS_TOPO_TILES],
         tileSize: 256,
         maxzoom: 16,
-        attribution:
-          "USGS The National Map: National Boundaries Dataset, 3DEP Elevation Program, Geographic Names Information System, National Hydrography Dataset, National Land Cover Database, National Structures Dataset, and National Transportation Dataset",
+        attribution: USGS_TOPO_ATTRIBUTION,
       },
     },
     layers: [

@@ -390,3 +390,31 @@ icon paths under Vite; `@types/leaflet` under TypeScript 7; help-screenshot seed
 - The Claude browser pane suspends rAF and cannot screenshot scrolled regions or file:// tabs; verify
   pages over HTTP (a launch.json entry) and read computed styles/accessibility trees instead.
 - Bash heredocs are fine for ASCII files; use the Write tool for files with non-ASCII characters.
+
+## 11. Status after 2026-09-02 (resumed in a new session)
+
+Decisions (owner):
+- The mirror work in section 3 is committed locally (`be3f29a`); nothing pushed.
+- Stage A is reduced to the Leaflet DOM-map trial only (A4/A5 of section 6). The egress-IP probe,
+  platform/font telltales, pointer probe, motion test and compositor rows are dropped: they were IT
+  evidence, not performance work, and the renderer comparison already in the IT report is decisive.
+- Two changes to the trial as designed: the user's Smooth/Choppy answer decides GO/NO-GO regardless of
+  the rAF numbers (under isolation the rAF loop runs in the cloud browser), and an SVG | Canvas marker
+  toggle lets both renderers be judged, which de-risks the Stage B question of putting heavy layers on
+  canvas. Settle time (moveend → paint) is recorded for the Stage B risk register.
+- Stage B stays gated on the trial's GO and is rephased: B1 = core map without overlays and the
+  national layer (~8 days), B2 = overlay sink + national canvas layer (~5 days), decided after B1 is
+  used on the laptop.
+- The note's "index-*.js hash identical" check is not achievable for any diag edit (index embeds the
+  diag chunk's hashed name and exports the preload helper to it); the check is now "index free of
+  Leaflet and identical after normalising that name and the export list".
+
+Built (this commit): `src/diag/leafletTrial.ts` (Leaflet in its own chunk), `src/diag/DomTrialPanel.tsx`,
+`DomTrial` types, `settleStats` and `judgeDomTrial` in `src/diag/probes.ts`, `## DOM map trial` in the
+report, shared `USGS_TOPO_TILES` / `USGS_TOPO_ATTRIBUTION` in `src/map/basemaps.ts`, memoized
+`fetchSitePoints` with site names, unit and e2e tests, DEPLOYMENT.md rows and the reading protocol.
+Plan file: `C:\Users\gtmen\.claude\plans\review-and-pick-back-playful-sunrise.md`.
+
+Pending: the owner rebuilds (`npm run build:connect`) and deploys the mirror with Publisher, then runs
+"The DOM map trial on the mirror" in DEPLOYMENT.md on a USACE laptop in Chrome and Edge. The pasted
+report's `DOM map trial:` line decides Stage B1.

@@ -239,11 +239,34 @@ export async function runBenchmark(container: HTMLElement, opts: BenchOptions): 
   }
 }
 
-/** Fetch the site coordinates so one run can measure the app's own point layer. */
-export async function fetchSitePoints(): Promise<GeoJSON.FeatureCollection> {
+export type SitePointFC = GeoJSON.FeatureCollection<GeoJSON.Point, { site_id: string; site_name: string }>;
+
+let sitePointsPromise: Promise<SitePointFC> | null = null;
+
+/**
+ * Fetch the site coordinates so one run can measure the app's own point layer.
+ * Memoized: the benchmark leg and the DOM map trial share one fetch, and a
+ * failed fetch is forgotten so "Run again" retries it.
+ */
+export function fetchSitePoints(): Promise<SitePointFC> {
+  if (!sitePointsPromise) {
+    sitePointsPromise = loadSitePoints().catch((err: unknown) => {
+      sitePointsPromise = null;
+      throw err;
+    });
+  }
+  return sitePointsPromise;
+}
+
+async function loadSitePoints(): Promise<SitePointFC> {
   const res = await fetch(`${import.meta.env.BASE_URL}data/sites.json`);
   if (!res.ok) throw new Error(`sites.json: HTTP ${res.status}`);
-  const sites = (await res.json()) as { longitude: number | null; latitude: number | null }[];
+  const sites = (await res.json()) as {
+    site_id: string;
+    site_name: string;
+    longitude: number | null;
+    latitude: number | null;
+  }[];
   return {
     type: "FeatureCollection",
     features: sites
@@ -251,7 +274,7 @@ export async function fetchSitePoints(): Promise<GeoJSON.FeatureCollection> {
       .map((s) => ({
         type: "Feature" as const,
         geometry: { type: "Point" as const, coordinates: [s.longitude!, s.latitude!] },
-        properties: {},
+        properties: { site_id: s.site_id, site_name: s.site_name },
       })),
   };
 }
