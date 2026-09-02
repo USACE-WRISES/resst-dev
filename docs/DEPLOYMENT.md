@@ -13,7 +13,9 @@ Everything is automated through GitHub Actions; there is no server to run.
 
 - **Site:** https://usace-wrises.github.io/resst-dev/ (Pages, build type
   "GitHub Actions", HTTPS enforced). Base path is `/resst-dev/`
-  (`vite.config.ts` — change it if the repo is ever renamed).
+  (`vite.config.ts` — change it if the repo is ever renamed). The Posit
+  Connect Cloud mirror described below is built with base `/` by
+  `npm run build:connect` without touching that config.
 - **Rollback:** revert the offending commit on `main`; the deploy workflow
   redeploys the previous state. Data rollbacks are ordinary git reverts too.
 - **Exports:** re-run `data-exports.yml` from the Actions tab any time;
@@ -84,6 +86,77 @@ collectors, and `DiagnosticsPage.tsx` is the UI. It is **lazily imported** in
 fetches it — keep it that way when editing. `tests/e2e/diag.spec.ts` guards it,
 including an assertion that the flag does not leak into the default app path.
 
+## Second host: Posit Connect Cloud (test mirror, deployed by hand)
+
+A copy of the site can be published to Posit Connect Cloud from VS Code with
+the Posit Publisher extension. It exists to answer one question for USACE
+users — whether that origin behaves differently from GitHub Pages on their
+workstations — and GitHub Pages remains the canonical site. Nothing here
+changes what Pages serves.
+
+Mirror URL: https://gtmenichino-resst-dev.share.connect.posit.cloud
+
+**Build.** `npm run build:connect` runs the same steps as `deploy.yml`
+(`validate`, `build:data`, typecheck) and then `scripts/build-connect.mjs`,
+which builds the app into `connect-cloud/` with `base: "/"`. Connect Cloud
+serves each content item at the root of its own hostname, so the Pages base
+path `/resst-dev/` must not be baked in. That is the only difference between
+the two builds: every runtime URL derives from `import.meta.env.BASE_URL`, so
+no source changes are involved, and the script refuses to finish if the Pages
+base survives in `index.html` or the bundles. `connect-cloud/` is gitignored
+and regenerated every time; `connect-cloud/.posit/` (Posit Publisher's
+configuration `publish/resst-dev-RVN2.toml`, a name its wizard chose, and its
+deployment record under `publish/deployments/`) is the only hand-maintained
+part and is preserved across rebuilds. Never edit the built files. As with
+any `build:data` run, `public/data/manifest.json` picks up a new `generated`
+timestamp; discard it unless the CSVs actually changed.
+
+One more difference is forced by Publisher: its bundler drops every file named
+`manifest.json` (the name of Posit's own bundle manifest), which left the first
+mirror answering 404 for `data/manifest.json`. The mirror build therefore
+renames that file to `data/data-manifest.json` and rewrites the single fetch
+in `src/lib/data.ts` through a build-only Vite transform; the source and the
+Pages build are unchanged. `sediment/manifest.json` is a build artifact the
+app never requests, so its absence from the mirror is harmless.
+
+**First deploy (once).** Open the repo in VS Code with Posit Publisher
+installed. Add a Posit Connect Cloud credential (Credentials → +, browser
+sign-in). Create a new deployment with entrypoint `connect-cloud/index.html`.
+The wizard writes a configuration listing only the files `index.html`
+references, which is not enough: the first attempt deployed eight files and
+the app failed with `data/sites.json: HTTP 404`. The committed configuration
+names every folder the app serves; if the wizard generates a fresh one, copy
+that `files` list into it. Before deploying, check that Project Files shows
+`index.html`, `assets/`, `data/`, `sediment/`, `overlays/`, `fonts/`, `help/`
+and the three icons as included. `validate = true` makes Publisher fetch the
+live URL at the end, and the deployment record's `files` list afterwards
+should run to well over a hundred entries. Commit `connect-cloud/.posit/**`
+so any checkout redeploys to the same content item.
+
+**Redeploy** whenever `main` changes and the mirror should follow: `git pull`,
+`npm run build:connect`, then Deploy the existing RESST mirror deployment in
+Publisher. Publisher uploads the whole bundle (about 150 MB with the overlay
+snapshots) each time.
+
+**Reading `?diag=1` on the mirror.** The `Renderer` line is the result: a
+hardware renderer on a machine where the Pages copy reports SwiftShader means
+the mirror's origin is exempt from remote browser isolation and the map runs
+at full speed there. The Network row judges h2 and compression on the mirror's
+own host; compare it with the same row on the Pages copy before reading a
+proxy into it.
+
+**Stopping the mirror.** Delete the content item in Connect Cloud and remove
+`connect-cloud/.posit/publish/deployments/`. The reference configuration can
+stay.
+
+If the first deploy shows a problem: a blank page with a module-script MIME
+refusal in the console means the host is not serving `assets/*.js` as
+JavaScript; missing map labels mean `fonts/Noto%20Sans%20Regular/…` is not
+being served (a percent-encoded space in a path segment); and if the 123 MB of
+overlay snapshots is the obstacle, the app could fetch them cross-origin from
+Pages (which sends `Access-Control-Allow-Origin: *`) through a build-time
+overlay base — not implemented.
+
 ## Local development
 
 `.claude/launch.json` starts `npm run dev` on port 5173. Playwright tests
@@ -94,4 +167,6 @@ Building GIS exports locally needs `gdal-bin`: `bash scripts/build-exports.sh`.
 
 Add the domain in the repo's Pages settings and a `CNAME` entry per GitHub's
 docs; HTTPS is provisioned automatically. Update `base` in `vite.config.ts`
-to `/` if the site moves to a domain root.
+to `/` if the site moves to a domain root — or reuse `npm run build:connect`,
+which already produces a domain-root bundle in `connect-cloud/` without
+changing the config.

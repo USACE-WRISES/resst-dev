@@ -14,3 +14,8 @@ Thumbs.db
 data/rattes/
 data/resnet/
 data/ressed/
+
+# Posit Connect Cloud test mirror, built by `npm run build:connect`. Only Posit
+# Publisher's configuration and deployment record under .posit/ are tracked.
+connect-cloud/*
+!connect-cloud/.posit/
