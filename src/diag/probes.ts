@@ -251,6 +251,91 @@ export interface BenchRun {
   error?: string;
 }
 
+/** Which Leaflet renderer drew the site markers in the DOM map trial. */
+export type DomTrialRenderer = "svg" | "canvas";
+export type DomTrialObservation = "smooth" | "choppy" | "not-judged";
+
+/** Leaflet zoom at which the trial shows labels. Leaflet's 256 px tiles put its
+    zoom one step above MapLibre's, and the app labels sites from MapLibre 6. */
+export const DOM_TRIAL_LABEL_ZOOM = 7;
+/** Permanent tooltips are DOM nodes; cap how many are shown at once. */
+export const DOM_TRIAL_LABEL_CAP = 150;
+export const DOM_TRIAL_MIN_GESTURES = 3;
+
+export interface SettleStats {
+  samples: number;
+  medianMs: number;
+  maxMs: number;
+}
+
+/** Statistics over settle samples (moveend to the next painted frame). */
+export function settleStats(samples: readonly number[]): SettleStats | null {
+  const t = samples.filter((d) => Number.isFinite(d) && d >= 0).sort((a, b) => a - b);
+  if (t.length === 0) return null;
+  return { samples: t.length, medianMs: Math.round(percentile(t, 0.5)), maxMs: Math.round(t[t.length - 1]) };
+}
+
+export interface DomTrialRun {
+  renderer: DomTrialRenderer;
+  gestures: number;
+  /** rAF cadence sampled only while a gesture was in flight. */
+  raf: FrameStats | null;
+  /** moveend to double-rAF paint: the cost of re-projecting the layers. */
+  settle: SettleStats | null;
+  observation: DomTrialObservation;
+}
+
+/**
+ * The opt-in Leaflet trial: image tiles plus the app's site markers drawn as
+ * DOM (SVG) or canvas circles. Under remote browser isolation the page's rAF
+ * loop runs in the cloud browser, so the fps figures describe that machine,
+ * not what the user sees; the user's Smooth/Choppy answer is the verdict.
+ */
+export interface DomTrial {
+  loadMs: number | null;
+  loadTimedOut: boolean;
+  markers: number;
+  labelCap: number;
+  /** One entry per renderer tried, in the order tried. */
+  runs: DomTrialRun[];
+  error?: string;
+}
+
+const rendererLabel = (r: DomTrialRenderer) => (r === "svg" ? "SVG" : "canvas");
+
+function describeRun(run: DomTrialRun): string {
+  const feel =
+    run.observation === "smooth" ? "felt smooth" : run.observation === "choppy" ? "felt choppy" : "not judged";
+  const raf = run.raf ? `${run.raf.fps} fps during gestures` : "no frames measured";
+  const settle = run.settle
+    ? `settle median ${run.settle.medianMs} ms / max ${run.settle.maxMs} ms`
+    : "no settle measured";
+  return `${rendererLabel(run.renderer)} markers ${feel} (${run.gestures} gestures, ${raf}, ${settle})`;
+}
+
+/**
+ * One verdict line with a stable prefix. The judgment follows the SVG run when
+ * it was judged (that is how the app's sites layer would be drawn), otherwise
+ * the canvas run. Smooth means GO and choppy means NO-GO whatever the numbers
+ * say — see DomTrial.
+ */
+export function judgeDomTrial(t: DomTrial | null): string {
+  if (!t) return "DOM map trial: not run.";
+  if (t.error) return `DOM map trial: FAILED — ${t.error}`;
+  const judged = t.runs.filter((r) => r.observation !== "not-judged");
+  if (judged.length === 0) {
+    const gestures = t.runs.reduce((s, r) => s + r.gestures, 0);
+    return (
+      `DOM map trial: not judged (${gestures} gestures so far; ` +
+      `needs ${DOM_TRIAL_MIN_GESTURES} and a Smooth/Choppy answer).`
+    );
+  }
+  const lead = judged.find((r) => r.renderer === "svg") ?? judged[0];
+  const verdict = lead.observation === "smooth" ? "GO" : "NO-GO";
+  const rest = t.runs.filter((r) => r !== lead && (r.gestures > 0 || r.observation !== "not-judged"));
+  return `DOM map trial: ${verdict} — ${[lead, ...rest].map(describeRun).join("; ")}`;
+}
+
 export interface DiagReport {
   generatedAt: string;
   url: string;
@@ -274,6 +359,8 @@ export interface DiagReport {
   hosts: HostTiming[];
   proxy: ProxySignals;
   reach: ReachResult[];
+  /** Null until the user opts into the Leaflet trial after the automatic run. */
+  domTrial: DomTrial | null;
 }
 
 /** Verdict lines derived from the numbers, so a pasted report interprets itself. */
@@ -338,6 +425,10 @@ export function summarize(r: DiagReport): string[] {
   const blocked = r.reach.filter((x) => !x.ok).map((x) => x.host);
   if (blocked.length) out.push(`Unreachable hosts: ${blocked.join(", ")}.`);
   if (out.length === 0) out.push("No blocking problem detected in this run.");
+  // The trial is a separate, opt-in experiment about a DIFFERENT rendering
+  // path, so its verdict follows the automatic run's rather than replacing it.
+  const t = r.domTrial;
+  if (t && (t.error || t.runs.some((x) => x.observation !== "not-judged"))) out.push(judgeDomTrial(t));
   return out;
 }
 
@@ -406,6 +497,40 @@ export function formatReport(r: DiagReport): string {
   L.push("| Host | Result | ms |");
   L.push("|---|---|---:|");
   for (const x of r.reach) L.push(`| ${x.host} | ${x.ok ? "ok" : `FAILED — ${x.detail}`} | ${x.ms} |`);
+  L.push("");
+  L.push("## DOM map trial", "");
+  const t = r.domTrial;
+  if (!t) {
+    L.push(
+      '- Not run (opt-in: after the automatic run finishes, press Start under "DOM map trial", drag and zoom, answer Smooth or Choppy).',
+    );
+  } else {
+    L.push(`- ${judgeDomTrial(t)}`);
+    const load = t.loadMs == null ? "n/a" : t.loadTimedOut ? `${t.loadMs} ms (timed out)` : `${t.loadMs} ms`;
+    L.push(`- Tiles first load: ${load}`);
+    L.push(
+      `- Markers: ${t.markers} circle markers; labels for up to ${t.labelCap} in-view markers at zoom >= ${DOM_TRIAL_LABEL_ZOOM}`,
+    );
+    L.push("");
+    L.push("| Renderer | Gestures | Frames | FPS | Median ms | p90 | Worst | Settle median ms | Settle max ms | Judged |");
+    L.push("|---|---:|---:|---:|---:|---:|---:|---:|---:|---|");
+    for (const run of t.runs) {
+      const judged = run.observation === "not-judged" ? "not judged" : run.observation;
+      const settleMed = run.settle ? String(run.settle.medianMs) : "n/a";
+      const settleMax = run.settle ? String(run.settle.maxMs) : "n/a";
+      if (!run.raf) {
+        L.push(
+          `| ${rendererLabel(run.renderer)} | ${run.gestures} | no frames measured | | | | | ${settleMed} | ${settleMax} | ${judged} |`,
+        );
+        continue;
+      }
+      const s = run.raf;
+      L.push(
+        `| ${rendererLabel(run.renderer)} | ${run.gestures} | ${s.frames} | ${s.fps} | ${s.medianMs} | ${s.p90Ms} | ` +
+          `${s.worstMs} | ${settleMed} | ${settleMax} | ${judged} |`,
+      );
+    }
+  }
   L.push("");
   return L.join("\n");
 }

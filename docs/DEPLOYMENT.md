@@ -67,6 +67,7 @@ What it measures, and how to read it:
 | WebGL context matrix | Eight context configurations (`webgl2`/`webgl` × three power preferences, ± `failIfMajorPerformanceCaveat`). If any row reports `hardware`, MapLibre can be pinned to it via `canvasContextAttributes`. If all eight are `software`, no app-side setting can recover the GPU. |
 | Render benchmark | Four fixed camera circuits. Healthy machines land in the low tens of milliseconds per frame; a software rasterizer sits near 215 ms. Frame cost that does **not** change between the 2-layer raster basemap and the 396-layer vector one means the bottleneck is not the app's workload. |
 | Network | Same-origin rows expose `nextHopProtocol` and encoded-vs-decoded size, so an `http/1.1` downgrade or stripped compression identifies a TLS-inspecting proxy. Cross-origin tile rows are opaque by design — only their durations are meaningful. |
+| DOM map trial | Opt-in, after "Finished.". A Leaflet map (image tiles, the 963 site markers as SVG circles, labels from zoom 7) with an SVG/Canvas marker toggle. Drag and zoom for about 20 s per renderer and answer Smooth or Choppy. The fps and settle figures are supporting evidence; the answer is the verdict (`DOM map trial: GO` or `NO-GO`), because under remote browser isolation the page's frame loop runs in the cloud browser, not on the screen in front of the user. |
 
 Note that `chrome://gpu` reporting "WebGL: Hardware accelerated" does **not**
 settle the question: that line describes the compositor, and an individual page
@@ -144,6 +145,19 @@ the mirror's origin is exempt from remote browser isolation and the map runs
 at full speed there. The Network row judges h2 and compression on the mirror's
 own host; compare it with the same row on the Pages copy before reading a
 proxy into it.
+
+**The DOM map trial on the mirror.** This is the test that decides whether a
+DOM-rendered "Compatibility" map mode is worth building for machines under
+remote browser isolation. On the affected workstation, in Chrome and again in
+Edge: open the mirror's `?diag=1`, wait for "Finished.", press **Start DOM map
+trial**, drag and wheel-zoom for about 20 seconds (zoom into Kansas until the
+site labels appear), answer **Smooth** or **Choppy**, switch to **Canvas
+markers**, repeat, then **Copy report**. Reading: `DOM map trial: GO` with SVG
+markers smooth means a DOM map works there; both renderers choppy means stop,
+the only fix is the CBII bypass or `.mil` hosting described in the IT report;
+SVG choppy but canvas smooth means a DOM mode is possible with the site
+markers on canvas; SVG smooth but canvas choppy means keep heavy layers off
+canvas in such a mode.
 
 **Stopping the mirror.** Delete the content item in Connect Cloud and remove
 `connect-cloud/.posit/publish/deployments/`. The reference configuration can

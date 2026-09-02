@@ -72,3 +72,49 @@ test("the query flag does not leak into the normal app path", async ({ page }) =
   await expect(page.getByRole("heading", { name: "RESST performance diagnostics" })).toHaveCount(0);
   await page.waitForFunction(() => !!(window as unknown as { __resstMap?: unknown }).__resstMap);
 });
+
+test("DOM map trial mounts Leaflet and records the judgment", async ({ page }) => {
+  // The automatic run (30-40 s) has to finish before the trial is offered.
+  test.slow();
+  await page.goto("?diag=1");
+  await expect(page.getByTestId("diag-status")).toHaveText("Finished.", { timeout: 120_000 });
+  await expect(page.getByTestId("diag-markdown")).toContainText("## DOM map trial");
+  await expect(page.getByTestId("diag-markdown")).toContainText("Not run");
+
+  await page.getByTestId("diag-domtrial-start").click();
+  const map = page.getByTestId("diag-domtrial-map");
+  await expect(map).toHaveClass(/leaflet-container/);
+  // Every marker is an SVG path, on screen or not.
+  await expect
+    .poll(() => page.locator(".leaflet-overlay-pane path").count(), { timeout: 15_000 })
+    .toBeGreaterThanOrEqual(900);
+
+  await map.scrollIntoViewIfNeeded();
+  const b = (await map.boundingBox())!;
+  const cx = b.x + b.width / 2;
+  const cy = b.y + b.height / 2;
+  const stats = page.getByTestId("diag-domtrial-stats");
+  for (let i = 1; i <= 3; i += 1) {
+    await page.mouse.move(cx, cy);
+    await page.mouse.down();
+    // Past Leaflet's 3 px click tolerance; alternate so the map stays near CONUS.
+    await page.mouse.move(cx + (i % 2 ? 120 : -120), cy + 30, { steps: 12 });
+    // Pause longer than Leaflet's 50 ms inertia window so moveend fires on mouseup.
+    await page.waitForTimeout(80);
+    await page.mouse.up();
+    await expect(stats).toContainText(`Gestures: ${i}`, { timeout: 10_000 });
+  }
+
+  await page.getByTestId("diag-domtrial-smooth").click();
+  await expect(page.getByTestId("diag-domtrial-result")).toContainText("DOM map trial: GO");
+  // The judgment reaches the verdict list and the copyable report. Never
+  // assert bare "GO": "NO-GO" contains it.
+  await expect(page.getByTestId("diag-verdict")).toContainText("DOM map trial: GO");
+  await expect(page.getByTestId("diag-markdown")).toContainText("DOM map trial: GO");
+
+  // Switching renderers rebuilds the markers on one canvas and drops the SVG paths.
+  await page.getByTestId("diag-domtrial-renderer-canvas").click();
+  await expect(page.locator(".leaflet-overlay-pane canvas")).toHaveCount(1);
+  await expect(page.locator(".leaflet-overlay-pane path")).toHaveCount(0);
+  await expect(stats).toContainText("Gestures: 0");
+});

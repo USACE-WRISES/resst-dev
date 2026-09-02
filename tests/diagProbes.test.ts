@@ -5,15 +5,20 @@ import { describe, expect, it } from "vitest";
 import {
   classifyRenderer,
   detectProxySignals,
+  DOM_TRIAL_MIN_GESTURES,
   formatReport,
   frameStats,
+  judgeDomTrial,
   percentile,
+  settleStats,
   summarize,
   summarizeContextMatrix,
   summarizeTimings,
   type BenchRun,
   type ContextProbe,
   type DiagReport,
+  type DomTrial,
+  type DomTrialRun,
   type HostTiming,
 } from "../src/diag/probes";
 
@@ -194,6 +199,7 @@ const baseReport = (over: Partial<DiagReport> = {}): DiagReport => ({
   hosts: [],
   proxy: { protocolDowngrade: false, compressionStripped: false, notes: [] },
   reach: [],
+  domTrial: null,
   ...over,
 });
 
@@ -383,5 +389,140 @@ describe("formatReport", () => {
     expect(md).toContain("- CPU threads: unavailable");
     expect(md).toContain("- Device memory: unavailable");
     expect(md).toContain("- Renderer: masked");
+  });
+});
+
+// The opt-in Leaflet trial. Its verdict is the user's Smooth/Choppy answer:
+// under remote browser isolation the rAF numbers describe the cloud browser,
+// not the screen in front of the user.
+const trialRun = (over: Partial<DomTrialRun> = {}): DomTrialRun => ({
+  renderer: "svg",
+  gestures: 5,
+  raf: frameStats([16, 17, 16, 18, 16], 83),
+  settle: { samples: 5, medianMs: 12, maxMs: 40 },
+  observation: "not-judged",
+  ...over,
+});
+const trial = (over: Partial<DomTrial> = {}): DomTrial => ({
+  loadMs: 412,
+  loadTimedOut: false,
+  markers: 963,
+  labelCap: 150,
+  runs: [trialRun()],
+  ...over,
+});
+
+describe("settleStats", () => {
+  it("returns null with no samples", () => {
+    expect(settleStats([])).toBeNull();
+  });
+
+  it("reports median and max, ignoring non-finite samples", () => {
+    expect(settleStats([40, 10, 12, NaN, 11])).toEqual({ samples: 4, medianMs: 12, maxMs: 40 });
+  });
+});
+
+describe("judgeDomTrial", () => {
+  it("says so when the trial was never started", () => {
+    expect(judgeDomTrial(null)).toBe("DOM map trial: not run.");
+  });
+
+  it("reports a failed trial as a finding", () => {
+    const out = judgeDomTrial(trial({ runs: [], error: "sites.json: HTTP 404" }));
+    expect(out).toMatch(/^DOM map trial: FAILED/);
+    expect(out).toContain("HTTP 404");
+  });
+
+  it("withholds a verdict until the user answers, naming the gesture count", () => {
+    const out = judgeDomTrial(trial({ runs: [trialRun({ gestures: 2 })] }));
+    expect(out).toMatch(/^DOM map trial: not judged/);
+    expect(out).toContain("2 gestures");
+    expect(out).toContain(`needs ${DOM_TRIAL_MIN_GESTURES}`);
+  });
+
+  it("is GO on a Smooth answer even when the measured frame rate is terrible", () => {
+    const out = judgeDomTrial(
+      trial({ runs: [trialRun({ observation: "smooth", raf: frameStats([216, 215, 217], 648) })] }),
+    );
+    expect(out).toMatch(/^DOM map trial: GO/);
+    expect(out).toContain("SVG markers felt smooth");
+  });
+
+  it("is NO-GO on a Choppy answer even at 60 fps", () => {
+    expect(judgeDomTrial(trial({ runs: [trialRun({ observation: "choppy" })] }))).toMatch(/^DOM map trial: NO-GO/);
+  });
+
+  it("follows the SVG run when both were judged and describes both", () => {
+    const out = judgeDomTrial(
+      trial({ runs: [trialRun({ observation: "choppy" }), trialRun({ renderer: "canvas", observation: "smooth" })] }),
+    );
+    expect(out).toMatch(/^DOM map trial: NO-GO/);
+    expect(out).toContain("SVG markers felt choppy");
+    expect(out).toContain("canvas markers felt smooth");
+  });
+
+  it("follows the canvas run when only that one was judged", () => {
+    const out = judgeDomTrial(
+      trial({ runs: [trialRun({ gestures: 1 }), trialRun({ renderer: "canvas", observation: "smooth" })] }),
+    );
+    expect(out).toMatch(/^DOM map trial: GO/);
+    expect(out).toContain("canvas markers felt smooth");
+  });
+
+  it("prints missing measurements honestly", () => {
+    const out = judgeDomTrial(trial({ runs: [trialRun({ observation: "smooth", raf: null, settle: null })] }));
+    expect(out).toContain("no frames measured");
+    expect(out).toContain("no settle measured");
+  });
+});
+
+describe("summarize with a DOM map trial", () => {
+  it("stays silent about a trial that was not run or not judged", () => {
+    expect(summarize(baseReport({ domTrial: null }))).toEqual(["No blocking problem detected in this run."]);
+    expect(summarize(baseReport({ domTrial: trial() }))).toEqual(["No blocking problem detected in this run."]);
+  });
+
+  it("appends the trial verdict after the automatic run's own verdict", () => {
+    const out = summarize(baseReport({ domTrial: trial({ runs: [trialRun({ observation: "smooth" })] }) }));
+    expect(out[0]).toBe("No blocking problem detected in this run.");
+    expect(out[1]).toMatch(/^DOM map trial: GO/);
+  });
+
+  it("surfaces a failed trial", () => {
+    const out = summarize(baseReport({ domTrial: trial({ runs: [], error: "chunk failed" }) }));
+    expect(out.at(-1)).toMatch(/^DOM map trial: FAILED/);
+  });
+});
+
+describe("formatReport DOM map trial section", () => {
+  it("always has the section, explaining how to opt in when it was not run", () => {
+    const md = formatReport(baseReport());
+    expect(md).toContain("## DOM map trial");
+    expect(md).toContain("Not run");
+  });
+
+  it("tabulates one row per renderer with the judgment", () => {
+    const md = formatReport(
+      baseReport({
+        domTrial: trial({
+          runs: [
+            trialRun({ observation: "smooth" }),
+            trialRun({ renderer: "canvas", gestures: 0, raf: null, settle: null }),
+          ],
+        }),
+      }),
+    );
+    expect(md).toContain("- DOM map trial: GO");
+    expect(md).toContain("- Tiles first load: 412 ms");
+    expect(md).toContain("- Markers: 963 circle markers");
+    expect(md).toContain("| SVG | 5 | 5 |");
+    expect(md).toContain("| 12 | 40 | smooth |");
+    expect(md).toContain("| canvas | 0 | no frames measured |");
+    expect(md).toContain("| n/a | n/a | not judged |");
+  });
+
+  it("marks a timed-out tile load", () => {
+    const md = formatReport(baseReport({ domTrial: trial({ loadMs: 15000, loadTimedOut: true }) }));
+    expect(md).toContain("- Tiles first load: 15000 ms (timed out)");
   });
 });

@@ -12,6 +12,8 @@ import {
   fetchEsriTopoStyle,
   fixupEsriStyle,
   mergeAppLayers,
+  USGS_TOPO_ATTRIBUTION,
+  USGS_TOPO_TILES,
 } from "../src/map/basemaps";
 import { actions, DEFAULT_BASEMAP, getState, parseBasemapId, subscribe } from "../src/state/store";
 
@@ -103,6 +105,16 @@ describe("buildUsgsStyle", () => {
     expect(s.glyphs).toBe("glyphs://x/{fontstack}/{range}.pbf");
     expect(Object.keys(s.sources)).toEqual(["usgsTopo"]);
     expect(s.layers.map((l) => l.id)).toEqual(["background", "usgs-topo"]);
+  });
+
+  it("draws its tiles from the shared USGS definition the diagnostics trial also uses", () => {
+    const src = buildUsgsStyle("glyphs://x/{fontstack}/{range}.pbf").sources.usgsTopo as {
+      tiles: string[];
+      attribution: string;
+    };
+    expect(src.tiles).toEqual([USGS_TOPO_TILES]);
+    expect(src.attribution).toBe(USGS_TOPO_ATTRIBUTION);
+    expect(USGS_TOPO_TILES).toMatch(/^https:\/\/basemap\.nationalmap\.gov\/.*\{z\}\/\{y\}\/\{x\}$/);
   });
 });
 
