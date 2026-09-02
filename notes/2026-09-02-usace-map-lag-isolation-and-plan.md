@@ -415,6 +415,15 @@ report, shared `USGS_TOPO_TILES` / `USGS_TOPO_ATTRIBUTION` in `src/map/basemaps.
 `fetchSitePoints` with site names, unit and e2e tests, DEPLOYMENT.md rows and the reading protocol.
 Plan file: `C:\Users\gtmen\.claude\plans\review-and-pick-back-playful-sunrise.md`.
 
-Pending: the owner rebuilds (`npm run build:connect`) and deploys the mirror with Publisher, then runs
-"The DOM map trial on the mirror" in DEPLOYMENT.md on a USACE laptop in Chrome and Edge. The pasted
-report's `DOM map trial:` line decides Stage B1.
+**Readout (2026-09-02, USACE laptop, mirror `?diag=1`):**
+`DOM map trial: GO — SVG markers felt smooth (55 gestures, 4 fps during gestures, settle median 344 ms /
+max 438 ms); canvas markers felt smooth (56 gestures, 3.8 fps during gestures, settle median 326 ms /
+max 422 ms)`.
+
+Reading: **GO for Stage B1** with SVG site markers, and Leaflet canvas layers (CSS-transformed during
+gestures, redrawn once at settle) are viable too, so B2's national-layer-on-canvas design holds. The
+numbers are the isolation fingerprint from a second angle: the page's own frame loop ran at ~4 fps
+(the ~250 ms streaming cadence, in the cloud browser) while the user saw the mirrored DOM move at local
+refresh and judged it smooth. Under the WebGL map the same cadence is what the user sees. Budget for
+Stage B: each settle costs ~340 ms of remote work before the mirrored DOM updates, so keep per-`moveend`
+DOM work small (diffed labels, culled layers) and do nothing on `move`.
