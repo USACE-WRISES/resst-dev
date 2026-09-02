@@ -10,6 +10,9 @@ const ROOT_ROUTE = /cdn\.arcgis\.com\/.+\/styles\/root\.json/;
 const SPRITE_ROUTE = /cdn\.arcgis\.com\/.+\/sprites\/sprite/;
 const ESRI_PBF_ROUTE = /basemaps\.arcgis\.com\/.+\.pbf/;
 const HILLSHADE_ROUTE = /services\.arcgisonline\.com\/.+\/World_Hillshade\//;
+// The Leaflet map's Esri basemap is the raster World Topographic Map; stubbed
+// here too so a spec stays hermetic whichever engine it lands on.
+const WORLD_TOPO_ROUTE = /services\.arcgisonline\.com\/.+\/World_Topo_Map\//;
 
 // Served as root.json — exercises the VectorTileServer url→tiles rewrite
 // (the .pbf requests below prove it) and the "/../" sprite normalization.
@@ -69,6 +72,7 @@ export async function stubEsri(page: Page, opts: { failRoot?: boolean } = {}): P
     route.fulfill({ body: Buffer.alloc(0), contentType: "application/x-protobuf" }),
   );
   await page.route(HILLSHADE_ROUTE, (route) => route.fulfill({ body: PNG_1PX, contentType: "image/png" }));
+  await page.route(WORLD_TOPO_ROUTE, (route) => route.fulfill({ body: PNG_1PX, contentType: "image/png" }));
   return {
     rootCalls: () => root,
     setFailRoot: (f: boolean) => {

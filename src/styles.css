@@ -822,3 +822,26 @@ button { font: inherit; color: inherit; }
 .basemap-error { color: #b3261e; }
 .basemap-error span { flex: 1 1 auto; min-width: 0; }
 .basemap-error .ov-retry { flex: 0 0 auto; padding: 3px 10px; color: var(--ink); }
+
+/* ---- Leaflet map (the transition engine; src/map/engine.ts) ----
+   Leaflet mounts INTO .map-panel, which becomes .leaflet-container. z-index 0
+   makes it a stacking context, so Leaflet's panes (200-700) and control
+   corners (1000) stay beneath .map-toolbar (z 5) and the popovers (z 8). */
+.map-panel.leaflet-container { z-index: 0; background: #e8ede9; font: inherit; }
+.map-panel.leaflet-container a { color: inherit; }
+.map-panel.leaflet-container .leaflet-control-zoom a { color: #000; }
+/* The React basemap picker lives in Leaflet's control stack: match its 30px bar. */
+.map-panel.leaflet-container .basemap-trigger { width: 30px; height: 30px; }
+.map-panel .leaflet-tooltip.site-label,
+.map-panel .leaflet-tooltip.network-label {
+  background: transparent; border: 0; box-shadow: none; padding: 0; white-space: nowrap;
+  color: #0044ff; font: 600 11px/1.2 "Noto Sans", Arial, sans-serif;
+  text-shadow: 1px 1px 0 #f7f7f7, -1px -1px 0 #f7f7f7, 1px -1px 0 #f7f7f7, -1px 1px 0 #f7f7f7;
+}
+.map-panel .leaflet-tooltip.network-label { color: #0b3954; }
+.map-panel .leaflet-tooltip.site-label::before,
+.map-panel .leaflet-tooltip.network-label::before { display: none; }
+.map-panel .leaflet-popup-content-wrapper { border-radius: 6px; }
+.map-panel .leaflet-popup-content { margin: 10px 12px; font: inherit; line-height: 1.35; }
+.dom-place-marker { background: none; border: 0; }
+.dom-place-marker svg { display: block; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35)); }
