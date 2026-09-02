@@ -64,6 +64,14 @@ export const USGS_TOPO_TILES =
 export const USGS_TOPO_ATTRIBUTION =
   "USGS The National Map: National Boundaries Dataset, 3DEP Elevation Program, Geographic Names Information System, National Hydrography Dataset, National Land Cover Database, National Structures Dataset, and National Transportation Dataset";
 
+/** Esri's raster World Topographic Map: the Leaflet map's stand-in for the
+    vector Esri style, which needs WebGL. The attribution is the service's
+    copyrightText (…/World_Topo_Map/MapServer?f=json, read 2026-09-02). */
+export const ESRI_TOPO_RASTER_TILES =
+  "https://services.arcgisonline.com/arcgis/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}";
+export const ESRI_TOPO_RASTER_ATTRIBUTION =
+  "Sources: Esri, HERE, Garmin, Intermap, increment P Corp., GEBCO, USGS, FAO, NPS, NRCAN, GeoBase, IGN, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), (c) OpenStreetMap contributors, and the GIS User Community";
+
 export function buildUsgsStyle(glyphs?: string): StyleSpecification {
   return {
     version: 8,

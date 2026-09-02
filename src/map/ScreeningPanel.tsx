@@ -14,6 +14,7 @@ import { exportCsv } from "../utils/exporters";
 import { M3_PER_ACFT, FLAG } from "../sediment/types";
 import { mapCommands } from "./mapBus";
 import { useDismissPopover } from "./useDismissPopover";
+import type { MapEngine } from "./engine";
 
 const PCT_CHOICES = [10, 25, 50];
 const STORAGE_CHOICES = [1000, 10000, 100000, 1000000];
@@ -49,7 +50,17 @@ function Segmented({
   );
 }
 
-export function ScreeningPanel({ state, siteByShortId }: { state: AppState; siteByShortId: Map<number, string> }) {
+export function ScreeningPanel({
+  state,
+  siteByShortId,
+  engine = "maplibre",
+}: {
+  state: AppState;
+  siteByShortId: Map<number, string>;
+  /** Screening filters the national layer, which the Leaflet map does not draw yet. */
+  engine?: MapEngine;
+}) {
+  const unavailable = engine === "leaflet";
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useDismissPopover(open, ref, () => setOpen(false));
@@ -58,10 +69,10 @@ export function ScreeningPanel({ state, siteByShortId }: { state: AppState; site
   // Opening the panel implies working with the national layer (precedent: the
   // HUC Select tools auto-enable their boundary overlay).
   useEffect(() => {
-    if (!open) return;
+    if (!open || unavailable) return;
     if (!state.nationalLayer.on) actions.setNationalLayer(true);
     void ensureCore().catch(() => {});
-  }, [open, state.nationalLayer.on]);
+  }, [open, unavailable, state.nationalLayer.on]);
 
   const core = getCore();
   const documentedIds = new Set(siteByShortId.keys());
@@ -123,6 +134,8 @@ export function ScreeningPanel({ state, siteByShortId }: { state: AppState; site
         className={open ? "map-tool active" : "map-tool"}
         aria-expanded={open}
         aria-label={s.active ? "Screening (active: criteria are filtering the national layer)" : "Screening"}
+        disabled={unavailable}
+        title={unavailable ? "Not yet available in the Leaflet map" : undefined}
         onClick={() => setOpen(!open)}
       >
         Screening{s.active ? " ●" : ""} ▾

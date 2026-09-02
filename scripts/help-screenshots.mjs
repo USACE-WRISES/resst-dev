@@ -42,6 +42,16 @@ const mapSettled = (page) =>
 
 const openApp = async (browser) => {
   const page = await browser.newPage({ viewport: VIEW });
+  // Headless Chromium draws WebGL on SwiftShader; the app's engine rule would
+  // open the Leaflet map and mapSettled (which waits on the MapLibre handle)
+  // would never resolve. The shots depict the MapLibre map.
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem("resst.mapEngine", "maplibre");
+    } catch {
+      /* ignore */
+    }
+  });
   await page.goto(BASE);
   await page.getByRole("button", { name: "OK" }).click();
   await mapSettled(page);

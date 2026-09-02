@@ -7,6 +7,14 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:4173/resst-dev/",
     viewport: { width: 1440, height: 900 },
+    // Headless Chromium renders WebGL on SwiftShader, which the app's engine
+    // rule (src/map/engine.ts) would read as "use the Leaflet map". Pin the
+    // MapLibre engine for the suite; dom-map.spec.ts overrides this per file.
+    // The origin carries no path: storage is per origin, not per baseURL.
+    storageState: {
+      cookies: [],
+      origins: [{ origin: "http://localhost:4173", localStorage: [{ name: "resst.mapEngine", value: "maplibre" }] }],
+    },
   },
   webServer: {
     // Test against the production build, served the way Pages serves it.

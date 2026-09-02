@@ -427,3 +427,27 @@ numbers are the isolation fingerprint from a second angle: the page's own frame 
 refresh and judged it smooth. Under the WebGL map the same cadence is what the user sees. Budget for
 Stage B: each settle costs ~340 ms of remote work before the mirrored DOM updates, so keep per-`moveend`
 DOM work small (diffed labels, culled layers) and do nothing on `move`.
+
+## 12. Decision: Leaflet replaces MapLibre (2026-09-02, later the same day)
+
+Asked whether to keep two engines, the owner chose one: Leaflet becomes the only interactive map, in
+three phases so the site never regresses (plan file `review-and-pick-back-playful-sunrise.md`, section
+"Phases"). Phase 1 is built and committed locally: `src/map/dom/DomMapPanel.tsx` behind the existing
+props/MapCommands contract (basemaps incl. Esri's raster World Topographic tiles, sites, selection
+rings, greedy-collision labels, popups, place marker, all 11 commands, network highlight + NLDI basin,
+all eight reference overlays through an `OverlaySink` split of overlays.ts, all four Select tools
+through a `ToolMap` seam). Engine choice per load: `?map=` > `localStorage resst.mapEngine` >
+software-WebGL -> Leaflet. Not yet on Leaflet: the national layer and Screening (Phase 2). Tests:
+`tests/e2e/dom-map.spec.ts` (12 tests) + unit tests for the pure parts; the rest of the suite is
+pinned to MapLibre by `playwright.config.ts` storageState.
+
+Reviewer facts worth keeping: MapLibre's box query buffered by circle-radius + stroke (6.5 px) with
+disc distance, so `sitesInScreenBox` does the same and both engines share it; Leaflet substitutes a
+circle marker's centre for `e.latlng` on marker-targeted events, so the Leaflet adapter reads the
+pointer from `mouseEventToLatLng(e.originalEvent)`; the crosshair cursor must be Leaflet's own
+`leaflet-crosshair` class (an inline cursor loses to marker paths); `.map-panel.leaflet-container`
+needs `z-index: 0` so Leaflet's panes and control corners stay under the app toolbar.
+
+Next: owner deploys the mirror and checks the Leaflet map on the USACE laptop (it loads by itself
+there; `?map=maplibre` for comparison); then Phase 2 (national layer + Screening), then Phase 3
+(remove MapLibre except the report snapshot, rewrite the `__resstMap` specs).

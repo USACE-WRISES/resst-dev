@@ -3,6 +3,8 @@
 // the page collects raw numbers from the browser, these functions turn them
 // into the comparable report a user pastes back from a locked-down machine.
 
+import type { RenderClass } from "../lib/renderClass";
+
 /** One measured interaction run. `deltas` are per-frame gaps in ms. */
 export interface FrameStats {
   frames: number;
@@ -46,20 +48,10 @@ export function frameStats(deltas: readonly number[], wallMs: number): FrameStat
   };
 }
 
-export type RenderClass = "hardware" | "software" | "unknown";
-
-// Chrome names its CPU fallbacks in the unmasked renderer string, and ANGLE
-// wraps them: "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device ...))". Match
-// on substrings, never equality.
-const SOFTWARE_MARKERS = ["swiftshader", "llvmpipe", "softpipe", "basic render", "software"];
-
-/** Classify a WEBGL_debug_renderer_info string. Null or empty means masked. */
-export function classifyRenderer(renderer: string | null | undefined): RenderClass {
-  if (!renderer) return "unknown";
-  const s = renderer.toLowerCase();
-  if (SOFTWARE_MARKERS.some((m) => s.includes(m))) return "software";
-  return "hardware";
-}
+// The renderer classifier lives in src/lib so the map engine choice can use
+// it without pulling this module into the main bundle; re-exported here for
+// the collectors and the tests.
+export { classifyRenderer, type RenderClass } from "../lib/renderClass";
 
 /** The subset of PerformanceResourceTiming this report reads. */
 export interface TimingLike {

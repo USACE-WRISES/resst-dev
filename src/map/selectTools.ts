@@ -1,4 +1,4 @@
-// The map Select tool sessions. MapPanel arms a tool by running
+// The map Select tool sessions. The map panel arms a tool by running
 // startSelectSession inside an effect keyed on state.mapTool; the returned
 // cleanup (effect teardown = Esc, Cancel/Done, one-shot completion, mode
 // switch, unmount) removes listeners, aborts in-flight queries, clears the
@@ -8,13 +8,17 @@
 // — river instead enters a refine stage ended by Done/Esc), Shift at the
 // completing gesture ADDS to the current selection, zero hits keep the tool
 // armed with a hint message, and Esc never reverts an applied selection.
+//
+// Engine-free: the map is reached only through the ToolMap seam (toolMap.ts),
+// which both the MapLibre and the Leaflet panels implement.
 
-import type { GeoJSONSource, Map as MlMap, MapMouseEvent } from "maplibre-gl";
 import type { Feature, FeatureCollection, Position } from "geojson";
 import { actions, getState, type MapTool } from "../state/store";
 import type { Site } from "../lib/types";
 import { getHucIndex, getStaticOverlayFC } from "./overlays";
 import { findHucAt, riverPartsByName, wrapLon } from "./localQueries";
+import { sitesInScreenBox } from "./sitesInScreenBox";
+import type { ToolMap, ToolMapEvent } from "./toolMap";
 import {
   corridorOf,
   metersPerPixel,
@@ -39,20 +43,17 @@ export interface RiverPick {
 }
 
 export interface SessionCtx {
-  map: MlMap;
-  container: HTMLDivElement;
+  map: ToolMap;
   /** The .select-box rubber-band div (box mode only). */
   boxEl: HTMLDivElement;
   /** Filtered sites currently on the map — the tools respect active filters. */
   sites: () => Site[];
   setMsg: (m: ToolMsg | null) => void;
   riverRef: { current: RiverPick | null };
-  /** Handshake with MapPanel's selection effect: a completing gesture sets
+  /** Handshake with the panel's selection effect: a completing gesture sets
    * this so its own selectSites doesn't clear the highlight it just drew. */
   keepHighlightRef: { current: boolean };
 }
-
-const EMPTY_FC: FeatureCollection = { type: "FeatureCollection", features: [] };
 
 /* The hint bar's polygon Finish button reaches the live session through this
  * registry (the mapBus pattern — the session is imperative, not React). */
@@ -60,10 +61,10 @@ let sessionCommands: { finish?: () => void } | null = null;
 export const selectSessionCommands = (): { finish?: () => void } | null => sessionCommands;
 
 export function startSelectSession(tool: Exclude<MapTool, "none">, ctx: SessionCtx): () => void {
-  // Shift+drag is ours while armed (additive select) — keep maplibre's
+  // Shift+drag is ours while armed (additive select) — keep the engine's
   // boxZoom from claiming it. Restored on teardown.
-  ctx.map.boxZoom.disable();
-  ctx.map.getCanvas().style.cursor = "crosshair";
+  ctx.map.setBoxZoom(false);
+  ctx.map.setCrosshair(true);
   const onEsc = (e: KeyboardEvent) => {
     if (e.key === "Escape") actions.setMapTool("none");
   };
@@ -76,8 +77,8 @@ export function startSelectSession(tool: Exclude<MapTool, "none">, ctx: SessionC
   return () => {
     try {
       stop();
-      ctx.map.boxZoom.enable();
-      ctx.map.getCanvas().style.cursor = "";
+      ctx.map.setBoxZoom(true);
+      ctx.map.setCrosshair(false);
     } catch {
       /* app teardown order: the map may already be removed */
     }
@@ -88,8 +89,8 @@ export function startSelectSession(tool: Exclude<MapTool, "none">, ctx: SessionC
 }
 
 /** Filtered sites matching `test`, skipping records without coordinates. The
- * ±360 retries cover maplibre's unwrapped longitudes (a shape drawn on a
- * wrapped world copy) — the dataset itself spans lon −158…+177. */
+ * ±360 retries cover unwrapped longitudes (a shape drawn on a wrapped world
+ * copy) — the dataset itself spans lon −158…+177. */
 function matchSites(sites: Site[], test: (p: Pt) => boolean): string[] {
   const out: string[] = [];
   for (const s of sites) {
@@ -101,39 +102,43 @@ function matchSites(sites: Site[], test: (p: Pt) => boolean): string[] {
   return out;
 }
 
-function setHighlight(map: MlMap, f: Feature | null): void {
-  (map.getSource("ov-select") as GeoJSONSource | undefined)?.setData(
-    f ? { type: "FeatureCollection", features: [f] } : EMPTY_FC,
-  );
-}
-
 function applySelection(
   ctx: SessionCtx,
   ids: string[],
   opts: { additive: boolean; disarm: boolean; highlight: Feature | null },
 ): void {
   const final = opts.additive ? [...getState().selectedSiteIds, ...ids] : ids; // selectSites dedupes
-  setHighlight(ctx.map, opts.highlight);
-  ctx.keepHighlightRef.current = true; // consumed by MapPanel's selection effect
+  ctx.map.setHighlight(opts.highlight);
+  ctx.keepHighlightRef.current = true; // consumed by the panel's selection effect
   actions.selectSites(final);
   if (opts.disarm) actions.setMapTool("none");
 }
 
-/** True for keydowns that belong to a focused control, not the map gesture. */
+/** True for keydowns that belong to a focused control, not the map gesture.
+ * Leaflet's zoom buttons are anchors with role="button", hence the role check. */
 const keyBelongsToControl = (e: KeyboardEvent): boolean => {
   const t = e.target as HTMLElement | null;
-  return !!t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "BUTTON" || t.isContentEditable);
+  return (
+    !!t &&
+    (t.tagName === "INPUT" ||
+      t.tagName === "TEXTAREA" ||
+      t.tagName === "BUTTON" ||
+      t.getAttribute("role") === "button" ||
+      t.isContentEditable)
+  );
 };
 
 // ---------------------------------------------------------------- box -------
 
 function startBox(ctx: SessionCtx): () => void {
-  const { map, container, boxEl } = ctx;
-  map.dragPan.disable();
+  const { map, boxEl } = ctx;
+  map.setDragPan(false);
+  // The element project() is measured from, in both engines.
+  const el = map.getInteractiveElement();
   let start: { x: number; y: number } | null = null;
 
   const toLocal = (e: MouseEvent) => {
-    const r = container.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   };
   const onDown = (e: MouseEvent) => {
@@ -153,29 +158,32 @@ function startBox(ctx: SessionCtx): () => void {
   const onUp = (e: MouseEvent) => {
     if (!start) return;
     const p = toLocal(e);
-    const sw: [number, number] = [Math.min(start.x, p.x), Math.min(start.y, p.y)];
-    const ne: [number, number] = [Math.max(start.x, p.x), Math.max(start.y, p.y)];
+    // mouseup listens on window, so a drag released over the table would
+    // reach past the map; clamp to what the user can see.
+    const { width, height } = el.getBoundingClientRect();
+    const cx = (v: number) => Math.max(0, Math.min(v, width));
+    const cy = (v: number) => Math.max(0, Math.min(v, height));
+    const a: [number, number] = [cx(start.x), cy(start.y)];
+    const b: [number, number] = [cx(p.x), cy(p.y)];
     start = null;
     boxEl.style.display = "none";
     boxEl.style.width = "0";
-    const features = map.queryRenderedFeatures([sw, ne], { layers: ["sites-circles"] });
-    const ids = [...new Set(features.map((f) => f.properties?.site_id as string).filter(Boolean))];
+    const ids = sitesInScreenBox(ctx.sites(), (ll) => map.project(ll), a, b);
     if (!ids.length) {
       ctx.setMsg({ kind: "empty", text: "No sites in that box. Drag again, or press Esc to stop." });
       return;
     }
     applySelection(ctx, ids, { additive: e.shiftKey, disarm: true, highlight: null });
   };
-  const canvas = map.getCanvas();
-  canvas.addEventListener("mousedown", onDown);
+  el.addEventListener("mousedown", onDown);
   window.addEventListener("mousemove", onMove);
   window.addEventListener("mouseup", onUp);
   return () => {
-    canvas.removeEventListener("mousedown", onDown);
+    el.removeEventListener("mousedown", onDown);
     window.removeEventListener("mousemove", onMove);
     window.removeEventListener("mouseup", onUp);
     boxEl.style.display = "none";
-    map.dragPan.enable();
+    map.setDragPan(true);
   };
 }
 
@@ -183,7 +191,7 @@ function startBox(ctx: SessionCtx): () => void {
 
 function startPolygon(ctx: SessionCtx): () => void {
   const { map } = ctx;
-  map.doubleClickZoom.disable();
+  map.setDoubleClickZoom(false);
   const verts: Position[] = [];
   let cursor: Position | null = null;
 
@@ -204,7 +212,7 @@ function startPolygon(ctx: SessionCtx): () => void {
       });
     for (const v of verts)
       feats.push({ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: v } });
-    (map.getSource("ov-draw") as GeoJSONSource | undefined)?.setData({ type: "FeatureCollection", features: feats });
+    map.setSketch(feats);
   };
 
   const finish = (additive: boolean) => {
@@ -234,16 +242,16 @@ function startPolygon(ctx: SessionCtx): () => void {
     });
   };
 
-  const onClick = (e: MapMouseEvent) => {
+  const onClick = (e: ToolMapEvent) => {
     verts.push([e.lngLat.lng, e.lngLat.lat]);
     draw();
   };
-  const onMove = (e: MapMouseEvent) => {
+  const onMove = (e: ToolMapEvent) => {
     if (!verts.length) return;
     cursor = [e.lngLat.lng, e.lngLat.lat];
     draw();
   };
-  const onDbl = (e: MapMouseEvent) => {
+  const onDbl = (e: ToolMapEvent) => {
     e.preventDefault();
     finish(e.originalEvent.shiftKey);
   };
@@ -260,8 +268,8 @@ function startPolygon(ctx: SessionCtx): () => void {
     map.off("mousemove", onMove);
     map.off("dblclick", onDbl);
     window.removeEventListener("keydown", onKey);
-    (map.getSource("ov-draw") as GeoJSONSource | undefined)?.setData(EMPTY_FC);
-    map.doubleClickZoom.enable();
+    map.setSketch(null);
+    map.setDoubleClickZoom(true);
   };
 }
 
@@ -274,7 +282,7 @@ function startHuc(tool: "huc2" | "huc4" | "huc6" | "huc8", ctx: SessionCtx): () 
   if (!getState().overlays[tool]) actions.setOverlay(tool, true);
   const level = tool.replace("huc", "HUC-");
 
-  const onClick = (e: MapMouseEvent) => {
+  const onClick = (e: ToolMapEvent) => {
     const index = getHucIndex(tool);
     if (!index) {
       // Snapshot not resident yet — status-aware, like the river session.
@@ -317,12 +325,12 @@ function startRiver(ctx: SessionCtx): () => void {
   // Arming kicks the one-time rivers-snapshot download.
   if (!getState().overlays.rivers) actions.setOverlay("rivers", true);
 
-  const onClick = (e: MapMouseEvent) => {
+  const onClick = (e: ToolMapEvent) => {
     const click: Pt = [wrapLon(e.lngLat.lng), e.lngLat.lat];
     // Hit-test against the resident snapshot, not the render tree: dense
     // river data can overflow maplibre's 65,535-vertex line buckets and
-    // silently drop segments from rendering, so queryRenderedFeatures misses
-    // rivers that are plainly there. ~8 px of ground tolerance.
+    // silently drop segments from rendering, so a rendered-feature query
+    // misses rivers that are plainly there. ~8 px of ground tolerance.
     const fc = getStaticOverlayFC("rivers");
     const hit = fc ? nearestRiverFeature(fc, click, 8 * metersPerPixel(map.getZoom(), click[1])) : null;
     if (!hit) {
@@ -359,7 +367,7 @@ function startRiver(ctx: SessionCtx): () => void {
 }
 
 /** Refine stage: base ∪ within-distance, applied live. Also entered from
- * MapPanel's riverDistanceMiles effect. Never disarms — Done/Esc do. */
+ * the panel's riverDistanceMiles effect. Never disarms — Done/Esc do. */
 export function recomputeRiver(ctx: SessionCtx): void {
   const pick = ctx.riverRef.current;
   if (!pick) return;

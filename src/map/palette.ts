@@ -11,3 +11,5 @@ export const NET_UP = "#6a51a3";
 export const NET_DOWN = "#1b7837";
 /** River-mouth nodes. */
 export const NET_MOUTH = "#0b3954";
+/** Select-tool sketch and highlight (mirrors --select in styles.css). */
+export const SELECT = "#00a0b0";

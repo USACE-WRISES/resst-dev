@@ -171,6 +171,38 @@ overlay snapshots is the obstacle, the app could fetch them cross-origin from
 Pages (which sends `Access-Control-Allow-Origin: *`) through a build-time
 overlay base — not implemented.
 
+## Map engine (transition to Leaflet)
+
+The interactive map is moving from MapLibre GL (WebGL) to Leaflet (DOM
+elements and image tiles) because DoD remote browser isolation streams every
+WebGL canvas from a cloud browser at ~4.6 fps while DOM content is mirrored
+and animates locally (the `?diag=1` DOM map trial proved it on a USACE
+laptop). The move is phased so the site never regresses:
+
+- **Phase 1 (current):** both engines ship. Each page load picks one, in this
+  order: the URL (`?map=leaflet` or `?map=maplibre`, never persisted), then
+  `localStorage` key `resst.mapEngine` (`leaflet` or `maplibre`; set it by
+  hand, there is no UI), then the WebGL probe — when the page's WebGL renderer
+  is software (SwiftShader, which is what isolation and most VMs report) the
+  Leaflet map loads, otherwise MapLibre. The probe result is memoized per
+  session in `sessionStorage` (`resst.renderClass`). The footer says
+  `Map: Leaflet (preview)` when Leaflet is active. Leaflet is a separate chunk
+  (`DomMapPanel-*.js`) that only loads when chosen; the main bundle is
+  unchanged. Not yet on Leaflet: the national inventory layer and Screening
+  (the Layers popover says so; the toggles are disabled).
+- **Phase 2:** the national layer (canvas, redrawn at settle) and Screening.
+- **Phase 3:** Leaflet becomes the only map; MapLibre stays only behind a
+  lazy import for the Dam Report's static map figure.
+
+Code: `src/map/engine.ts` (the choice), `src/map/MapHost.tsx` (mounts one
+panel), `src/map/dom/` (the Leaflet panel and its layers), and the engine-free
+seams both panels implement: `src/map/toolMap.ts` (Select tools) and
+`src/map/overlaySink.ts` (reference overlays). The e2e suite pins MapLibre
+through `playwright.config.ts`'s `storageState` (headless Chromium is
+SwiftShader); `tests/e2e/dom-map.spec.ts` seeds Leaflet for itself. To check
+the Leaflet map on the mirror or on Pages, open the site with `?map=leaflet`;
+on an isolated USACE workstation it loads by itself.
+
 ## Local development
 
 `.claude/launch.json` starts `npm run dev` on port 5173. Playwright tests

@@ -17,13 +17,16 @@
 // five — realistic sessions use one or two. If that ever matters, the levers
 // are setData(empty) on toggle-off (keep the JS FC, free the worker tiles)
 // or a small LRU; deliberately not built now.
+//
+// This module is engine-free: it talks to the map through an OverlaySink
+// (overlaySink.ts). overlaysMaplibre.ts installs the MapLibre layers and
+// provides that engine's sink; the Leaflet panel provides its own.
 
-import type { Map as MlMap } from "maplibre-gl";
-import type { GeoJSONSource } from "maplibre-gl";
 import type { FeatureCollection } from "geojson";
 import { actions } from "../state/store";
 import { fetchGeojsonPoints } from "./esriPoints";
 import { buildHucIndex, type HucEntry } from "./localQueries";
+import type { OverlaySink } from "./overlaySink";
 
 interface OverlayBase {
   key: string;
@@ -82,57 +85,9 @@ export const OVERLAYS: OverlayDef[] = [
   },
 ];
 
-const srcId = (key: string) => `ov-${key}`;
-const layerId = (key: string) => `ov-${key}-layer`;
-
-/** Add the (empty) sources/layers once, below the sites layers. */
-export function installOverlays(map: MlMap): void {
-  for (const def of OVERLAYS) {
-    if (def.kind === "wms") {
-      map.addSource(srcId(def.key), {
-        type: "raster",
-        tiles: [
-          `${def.url}?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&LAYERS=mapunitpoly&STYLES=&FORMAT=image%2Fpng&TRANSPARENT=true&SRS=EPSG%3A3857&WIDTH=256&HEIGHT=256&BBOX={bbox-epsg-3857}`,
-        ],
-        tileSize: 256,
-        minzoom: def.minZoom,
-        attribution: "USDA NRCS SSURGO",
-      });
-      map.addLayer(
-        { id: layerId(def.key), type: "raster", source: srcId(def.key), layout: { visibility: "none" }, paint: { "raster-opacity": 0.6 } },
-        "sites-circles",
-      );
-      continue;
-    }
-    map.addSource(srcId(def.key), { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-    if (def.kind === "points") {
-      map.addLayer(
-        {
-          id: layerId(def.key),
-          type: "circle",
-          source: srcId(def.key),
-          minzoom: def.minZoom,
-          layout: { visibility: "none" },
-          paint: { "circle-radius": 4, "circle-color": def.color, "circle-opacity": 0.85, "circle-stroke-color": "#ffffff", "circle-stroke-width": 0.8 },
-        },
-        "sites-circles",
-      );
-    } else {
-      // Line layers draw Polygon/MultiPolygon rings as outlines natively, so
-      // the polygon snapshots render without a fill layer.
-      map.addLayer(
-        {
-          id: layerId(def.key),
-          type: "line",
-          source: srcId(def.key),
-          layout: { visibility: "none" },
-          paint: { "line-color": def.color, "line-width": def.kind === "polygons" ? 1.4 : 1.2, "line-opacity": 0.9 },
-        },
-        "sites-circles",
-      );
-    }
-  }
-}
+/** Source/layer ids the MapLibre install uses (ov-* rides across basemap swaps). */
+export const overlaySourceId = (key: string) => `ov-${key}`;
+export const overlayLayerId = (key: string) => `ov-${key}-layer`;
 
 // ------------------------------------------------- live points runtime ------
 
@@ -152,21 +107,20 @@ const getRuntime = (key: string): Runtime => {
   return r;
 };
 
-async function fetchOverlay(map: MlMap, def: OverlayDef & { kind: "points" }): Promise<void> {
+async function fetchOverlay(sink: OverlaySink, def: OverlayDef & { kind: "points" }): Promise<void> {
   const r = getRuntime(def.key);
-  const b = map.getBounds();
-  const zoom = map.getZoom();
-  const viewKey = `${[b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].map((v) => v.toFixed(3)).join(",")}@z${zoom.toFixed(1)}`;
+  const [west, south, east, north] = sink.getBounds();
+  const zoom = sink.getZoom();
+  const viewKey = `${[west, south, east, north].map((v) => v.toFixed(3)).join(",")}@z${zoom.toFixed(1)}`;
   if (r.readyKey === viewKey) return;
   r.controller?.abort(); // supersede any in-flight request
   const controller = new AbortController();
   r.controller = controller;
   actions.setOverlayStatus(def.key, "loading");
   try {
-    const bounds = { west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() };
-    const fc = await fetchGeojsonPoints(def.url, def.outFields, bounds, controller.signal);
+    const fc = await fetchGeojsonPoints(def.url, def.outFields, { west, south, east, north }, controller.signal);
     if (controller.signal.aborted) return;
-    (map.getSource(srcId(def.key)) as GeoJSONSource | undefined)?.setData(fc);
+    sink.setData(def.key, fc);
     r.readyKey = viewKey;
     actions.setOverlayStatus(def.key, "ready");
   } catch (err) {
@@ -186,7 +140,7 @@ interface StaticRuntime {
   fc: FeatureCollection | null;
   /** Containment index, memoized on first Select-tool use (localQueries). */
   hucIndex: HucEntry[] | null;
-  /** Whether the CURRENT map instance's source holds fc. */
+  /** Whether the CURRENT map instance holds fc. */
   applied: boolean;
 }
 
@@ -212,17 +166,14 @@ export function getHucIndex(key: string): HucEntry[] | null {
   return r.hucIndex;
 }
 
-async function ensureStaticOverlay(map: MlMap, def: OverlayDef & { staticPaths: string[] }): Promise<void> {
+async function ensureStaticOverlay(sink: OverlaySink, def: OverlayDef & { staticPaths: string[] }): Promise<void> {
   const r = getStaticRuntime(def.key);
   if (r.fc) {
     // Cached: re-apply if this map instance hasn't seen it (remount, or a
     // basemap swap edge where the source was momentarily unavailable).
-    if (!r.applied) {
-      const src = map.getSource(srcId(def.key)) as GeoJSONSource | undefined;
-      if (src) {
-        src.setData(r.fc);
-        r.applied = true;
-      }
+    if (!r.applied && sink.has(def.key)) {
+      sink.setData(def.key, r.fc);
+      r.applied = true;
     }
     actions.setOverlayStatus(def.key, "ready");
     return;
@@ -245,9 +196,8 @@ async function ensureStaticOverlay(map: MlMap, def: OverlayDef & { staticPaths: 
     const fc: FeatureCollection =
       parts.length === 1 ? parts[0] : { type: "FeatureCollection", features: parts.flatMap((p) => p.features) };
     r.fc = fc;
-    const src = map.getSource(srcId(def.key)) as GeoJSONSource | undefined;
-    if (src) {
-      src.setData(fc);
+    if (sink.has(def.key)) {
+      sink.setData(def.key, fc);
       r.applied = true;
     }
     actions.setOverlayStatus(def.key, "ready");
@@ -264,15 +214,14 @@ async function ensureStaticOverlay(map: MlMap, def: OverlayDef & { staticPaths: 
 
 /** Sync layer visibility and load what's now on. Old data stays on the map
  * through loading/error states. */
-export function updateOverlays(map: MlMap, visible: Record<string, boolean>): void {
+export function updateOverlays(sink: OverlaySink, visible: Record<string, boolean>): void {
   // Same rounding as the panel's zoomTick, so the "zoom in to load" hint and
   // the fetch gate agree at the boundary (live layers only).
-  const zoom = Math.round(map.getZoom() * 10) / 10;
+  const zoom = Math.round(sink.getZoom() * 10) / 10;
   for (const def of OVERLAYS) {
-    const lid = layerId(def.key);
-    if (!map.getLayer(lid)) continue;
+    if (!sink.has(def.key)) continue;
     const on = !!visible[def.key];
-    map.setLayoutProperty(lid, "visibility", on ? "visible" : "none");
+    sink.setVisible(def.key, on);
     if (!on) {
       if ("staticPaths" in def) {
         const r = staticRuntime.get(def.key);
@@ -296,7 +245,7 @@ export function updateOverlays(map: MlMap, visible: Record<string, boolean>): vo
     if ("staticPaths" in def) {
       // Viewport-independent: no zoom gate, no isMoving guard — arming a
       // Select tool mid-animation starts the download immediately.
-      void ensureStaticOverlay(map, def);
+      void ensureStaticOverlay(sink, def);
       continue;
     }
     if (zoom < def.minZoom) {
@@ -306,7 +255,7 @@ export function updateOverlays(map: MlMap, visible: Record<string, boolean>): vo
     }
     // During a camera animation the extent is still changing; the moveend
     // refresh covers it.
-    if (!map.isMoving()) void fetchOverlay(map, def);
+    if (!sink.isMoving()) void fetchOverlay(sink, def);
   }
 }
 
@@ -315,15 +264,15 @@ let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 /** Debounced refetch for moveend (live point layers; static layers no-op
  * through their cache/single-flight guards). Takes a getter so a toggle
  * during the window can't resurrect stale visibility. */
-export function scheduleOverlayRefresh(map: MlMap, getVisible: () => Record<string, boolean>, delay = 250): void {
+export function scheduleOverlayRefresh(sink: OverlaySink, getVisible: () => Record<string, boolean>, delay = 250): void {
   if (refreshTimer) clearTimeout(refreshTimer);
   refreshTimer = setTimeout(() => {
     refreshTimer = null;
-    updateOverlays(map, getVisible());
+    updateOverlays(sink, getVisible());
   }, delay);
 }
 
-/** MapPanel unmount: cancel the timer and abort everything in flight. The
+/** Map panel unmount: cancel the timer and abort everything in flight. The
  * static session cache is retained — a remount re-applies without refetching. */
 export function disposeOverlays(): void {
   if (refreshTimer) {
@@ -344,14 +293,14 @@ export function disposeOverlays(): void {
 }
 
 /** Layers-panel Retry: forget the failure and fetch again. */
-export function retryOverlay(map: MlMap, key: string, visible: Record<string, boolean>): void {
+export function retryOverlay(sink: OverlaySink, key: string, visible: Record<string, boolean>): void {
   const def = OVERLAYS.find((d) => d.key === key);
   if (!def || !visible[key] || def.kind === "wms") return;
   if ("staticPaths" in def) {
-    void ensureStaticOverlay(map, def);
+    void ensureStaticOverlay(sink, def);
     return;
   }
   const r = runtime.get(key);
   if (r) r.readyKey = null;
-  if (Math.round(map.getZoom() * 10) / 10 >= def.minZoom) void fetchOverlay(map, def);
+  if (Math.round(sink.getZoom() * 10) / 10 >= def.minZoom) void fetchOverlay(sink, def);
 }

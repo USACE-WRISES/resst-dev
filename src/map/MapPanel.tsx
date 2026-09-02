@@ -24,22 +24,20 @@ import {
 import type { FeatureCollection } from "geojson";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { Site } from "../lib/types";
-import { SITE_DETAIL_FIELDS, SITE_FIELD_LABELS } from "../config/fields";
 import { actions, type AppState } from "../state/store";
 import { registerMapCommands } from "./mapBus";
-import { SearchControl } from "./SearchControl";
-import { MapToolPanels } from "./MapToolPanels";
-import { SelectMenu } from "./SelectMenu";
-import { SelectHintBar } from "./SelectHintBar";
+import { MapToolbar } from "./MapToolbar";
+import { popupHtml, reservoirPopupHtml } from "./popupHtml";
 import { startSelectSession, recomputeRiver, type RiverPick, type SessionCtx, type ToolMsg } from "./selectTools";
-import { installOverlays, updateOverlays, scheduleOverlayRefresh, retryOverlay, disposeOverlays } from "./overlays";
+import { createMaplibreToolMap } from "./toolMapMaplibre";
+import type { ToolMap } from "./toolMap";
+import { updateOverlays, scheduleOverlayRefresh, retryOverlay, disposeOverlays } from "./overlays";
+import { createMaplibreOverlaySink, installOverlays } from "./overlaysMaplibre";
+import type { OverlaySink } from "./overlaySink";
 import { installNetworkLayers, setNetworkBasin, updateNetworkHighlight } from "./networkLayer";
 import { installNationalLayers, resetNationalLayerMemo, setNationalSelected, updateNationalLayer } from "./nationalLayer";
 import { buildScreenFilter } from "../sediment/screen";
-import { ScreeningPanel } from "./ScreeningPanel";
 import { ensureCore, getCore } from "../sediment/data";
-import { formatPct, formatVolumeAcft, pctLost } from "../sediment/format";
-import { FLAG, type SedimentCore } from "../sediment/types";
 import { applyBasemap, buildUsgsStyle, fetchEsriTopoStyle } from "./basemaps";
 import { BasemapControl } from "./BasemapControl";
 import { BasemapPicker } from "./BasemapPicker";
@@ -60,33 +58,8 @@ function sitesToGeoJSON(sites: Site[]): FeatureCollection {
   };
 }
 
-const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-function popupHtml(site: Site): string {
-  const rows = SITE_DETAIL_FIELDS.filter((f) => f !== "site_name")
-    .map((f) => {
-      const v = site[f];
-      return v ? `<div class="popup-row"><span>${esc(SITE_FIELD_LABELS[f] ?? f)}</span><b>${esc(String(v))}</b></div>` : "";
-    })
-    .join("");
-  return `<div class="site-popup"><h3>${esc(site.site_name)}</h3>${rows}</div>`;
-}
-
-/** Compact popup for a national-inventory reservoir (not a documented site). */
-function reservoirPopupHtml(core: SedimentCore, row: number): string {
-  const name = core.names[row] || `NID ${core.nids[row]}`;
-  const state = core.state[row] >= 0 ? core.dicts.state[core.state[row]] : "";
-  const lost = pctLost(Number.isFinite(core.sed2025[row]) ? core.sed2025[row] : null, Number.isFinite(core.capOrig[row]) ? core.capOrig[row] : null);
-  const rows = [
-    state ? `<div class="popup-row"><span>State</span><b>${esc(state)}</b></div>` : "",
-    `<div class="popup-row"><span>Max storage</span><b>${esc(formatVolumeAcft(core.maxStor[row]))}</b></div>`,
-    lost != null ? `<div class="popup-row"><span>Est. capacity lost (2025)</span><b>${esc(formatPct(lost))}</b></div>` : "",
-    `<div class="popup-row"><span>Evidence</span><b>${core.flags[row] & FLAG.HAS_SURVEYS ? "Measured surveys (RESSED)" : "Modeled only"}</b></div>`,
-  ].join("");
-  return `<div class="site-popup"><h3>${esc(name)}</h3>${rows}<p class="popup-note">No documented RESST sediment-management record; details in the panel.</p></div>`;
-}
-
-export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: {
+/** The contract both map engines take (MapHost picks the engine). */
+export interface MapPanelProps {
   /** Filtered sites currently shown on the map. */
   sites: Site[];
   /** Full site list (search suggestions). */
@@ -95,9 +68,16 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: {
   /** ResNet ShortID → site_id — routes national-layer clicks on documented dams to the site experience. */
   siteByShortId: Map<number, string>;
   state: AppState;
-}) {
+}
+
+export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: MapPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MlMap | null>(null);
+  // Engine-neutral seams: the Select tools and the overlay runtime reach the
+  // map only through these, so the Leaflet panel can implement the same
+  // contracts. Built once per map instance in the init effect.
+  const toolMapRef = useRef<ToolMap | null>(null);
+  const overlaySinkRef = useRef<OverlaySink | null>(null);
   const popupRef = useRef<Popup | null>(null);
   // The place-search pin (a DOM marker — it survives basemap setStyle swaps).
   const placeMarkerRef = useRef<Marker | null>(null);
@@ -150,6 +130,10 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: {
       trackResize: false,
     });
     mapRef.current = map;
+    const toolMap = createMaplibreToolMap(map);
+    toolMapRef.current = toolMap;
+    const overlaySink = createMaplibreOverlaySink(map);
+    overlaySinkRef.current = overlaySink;
     // Read-only handle for the e2e suite (and console debugging).
     (window as unknown as { __resstMap?: MlMap }).__resstMap = map;
     map.addControl(new NavigationControl({ showCompass: false }), "top-right");
@@ -199,7 +183,7 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: {
         placeMarkerRef.current = null;
       },
       refreshOverlay(key) {
-        retryOverlay(map, key, overlaysRef.current);
+        retryOverlay(overlaySink, key, overlaysRef.current);
       },
       highlightNetwork(row, mode) {
         const core = getCore();
@@ -372,7 +356,7 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: {
       });
       map.on("moveend", () => {
         // Debounced: rapid pans supersede each other instead of stacking fetches.
-        scheduleOverlayRefresh(map, () => overlaysRef.current);
+        scheduleOverlayRefresh(overlaySink, () => overlaysRef.current);
         setZoomTick(Math.round(map.getZoom() * 10) / 10);
       });
 
@@ -381,7 +365,7 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: {
       // zoom-gated overlay notes are accurate before the first moveend.
       setZoomTick(Math.round(map.getZoom() * 10) / 10);
       (map.getSource("sites") as GeoJSONSource).setData(sitesToGeoJSON(sitesRef.current));
-      updateOverlays(map, overlaysRef.current);
+      updateOverlays(overlaySink, overlaysRef.current);
       // National layer state set while the map was still loading applies now
       // (the store effects below early-return until loadedRef flips).
       updateNationalLayer(map, getCore(), siteByShortIdRef.current, nationalRef.current.on, nationalRef.current.metric);
@@ -415,16 +399,21 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: {
       placeMarkerRef.current = null;
       map.remove();
       mapRef.current = null;
+      toolMapRef.current = null;
+      overlaySinkRef.current = null;
       loadedRef.current = false;
+      // A stale handle would let a test (or a later engine switch) mistake a
+      // removed map for a live one.
+      delete (window as unknown as { __resstMap?: MlMap }).__resstMap;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Overlay visibility changes → sync layers + fetch what's now on.
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !loadedRef.current) return;
-    updateOverlays(map, state.overlays);
+    const sink = overlaySinkRef.current;
+    if (!sink || !loadedRef.current) return;
+    updateOverlays(sink, state.overlays);
   }, [state.overlays]);
 
   // National inventory layer: visibility + metric. The one-time 57k setData
@@ -515,9 +504,8 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: {
   // Armed Select tool → one session per arming (selectTools.ts). The effect
   // cleanup IS the disarm path: Esc, Cancel/Done, one-shot completion, mode
   // switch, and unmount all run it.
-  const sessionCtx = (map: MlMap): SessionCtx => ({
+  const sessionCtx = (map: ToolMap): SessionCtx => ({
     map,
-    container: containerRef.current!,
     boxEl: boxRef.current!,
     sites: () => sitesRef.current,
     setMsg: setToolMsg,
@@ -525,8 +513,8 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: {
     keepHighlightRef,
   });
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !containerRef.current || state.mapTool === "none") return;
+    const map = toolMapRef.current;
+    if (!map || state.mapTool === "none") return;
     return startSelectSession(state.mapTool, sessionCtx(map));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.mapTool]);
@@ -536,7 +524,7 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: {
   // deps deliberately — the filtered array's identity changes on every
   // selection, and depending on it would loop through selectSites.
   useEffect(() => {
-    const map = mapRef.current;
+    const map = toolMapRef.current;
     if (!map || state.mapTool !== "river" || !riverRef.current) return;
     const t = setTimeout(() => recomputeRiver(sessionCtx(map)), 200);
     return () => clearTimeout(t);
@@ -547,22 +535,7 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: {
     <div className="map-panel-wrap">
       <div ref={containerRef} className="map-panel" role="application" aria-label="Map of reservoir sediment sites" />
       <div ref={boxRef} className="select-box" aria-hidden="true" />
-      <div className="map-toolbar">
-        <SearchControl sites={allSites} />
-        <SelectMenu tool={state.mapTool} distance={state.riverDistanceMiles} hasSelection={selectedIds.length > 0} />
-        <MapToolPanels state={state} zoom={zoomTick} siteByShortId={siteByShortId} />
-        <ScreeningPanel state={state} siteByShortId={siteByShortId} />
-        {state.mapTool !== "none" && (
-          <SelectHintBar
-            tool={state.mapTool}
-            msg={toolMsg}
-            distance={state.riverDistanceMiles}
-            // HUC tool keys double as overlay keys; box/polygon resolve to
-            // nothing and stay false.
-            overlayLoading={state.overlayStatus[state.mapTool === "river" ? "rivers" : state.mapTool] === "loading"}
-          />
-        )}
-      </div>
+      <MapToolbar state={state} allSites={allSites} siteByShortId={siteByShortId} zoom={zoomTick} toolMsg={toolMsg} />
       {createPortal(<BasemapPicker basemap={state.basemap} status={state.basemapStatus} />, basemapHostRef.current)}
     </div>
   );
