@@ -10,15 +10,18 @@ id = "01a06215-18c4-ec7b-8380-94ab98481c42"
 dashboard_url = "https://connect.posit.cloud/gtmenichino/content/01a06215-18c4-ec7b-8380-94ab98481c42"
 direct_url = "https://01a06215-18c4-ec7b-8380-94ab98481c42.share.connect.posit.cloud"
 logs_url = "https://connect.posit.cloud/gtmenichino/content/01a06215-18c4-ec7b-8380-94ab98481c42/history"
-deployed_at = "2026-09-02T12:41:36.915Z"
-bundle_id = "01a06223-1bd6-4599-3884-4df44a3cab5e"
+deployed_at = "2026-09-02T19:30:01.903Z"
+bundle_id = "01a06399-0a68-6987-7930-aff31cbe32df"
 files = [
     "apple-touch-icon.png",
-    "assets/DiagnosticsPage-DVdbn8jm.js",
-    "assets/DiagnosticsPage-DVdbn8jm.js.map",
+    "assets/DiagnosticsPage-BmrsUzwI.js",
+    "assets/DiagnosticsPage-BmrsUzwI.js.map",
+    "assets/index-BHegAw7B.js",
+    "assets/index-BHegAw7B.js.map",
     "assets/index-CFAD0Mzf.css",
-    "assets/index-D1CxUBrV.js",
-    "assets/index-D1CxUBrV.js.map",
+    "assets/leafletTrial-B1cOFh2B.js",
+    "assets/leafletTrial-B1cOFh2B.js.map",
+    "assets/leafletTrial-vh-t_kPv.css",
     "data/data-manifest.json",
     "data/literature.json",
     "data/literature_entries.json",
