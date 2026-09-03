@@ -17,13 +17,7 @@ async function openApp(page: Page): Promise<void> {
 const hucRow = (page: Page) => page.locator(".layers-list .layer-row", { hasText: "HUC 2 boundaries" });
 
 const sourceFeatureCount = (page: Page) =>
-  page.evaluate(() => {
-    const m = (window as any).__resstMap;
-    const src = m.getSource("ov-huc2");
-    const data = src?.serialize?.().data;
-    if (data && typeof data === "object" && Array.isArray(data.features)) return data.features.length;
-    return m.querySourceFeatures("ov-huc2").length;
-  });
+  page.evaluate(() => (window as any).__resstMapInfo.counts().overlays.huc2 ?? 0);
 
 test("toggling HUC2 loads the static snapshot once — panning never refetches", async ({ page }) => {
   let calls = 0;
@@ -40,8 +34,7 @@ test("toggling HUC2 loads the static snapshot once — panning never refetches",
   expect(calls).toBe(1);
   // The fetch-once contract: move the camera, outlast the moveend refresh
   // debounce (250 ms), and the snapshot must NOT have been re-requested.
-  await page.evaluate(() => (window as any).__resstMap.jumpTo({ center: [-80, 35], zoom: 5 }));
-  await page.waitForFunction(() => !(window as any).__resstMap.isMoving());
+  await page.evaluate(() => (window as any).__resstMapInfo.jumpTo(-80, 35, 5));
   await page.waitForTimeout(600);
   expect(calls).toBe(1);
   await expect(row.locator(".ov-status")).toHaveAttribute("data-status", "ready");

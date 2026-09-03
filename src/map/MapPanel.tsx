@@ -1,64 +1,45 @@
-// The interactive map: boots on the USGS National Map topo style (public
-// domain, no API key — decision D4) and swaps to the default Esri Topographic
-// basemap — the original app's look — once loaded; a picker under the zoom
-// buttons toggles between them. The filtered Sites layer renders in
-// the current app's symbology: red circles, yellow outline, blue site-name
-// labels above (ported from the service drawingInfo + web-map labelingInfo).
-// Clicking a point selects the site; the Select menu arms box / polygon /
-// HUC-basin / near-a-river selection sessions (selectTools.ts); the search
-// box matches site names and USGS GNIS places. Selection drives the details
-// panel, tables, popup, and highlight rings.
+// The interactive map: Leaflet, drawing with DOM elements and image tiles.
+// Chosen over WebGL because USACE workstations run the app through remote
+// browser isolation, which streams every canvas from a cloud browser at a few
+// frames per second while DOM content is mirrored and animates locally
+// (notes/2026-09-02-usace-map-lag-isolation-and-plan.md). It boots on the
+// persisted basemap (Esri's raster World Topographic Map by default, USGS
+// Topo as the public-domain alternative), draws the filtered sites in the
+// original app's symbology (red circles, yellow outline, blue name labels),
+// and hosts the search box, the Select tools (selectTools.ts), the reference
+// overlays, the network explorer highlight, and the national inventory layer.
+//
+// Selection drives the details panel, tables, popup, and highlight rings.
+// The national inventory layer (all ~57k modeled reservoirs) is a canvas
+// drawn from typed arrays (leaflet/national.ts); the map's own click handler
+// routes a hit on one of its dots after the site markers above it have had
+// theirs.
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import {
-  Map as MlMap,
-  Marker,
-  Popup,
-  NavigationControl,
-  ScaleControl,
-  LngLatBounds,
-  type GeoJSONSource,
-  type MapLayerMouseEvent,
-} from "maplibre-gl";
-import type { FeatureCollection } from "geojson";
-import "maplibre-gl/dist/maplibre-gl.css";
+import { L } from "./leaflet/leaflet";
 import type { Site } from "../lib/types";
 import { actions, type AppState } from "../state/store";
 import { registerMapCommands } from "./mapBus";
 import { MapToolbar } from "./MapToolbar";
+import { BasemapPicker } from "./BasemapPicker";
 import { popupHtml, reservoirPopupHtml } from "./popupHtml";
 import { startSelectSession, recomputeRiver, type RiverPick, type SessionCtx, type ToolMsg } from "./selectTools";
-import { createMaplibreToolMap } from "./toolMapMaplibre";
 import type { ToolMap } from "./toolMap";
 import { updateOverlays, scheduleOverlayRefresh, retryOverlay, disposeOverlays } from "./overlays";
-import { createMaplibreOverlaySink, installOverlays } from "./overlaysMaplibre";
-import type { OverlaySink } from "./overlaySink";
-import { installNetworkLayers, setNetworkBasin, updateNetworkHighlight } from "./networkLayer";
-import { installNationalLayers, resetNationalLayerMemo, setNationalSelected, updateNationalLayer } from "./nationalLayer";
-import { buildScreenFilter } from "../sediment/screen";
 import { ensureCore, getCore } from "../sediment/data";
-import { applyBasemap, buildUsgsStyle, fetchEsriTopoStyle } from "./basemaps";
-import { BasemapControl } from "./BasemapControl";
-import { BasemapPicker } from "./BasemapPicker";
+import { createPanes } from "./leaflet/panes";
+import { BASEMAP_TILES, createBasemapLayer } from "./leaflet/basemap";
+import { RING_STYLE, SiteMarkers } from "./leaflet/sites";
+import { SiteLabels } from "./leaflet/labels";
+import { openPopup } from "./leaflet/popups";
+import { createPlaceMarker } from "./leaflet/placeMarker";
+import { NetworkLayers } from "./leaflet/network";
+import { NationalLayer } from "./leaflet/national";
+import { LeafletOverlays } from "./leaflet/overlays";
+import { createLeafletToolMap } from "./leaflet/toolMapLeaflet";
+import { lz, mz } from "./leaflet/zoom";
 
-// Initial view — the captured CONUS extent the original app opened on.
-const CONUS_BOUNDS: [number, number, number, number] = [-116.7544, 30.8881, -79.9282, 46.6079];
-
-function sitesToGeoJSON(sites: Site[]): FeatureCollection {
-  return {
-    type: "FeatureCollection",
-    features: sites
-      .filter((s) => s.longitude != null && s.latitude != null)
-      .map((s) => ({
-        type: "Feature",
-        geometry: { type: "Point", coordinates: [s.longitude!, s.latitude!] },
-        properties: { site_id: s.site_id, site_name: s.site_name },
-      })),
-  };
-}
-
-/** The contract both map engines take (MapHost picks the engine). */
 export interface MapPanelProps {
   /** Filtered sites currently shown on the map. */
   sites: Site[];
@@ -70,132 +51,241 @@ export interface MapPanelProps {
   state: AppState;
 }
 
+// Initial view — the captured CONUS extent the original app opened on.
+const CONUS_BOUNDS = L.latLngBounds([30.8881, -116.7544], [46.6079, -79.9282]);
+/** Camera animations take 700 ms (Leaflet counts seconds). */
+const FLY = { duration: 0.7 };
+
+/** Read-only handles for the e2e suite and console debugging. Zooms and
+    points use the app's 512 px zoom basis and lon/lat order, like the map
+    commands, so specs never deal with Leaflet's conventions. */
+interface MapHandles {
+  counts(): {
+    sites: number;
+    selected: number;
+    labels: number;
+    network: number;
+    basin: number;
+    sketch: number;
+    /** 1 while a completed Select highlight (basin / river corridor / polygon) is drawn. */
+    highlight: number;
+    national: number;
+    reservoir: number;
+    overlays: Record<string, number>;
+  };
+  /** Network highlight features by kind (up / down / mouth / conn). */
+  networkKinds(): Record<string, number>;
+  nationalVisible(): boolean;
+  nationalMetric(): string;
+  /** Whether screening currently masks the national dots. */
+  screeningMasked(): boolean;
+  basemapUrl(): string;
+  isMoving(): boolean;
+  tilesLoaded(): boolean;
+  /** Camera helpers in the app's zoom basis (no animation). */
+  jumpTo(lon: number, lat: number, zoom: number): void;
+  getCenter(): { lng: number; lat: number };
+  getZoom(): number;
+  /** Container pixel of a lon/lat. */
+  project(lon: number, lat: number): { x: number; y: number };
+}
+type Handles = { __resstMap?: L.Map; __resstMapInfo?: MapHandles };
+
+const roundZoom = (map: L.Map) => Math.round(mz(map.getZoom()) * 10) / 10;
+
 export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: MapPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<MlMap | null>(null);
-  // Engine-neutral seams: the Select tools and the overlay runtime reach the
-  // map only through these, so the Leaflet panel can implement the same
-  // contracts. Built once per map instance in the init effect.
-  const toolMapRef = useRef<ToolMap | null>(null);
-  const overlaySinkRef = useRef<OverlaySink | null>(null);
-  const popupRef = useRef<Popup | null>(null);
-  // The place-search pin (a DOM marker — it survives basemap setStyle swaps).
-  const placeMarkerRef = useRef<Marker | null>(null);
-  const loadedRef = useRef(false);
   const boxRef = useRef<HTMLDivElement>(null);
-  // Ref mirror for the install-once map closures (site click, hover cursor).
+  const mapRef = useRef<L.Map | null>(null);
+  const toolMapRef = useRef<ToolMap | null>(null);
+  const overlaysRef = useRef<LeafletOverlays | null>(null);
+  const siteMarkersRef = useRef<SiteMarkers | null>(null);
+  const labelsRef = useRef<SiteLabels | null>(null);
+  const networkRef = useRef<NetworkLayers | null>(null);
+  const natLayerRef = useRef<NationalLayer | null>(null);
+  const basemapLayerRef = useRef<L.TileLayer | null>(null);
+  const popupRef = useRef<L.Popup | null>(null);
+  const placeMarkerRef = useRef<L.Marker | null>(null);
+  const ringsRef = useRef(new Map<string, L.CircleMarker>());
+  const reservoirRingRef = useRef<L.CircleMarker | null>(null);
+  const networkCoordsRef = useRef<Array<[number, number]> | null>(null);
+  const movingRef = useRef(false);
+  const tilesLoadedRef = useRef(false);
+  // Ref mirrors for the install-once closures.
   const mapToolRef = useRef(state.mapTool);
   mapToolRef.current = state.mapTool;
-  // Set by a completing Select gesture so the selection effect keeps the
-  // basin/river/polygon highlight that gesture just drew.
   const keepHighlightRef = useRef(false);
-  // The live river pick (near-a-river refine stage) for distance recomputes.
   const riverRef = useRef<RiverPick | null>(null);
-  // The current network highlight's coordinates (for the Zoom-to-network refit).
-  const networkCoordsRef = useRef<Array<[number, number]> | null>(null);
-  const [toolMsg, setToolMsg] = useState<ToolMsg | null>(null);
-  const selectedIds = state.selectedSiteIds;
-  const overlaysRef = useRef(state.overlays);
-  overlaysRef.current = state.overlays;
+  const sitesRef = useRef(sites);
+  sitesRef.current = sites;
+  const siteByIdRef = useRef(siteById);
+  siteByIdRef.current = siteById;
   const siteByShortIdRef = useRef(siteByShortId);
   siteByShortIdRef.current = siteByShortId;
-  const nationalRef = useRef(state.nationalLayer);
-  nationalRef.current = state.nationalLayer;
+  const overlaysVisibleRef = useRef(state.overlays);
+  overlaysVisibleRef.current = state.overlays;
   const basemapRef = useRef(state.basemap);
   basemapRef.current = state.basemap;
+  const [toolMsg, setToolMsg] = useState<ToolMsg | null>(null);
   const [zoomTick, setZoomTick] = useState(4);
-  // The basemap picker is React, but maplibre places it: we own the element,
-  // maplibre parents it in the top-right stack, and React portals into it.
+  const selectedIds = state.selectedSiteIds;
+  // The basemap picker is React; Leaflet places its host in the top-right
+  // control stack under the zoom buttons, and React portals into it.
   const basemapHostRef = useRef<HTMLDivElement | null>(null);
   if (!basemapHostRef.current) {
     const el = document.createElement("div");
-    el.className = "maplibregl-ctrl"; // never maplibregl-ctrl-group — see BasemapControl
+    el.className = "basemap-host";
     basemapHostRef.current = el;
   }
 
+  const retirePlaceMarker = () => {
+    const pm = placeMarkerRef.current;
+    placeMarkerRef.current = null;
+    pm?.remove();
+  };
+
   useEffect(() => {
-    const basemapHost = basemapHostRef.current;
-    if (!containerRef.current || mapRef.current || !basemapHost) return;
-    const map = new MlMap({
-      container: containerRef.current,
-      style: buildUsgsStyle(),
-      bounds: CONUS_BOUNDS,
-      fitBoundsOptions: { padding: 20 },
-      // No on-map attribution control (owner request); the credits live in the
-      // footer's basemap label and Help → About → Credits.
+    const el = containerRef.current;
+    const host = basemapHostRef.current;
+    if (!el || mapRef.current || !host) return;
+    const map = L.map(el, {
+      zoomControl: false,
+      // No on-map attribution control (owner request); the credits live in
+      // the footer's basemap label and Help → About → Credits.
       attributionControl: false,
-      // Our own ResizeObserver below owns resizing (unthrottled resize+redraw
-      // per frame); maplibre's built-in observer throttles at 50ms and would
-      // double the work — and wipe our synchronous redraws mid-drag.
-      trackResize: false,
+      zoomSnap: 0.25,
+      minZoom: lz(2),
+      maxZoom: lz(17),
+      worldCopyJump: false,
     });
     mapRef.current = map;
-    const toolMap = createMaplibreToolMap(map);
+    createPanes(map);
+    // Before any listener, so the initial fit is not a "gesture".
+    map.fitBounds(CONUS_BOUNDS, { padding: [20, 20], animate: false });
+    L.control.zoom({ position: "topright" }).addTo(map);
+    const PickerControl = L.Control.extend({
+      onAdd() {
+        // Inside the map container, so clicks and wheel events on the picker
+        // must not reach the map.
+        L.DomEvent.disableClickPropagation(host);
+        L.DomEvent.disableScrollPropagation(host);
+        return host;
+      },
+      onRemove() {
+        /* the host div outlives the control */
+      },
+    });
+    new PickerControl({ position: "topright" }).addTo(map);
+    L.control.scale({ imperial: true, metric: false, position: "bottomleft" }).addTo(map);
+
+    const overlays = new LeafletOverlays(map, () => movingRef.current);
+    overlaysRef.current = overlays;
+    const siteMarkers = new SiteMarkers(map, (id) => {
+      if (mapToolRef.current !== "none") return; // an armed Select session owns clicks
+      actions.selectSite(id);
+    });
+    siteMarkersRef.current = siteMarkers;
+    const labels = new SiteLabels(
+      map,
+      () => siteMarkers.markers,
+      (id) => siteByIdRef.current.get(id)?.site_name ?? id,
+    );
+    labelsRef.current = labels;
+    const network = new NetworkLayers(map);
+    networkRef.current = network;
+    const national = new NationalLayer(map);
+    natLayerRef.current = national;
+    const select = L.layerGroup().addTo(map);
+    const sketch = L.layerGroup().addTo(map);
+    const toolMap = createLeafletToolMap(map, { select, sketch });
     toolMapRef.current = toolMap;
-    const overlaySink = createMaplibreOverlaySink(map);
-    overlaySinkRef.current = overlaySink;
-    // Read-only handle for the e2e suite (and console debugging).
-    (window as unknown as { __resstMap?: MlMap }).__resstMap = map;
-    map.addControl(new NavigationControl({ showCompass: false }), "top-right");
-    map.addControl(new BasemapControl(basemapHost), "top-right"); // stacks directly under the zoom buttons
-    map.addControl(new ScaleControl({ unit: "imperial" }), "bottom-left");
 
-    // Warm the Esri style download in parallel with the USGS boot so the
-    // post-load swap lands as soon as possible. Errors are applyBasemap's job
-    // (a failed promise is evicted from the memo, so its retry refetches).
-    if (basemapRef.current === "esri") void fetchEsriTopoStyle().catch(() => {});
+    // National dots. The site markers sit above the canvas and handle their
+    // own clicks (the map click still bubbles), so a click that reached a
+    // marker is not ours; otherwise the dot under the pointer is routed — a
+    // documented dam to its site experience, any other to ReservoirDetails.
+    map.on("click", (e: L.LeafletMouseEvent) => {
+      if (mapToolRef.current !== "none") return; // an armed Select session owns clicks
+      const target = e.originalEvent.target as Element | null;
+      if (target?.closest?.(".leaflet-interactive")) return;
+      const core = getCore();
+      const row = national.hitTest(map.mouseEventToContainerPoint(e.originalEvent));
+      if (row == null || !core) return;
+      const shortId = core.ids[row];
+      const siteId = siteByShortIdRef.current.get(shortId);
+      if (siteId) actions.selectSite(siteId);
+      else actions.selectReservoir(String(shortId));
+    });
+    let hoverPending = false;
+    map.on("mousemove", (e: L.LeafletMouseEvent) => {
+      if (hoverPending || mapToolRef.current !== "none") return;
+      hoverPending = true;
+      const pt = map.mouseEventToContainerPoint(e.originalEvent);
+      requestAnimationFrame(() => {
+        hoverPending = false;
+        if (mapToolRef.current !== "none") return;
+        el.style.cursor = national.hitTest(pt) != null ? "pointer" : "";
+      });
+    });
 
+    map.on("movestart", () => {
+      movingRef.current = true;
+    });
+    map.on("moveend", () => {
+      movingRef.current = false;
+      setZoomTick(roundZoom(map));
+      labels.refresh();
+      // Debounced: rapid pans supersede each other instead of stacking fetches.
+      scheduleOverlayRefresh(overlays, () => overlaysVisibleRef.current);
+    });
+    map.on("zoomend", () => network.onZoomEnd());
+
+    const fitCoords = (pts: Array<[number, number]>) => {
+      const bounds = L.latLngBounds(pts.map(([lon, lat]) => [lat, lon] as [number, number]));
+      map.flyToBounds(bounds, { padding: [60, 60], maxZoom: lz(9), ...FLY });
+    };
     registerMapCommands({
       fitToSites(list) {
         const pts = list.filter((s) => s.longitude != null && s.latitude != null);
         if (!pts.length) return;
-        const bounds = pts.reduce(
-          (b, s) => b.extend([s.longitude!, s.latitude!]),
-          new LngLatBounds([pts[0].longitude!, pts[0].latitude!], [pts[0].longitude!, pts[0].latitude!]),
-        );
-        map.fitBounds(bounds, { padding: 60, maxZoom: 10, duration: 700 });
+        const bounds = L.latLngBounds(pts.map((s) => [s.latitude!, s.longitude!] as [number, number]));
+        map.flyToBounds(bounds, { padding: [60, 60], maxZoom: lz(10), ...FLY });
       },
       flyTo(lon, lat, zoom = 9) {
-        map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), zoom), duration: 700 });
+        map.flyTo([lat, lon], lz(Math.max(mz(map.getZoom()), zoom)), FLY);
       },
       showPlaceMarker(lon, lat, label) {
-        placeMarkerRef.current?.remove();
-        const popup = new Popup({ offset: 25, maxWidth: "280px" }).setText(label); // setText escapes
-        const m = new Marker() // default maplibre pin — matches the original app's drop-a-pin behavior
-          .setLngLat([lon, lat])
-          .setPopup(popup)
-          .addTo(map);
-        // The pin is a temporary highlight: closing its popup (the ✕, or any
-        // map click) dismisses the whole pin. The identity guard makes this
-        // re-entrancy safe — remove() fires "close" synchronously while a
-        // replacement is being installed.
-        popup.on("close", () => {
-          if (placeMarkerRef.current === m) {
-            placeMarkerRef.current = null;
-            m.remove();
-          }
+        retirePlaceMarker();
+        const m = createPlaceMarker(map, lon, lat, label);
+        // The pin is a temporary highlight: closing its popup (the ✕, or a map
+        // click) dismisses the whole pin. Identity-guarded: removing the marker
+        // closes its popup, which fires this again.
+        m.on("popupclose", () => {
+          if (placeMarkerRef.current === m) retirePlaceMarker();
         });
-        m.togglePopup(); // open the name immediately
         placeMarkerRef.current = m;
       },
       clearPlaceMarker() {
-        placeMarkerRef.current?.remove();
-        placeMarkerRef.current = null;
+        retirePlaceMarker();
       },
       refreshOverlay(key) {
-        retryOverlay(overlaySink, key, overlaysRef.current);
+        retryOverlay(overlays, key, overlaysVisibleRef.current);
       },
       highlightNetwork(row, mode) {
         const core = getCore();
-        if (!core || !loadedRef.current) return;
-        const coords = updateNetworkHighlight(map, core, row, mode);
+        if (!core) return;
+        if (mode === "none") {
+          networkCoordsRef.current = null;
+          network.clear();
+          return;
+        }
+        const coords = network.show(core, row, mode);
         networkCoordsRef.current = coords;
-        if (coords && coords.length) fitCoords(coords);
+        if (coords.length) fitCoords(coords);
       },
       clearNetworkHighlight() {
         networkCoordsRef.current = null;
-        const core = getCore();
-        if (core && loadedRef.current) updateNetworkHighlight(map, core, null, "none");
+        network.clear();
       },
       fitNetwork() {
         if (networkCoordsRef.current?.length) fitCoords(networkCoordsRef.current);
@@ -204,306 +294,203 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: Ma
         if (pts.length) fitCoords(pts);
       },
       showBasin(feature) {
-        if (loadedRef.current) setNetworkBasin(map, feature);
+        network.showBasin(feature);
       },
       clearBasin() {
-        if (loadedRef.current) setNetworkBasin(map, null);
+        network.clearBasin();
       },
     });
 
-    function fitCoords(pts: Array<[number, number]>) {
-      const bounds = pts.reduce((b, p) => b.extend(p), new LngLatBounds(pts[0], pts[0]));
-      map.fitBounds(bounds, { padding: 60, maxZoom: 9, duration: 700 });
-    }
+    setZoomTick(roundZoom(map));
+    siteMarkers.sync(sitesRef.current);
+    labels.refresh();
+    updateOverlays(overlays, overlaysVisibleRef.current);
 
-    map.on("load", () => {
-      map.addSource("sites", { type: "geojson", data: sitesToGeoJSON([]) });
-      // Symbology ported from the service renderer: red circle, yellow outline, size 8.
-      map.addLayer({
-        id: "sites-circles",
-        type: "circle",
-        source: "sites",
-        paint: {
-          "circle-radius": 5.5,
-          "circle-color": "#ff0000",
-          "circle-stroke-color": "#ffff00",
-          "circle-stroke-width": 1,
-        },
-      });
-      map.addLayer({
-        id: "sites-selected",
-        type: "circle",
-        source: "sites",
-        filter: ["in", ["get", "site_id"], ["literal", []]],
-        paint: {
-          "circle-radius": 9,
-          "circle-color": "rgba(0,255,255,0.25)",
-          "circle-stroke-color": "#00ffff",
-          "circle-stroke-width": 2.5,
-        },
-      });
-      // Labels ported from the web map: blue Arial ~10px, white halo, above center.
-      map.addLayer({
-        id: "sites-labels",
-        type: "symbol",
-        source: "sites",
-        minzoom: 6,
-        layout: {
-          "text-field": ["get", "site_name"],
-          "text-font": ["Noto Sans Regular"],
-          "text-size": 11,
-          "text-anchor": "bottom",
-          "text-offset": [0, -0.7],
-          "text-optional": true,
-        },
-        paint: {
-          "text-color": "#0044ff",
-          "text-halo-color": "#f7f7f7",
-          "text-halo-width": 1,
-        },
-      });
+    const handles = window as unknown as Handles;
+    handles.__resstMap = map;
+    handles.__resstMapInfo = {
+      counts: () => ({
+        sites: siteMarkers.markers.size,
+        selected: ringsRef.current.size,
+        labels: labels.count,
+        network: network.count,
+        basin: network.basinCount,
+        sketch: sketch.getLayers().length,
+        highlight: select.getLayers().length,
+        national: national.drawn,
+        reservoir: reservoirRingRef.current ? 1 : 0,
+        overlays: overlays.counts(),
+      }),
+      networkKinds: () => network.kinds(),
+      nationalVisible: () => national.isVisible,
+      nationalMetric: () => national.currentMetric,
+      screeningMasked: () => national.isMasked,
+      basemapUrl: () => BASEMAP_TILES[basemapRef.current],
+      isMoving: () => movingRef.current,
+      tilesLoaded: () => tilesLoadedRef.current,
+      jumpTo: (lon, lat, zoom) => map.setView([lat, lon], lz(zoom), { animate: false }),
+      getCenter: () => {
+        const c = map.getCenter();
+        return { lng: c.lng, lat: c.lat };
+      },
+      getZoom: () => mz(map.getZoom()),
+      project: (lon, lat) => {
+        const p = map.latLngToContainerPoint([lat, lon]);
+        return { x: p.x, y: p.y };
+      },
+    };
 
-      map.on("click", "sites-circles", (e: MapLayerMouseEvent) => {
-        if (mapToolRef.current !== "none") return; // an armed Select session owns clicks
-        const siteId = e.features?.[0]?.properties?.site_id as string | undefined;
-        if (siteId) actions.selectSite(siteId);
-      });
-      map.on("mouseenter", "sites-circles", () => {
-        if (mapToolRef.current === "none") map.getCanvas().style.cursor = "pointer";
-      });
-      map.on("mouseleave", "sites-circles", () => {
-        if (mapToolRef.current === "none") map.getCanvas().style.cursor = "";
-      });
-
-      // Reference overlays render beneath the sites layers.
-      installOverlays(map);
-
-      // Select-tool scratch layers, both ov-prefixed so basemap swaps carry
-      // them (with their current data) across setStyle. ov-select = the
-      // chosen basin/river/polygon highlight, under the site circles;
-      // ov-draw = the in-progress polygon sketch, above everything.
-      const emptyFC: FeatureCollection = { type: "FeatureCollection", features: [] };
-      map.addSource("ov-select", { type: "geojson", data: emptyFC });
-      map.addLayer(
-        {
-          id: "ov-select-fill",
-          type: "fill",
-          source: "ov-select",
-          filter: ["==", ["geometry-type"], "Polygon"],
-          paint: { "fill-color": "#00a0b0", "fill-opacity": 0.08 },
-        },
-        "sites-circles",
-      );
-      map.addLayer(
-        {
-          id: "ov-select-line",
-          type: "line",
-          source: "ov-select",
-          paint: { "line-color": "#00a0b0", "line-width": 2.5, "line-opacity": 0.9 },
-        },
-        "sites-circles",
-      );
-      map.addSource("ov-draw", { type: "geojson", data: emptyFC });
-      map.addLayer({
-        id: "ov-draw-fill",
-        type: "fill",
-        source: "ov-draw",
-        filter: ["==", ["geometry-type"], "Polygon"],
-        paint: { "fill-color": "#00a0b0", "fill-opacity": 0.12 },
-      });
-      map.addLayer({
-        id: "ov-draw-line",
-        type: "line",
-        source: "ov-draw",
-        filter: ["==", ["geometry-type"], "LineString"],
-        paint: { "line-color": "#00a0b0", "line-width": 2, "line-dasharray": [2, 1.5] },
-      });
-      map.addLayer({
-        id: "ov-draw-vertex",
-        type: "circle",
-        source: "ov-draw",
-        filter: ["==", ["geometry-type"], "Point"],
-        paint: {
-          "circle-radius": 4,
-          "circle-color": "#ffffff",
-          "circle-stroke-color": "#00a0b0",
-          "circle-stroke-width": 2,
-        },
-      });
-
-      // Network-explorer highlight layers (nw-*), driven via mapBus by the
-      // details panel's Reservoir Network section.
-      installNetworkLayers(map);
-
-      // National inventory layer (nat-*): all ~57k modeled reservoirs beneath
-      // the documented sites; hidden until toggled on under Layers.
-      installNationalLayers(map);
-      map.on("click", "nat-circles", (e: MapLayerMouseEvent) => {
-        if (mapToolRef.current !== "none") return; // an armed Select session owns clicks
-        // A documented site under the cursor wins — its own handler fires.
-        if (map.queryRenderedFeatures(e.point, { layers: ["sites-circles"] }).length) return;
-        const shortId = e.features?.[0]?.properties?.shortId as number | undefined;
-        if (shortId == null) return;
-        const siteId = siteByShortIdRef.current.get(shortId);
-        if (siteId) actions.selectSite(siteId);
-        else actions.selectReservoir(String(shortId));
-      });
-      map.on("mouseenter", "nat-circles", () => {
-        if (mapToolRef.current === "none") map.getCanvas().style.cursor = "pointer";
-      });
-      map.on("mouseleave", "nat-circles", () => {
-        if (mapToolRef.current === "none") map.getCanvas().style.cursor = "";
-      });
-      map.on("moveend", () => {
-        // Debounced: rapid pans supersede each other instead of stacking fetches.
-        scheduleOverlayRefresh(overlaySink, () => overlaysRef.current);
-        setZoomTick(Math.round(map.getZoom() * 10) / 10);
-      });
-
-      loadedRef.current = true;
-      // The constructor fitted the Default bounds; report the real zoom so the
-      // zoom-gated overlay notes are accurate before the first moveend.
-      setZoomTick(Math.round(map.getZoom() * 10) / 10);
-      (map.getSource("sites") as GeoJSONSource).setData(sitesToGeoJSON(sitesRef.current));
-      updateOverlays(overlaySink, overlaysRef.current);
-      // National layer state set while the map was still loading applies now
-      // (the store effects below early-return until loadedRef flips).
-      updateNationalLayer(map, getCore(), siteByShortIdRef.current, nationalRef.current.on, nationalRef.current.metric);
-      if (nationalRef.current.on && !getCore()) void ensureCore().catch(() => {});
-      // The constructor always boots the USGS style so an offline start still
-      // renders a map; the active basemap (default Esri, or a persisted
-      // choice) applies right after install.
-      if (basemapRef.current !== "usgs") void applyBasemap(map, basemapRef.current);
-    });
-
-    // Keep the canvas sized to the grid cell (panels collapse, drawers open,
-    // the table divider drags, the window resizes). resize() zero-clears the
-    // WebGL buffer and only SCHEDULES a repaint for the next frame — and RO
-    // callbacks run after rAF, so without the synchronous redraw() every
-    // resized frame would composite a blank (white) canvas: the divider-drag
-    // flash. resize+redraw in one task is maplibre's own trackResize pattern,
-    // minus its 50ms throttle (which would lag the divider); the built-in
-    // observer is disabled via trackResize: false above.
-    const ro = new ResizeObserver(() => {
-      map.resize();
-      map.redraw();
-    });
-    ro.observe(containerRef.current);
+    // Keep the map sized to the grid cell (panels collapse, drawers open, the
+    // table divider drags). No blank-frame hazard here: Leaflet only
+    // re-measures and re-centres.
+    const ro = new ResizeObserver(() => map.invalidateSize({ animate: false }));
+    ro.observe(el);
 
     return () => {
       ro.disconnect();
       registerMapCommands(null);
       disposeOverlays(); // cancel timers/aborts before the map goes away
-      resetNationalLayerMemo(); // the next map instance needs a fresh setData
-      placeMarkerRef.current?.remove();
-      placeMarkerRef.current = null;
+      popupRef.current?.remove();
+      popupRef.current = null;
+      retirePlaceMarker();
+      for (const r of ringsRef.current.values()) r.remove();
+      ringsRef.current.clear();
+      reservoirRingRef.current?.remove();
+      reservoirRingRef.current = null;
+      network.remove();
+      national.remove();
+      overlays.remove();
+      labels.clear();
+      siteMarkers.remove();
       map.remove();
       mapRef.current = null;
       toolMapRef.current = null;
-      overlaySinkRef.current = null;
-      loadedRef.current = false;
-      // A stale handle would let a test (or a later engine switch) mistake a
-      // removed map for a live one.
-      delete (window as unknown as { __resstMap?: MlMap }).__resstMap;
+      overlaysRef.current = null;
+      siteMarkersRef.current = null;
+      labelsRef.current = null;
+      networkRef.current = null;
+      natLayerRef.current = null;
+      basemapLayerRef.current = null;
+      delete handles.__resstMap;
+      delete handles.__resstMapInfo;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Overlay visibility changes → sync layers + fetch what's now on.
-  useEffect(() => {
-    const sink = overlaySinkRef.current;
-    if (!sink || !loadedRef.current) return;
-    updateOverlays(sink, state.overlays);
-  }, [state.overlays]);
-
-  // National inventory layer: visibility + metric. The one-time 57k setData
-  // happens inside updateNationalLayer once the core arrives (the ensureCore
-  // resolution flips sedimentStatus.core, re-running this effect).
+  // Basemap: swap the tile layer (runs on mount too, adding the first one).
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !loadedRef.current) return;
-    updateNationalLayer(map, getCore(), siteByShortId, state.nationalLayer.on, state.nationalLayer.metric);
-    if (state.nationalLayer.on && !getCore()) void ensureCore().catch(() => {});
-  }, [state.nationalLayer, state.sedimentStatus.core, siteByShortId]);
-
-  // Basemap toggles → swap styles; app sources/layers ride across the swap.
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !loadedRef.current) return;
-    void applyBasemap(map, state.basemap);
+    if (!map) return;
+    const old = basemapLayerRef.current;
+    if (old) map.removeLayer(old);
+    const layer = createBasemapLayer(state.basemap);
+    tilesLoadedRef.current = false;
+    layer.on("loading", () => {
+      tilesLoadedRef.current = false;
+    });
+    layer.on("load", () => {
+      tilesLoadedRef.current = true;
+    });
+    layer.addTo(map);
+    basemapLayerRef.current = layer;
   }, [state.basemap]);
 
-  // Keep the source in sync with the filtered sites.
-  const sitesRef = useRef(sites);
-  sitesRef.current = sites;
+  // Overlay visibility changes → sync layers + fetch what's now on.
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !loadedRef.current) return;
-    (map.getSource("sites") as GeoJSONSource | undefined)?.setData(sitesToGeoJSON(sites));
+    const overlays = overlaysRef.current;
+    if (!overlays) return;
+    updateOverlays(overlays, state.overlays);
+  }, [state.overlays]);
+
+  // National inventory layer: visibility + metric. The core feeds the canvas
+  // once per instance; the ensureCore resolution flips sedimentStatus.core,
+  // which re-runs this effect.
+  useEffect(() => {
+    const nat = natLayerRef.current;
+    if (!nat) return;
+    const core = getCore();
+    if (core) {
+      nat.setCore(core);
+      nat.setMetric(state.nationalLayer.metric);
+      nat.setScreening(state.screening, new Set(siteByShortId.keys()));
+    }
+    nat.setVisible(state.nationalLayer.on);
+    if (state.nationalLayer.on && !core) void ensureCore().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.nationalLayer, state.sedimentStatus.core, siteByShortId]);
+
+  // Screening criteria hide the non-matching dots (the panel's count says
+  // what is hidden).
+  useEffect(() => {
+    natLayerRef.current?.setScreening(state.screening, new Set(siteByShortId.keys()));
+  }, [state.screening, siteByShortId]);
+
+  // Keep the markers in sync with the filtered sites (a diff by id: the
+  // array's identity changes on every selection).
+  useEffect(() => {
+    const markers = siteMarkersRef.current;
+    if (!markers) return;
+    markers.sync(sites);
+    labelsRef.current?.refresh();
   }, [sites]);
 
   // Selection: highlight rings; popup + fly only for a single selection.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !loadedRef.current) return;
+    const toolMap = toolMapRef.current;
+    if (!map || !toolMap) return;
     // A Select gesture that just drew its basin/river/polygon outline flags
-    // keepHighlightRef; every other selection change (table row, search, site
-    // click, Clear) retires the outline along with the old selection.
+    // keepHighlightRef; every other selection change retires the outline.
     if (keepHighlightRef.current) keepHighlightRef.current = false;
-    else (map.getSource("ov-select") as GeoJSONSource | undefined)?.setData({ type: "FeatureCollection", features: [] });
-    map.setFilter("sites-selected", ["in", ["get", "site_id"], ["literal", selectedIds]]);
+    else toolMap.setHighlight(null);
+    const rings = ringsRef.current;
+    const wanted = new Set(selectedIds);
+    for (const [id, r] of rings) {
+      if (wanted.has(id)) continue;
+      r.remove();
+      rings.delete(id);
+    }
+    for (const id of selectedIds) {
+      if (rings.has(id)) continue;
+      const s = siteById.get(id);
+      if (!s || s.longitude == null || s.latitude == null) continue;
+      rings.set(id, L.circleMarker([s.latitude, s.longitude], RING_STYLE).addTo(map));
+    }
     popupRef.current?.remove();
     popupRef.current = null;
-    // Selecting sites (map click, table row, search) retires the temporary
-    // place-search pin — the site popup and a stale pin never show together.
-    if (selectedIds.length > 0) {
-      placeMarkerRef.current?.remove();
-      placeMarkerRef.current = null;
-    }
+    // Selecting sites retires the temporary place-search pin.
+    if (selectedIds.length > 0) retirePlaceMarker();
     if (selectedIds.length !== 1) return;
     const site = siteById.get(selectedIds[0]);
     if (!site || site.longitude == null || site.latitude == null) return;
-    popupRef.current = new Popup({ closeButton: true, maxWidth: "320px", offset: 10 })
-      .setLngLat([site.longitude, site.latitude])
-      .setHTML(popupHtml(site))
-      .addTo(map);
-    map.flyTo({ center: [site.longitude, site.latitude], zoom: Math.max(map.getZoom(), 8), duration: 700 });
+    popupRef.current = openPopup(map, site.longitude, site.latitude, popupHtml(site));
+    map.flyTo([site.latitude, site.longitude], lz(Math.max(mz(map.getZoom()), 8)), FLY);
   }, [selectedIds, siteById]);
 
-  // Screening criteria filter the national circles (hide non-matching —
-  // crisper than fading at 57k scale; the panel's count says what is hidden).
+  // Selected national reservoir (reachable from Comparables even without the
+  // national layer): ring + compact popup + fly-to. Declared after the site
+  // effect for the same ordering reason as in the MapLibre panel.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !loadedRef.current || !map.getLayer("nat-circles")) return;
-    map.setFilter("nat-circles", buildScreenFilter(state.screening));
-  }, [state.screening]);
-
-  // Selected national reservoir: highlight ring + compact popup + fly-to.
-  // Declared AFTER the site-selection effect so a site→reservoir switch runs
-  // the site cleanup (popup removal) FIRST and this popup survives the commit;
-  // the reverse switch clears the ring here, then the site effect popups.
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !loadedRef.current) return;
+    if (!map) return;
+    reservoirRingRef.current?.remove();
+    reservoirRingRef.current = null;
     const shortId = state.selectedReservoirId;
-    setNationalSelected(map, shortId ? Number(shortId) : null);
     if (!shortId) return;
     const core = getCore();
     const row = core?.rowById.get(Number(shortId));
     if (!core || row == null) return; // core still loading — re-runs on status flip
     popupRef.current?.remove();
-    placeMarkerRef.current?.remove();
-    placeMarkerRef.current = null;
-    popupRef.current = new Popup({ closeButton: true, maxWidth: "320px", offset: 10 })
-      .setLngLat([core.lon[row], core.lat[row]])
-      .setHTML(reservoirPopupHtml(core, row))
-      .addTo(map);
-    map.flyTo({ center: [core.lon[row], core.lat[row]], zoom: Math.max(map.getZoom(), 8), duration: 700 });
+    retirePlaceMarker();
+    const lon = core.lon[row];
+    const lat = core.lat[row];
+    reservoirRingRef.current = L.circleMarker([lat, lon], RING_STYLE).addTo(map);
+    popupRef.current = openPopup(map, lon, lat, reservoirPopupHtml(core, row));
+    map.flyTo([lat, lon], lz(Math.max(mz(map.getZoom()), 8)), FLY);
   }, [state.selectedReservoirId, state.sedimentStatus.core]);
 
   // Armed Select tool → one session per arming (selectTools.ts). The effect
-  // cleanup IS the disarm path: Esc, Cancel/Done, one-shot completion, mode
-  // switch, and unmount all run it.
+  // cleanup IS the disarm path.
   const sessionCtx = (map: ToolMap): SessionCtx => ({
     map,
     boxEl: boxRef.current!,
@@ -520,9 +507,6 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: Ma
   }, [state.mapTool]);
 
   // Near-a-river refine stage: distance edits recompute the selection live.
-  // Debounced so typing "25" doesn't apply at "2". `sites` stays out of the
-  // deps deliberately — the filtered array's identity changes on every
-  // selection, and depending on it would loop through selectSites.
   useEffect(() => {
     const map = toolMapRef.current;
     if (!map || state.mapTool !== "river" || !riverRef.current) return;
@@ -536,7 +520,7 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: Ma
       <div ref={containerRef} className="map-panel" role="application" aria-label="Map of reservoir sediment sites" />
       <div ref={boxRef} className="select-box" aria-hidden="true" />
       <MapToolbar state={state} allSites={allSites} siteByShortId={siteByShortId} zoom={zoomTick} toolMsg={toolMsg} />
-      {createPortal(<BasemapPicker basemap={state.basemap} status={state.basemapStatus} />, basemapHostRef.current)}
+      {createPortal(<BasemapPicker basemap={state.basemap} />, basemapHostRef.current)}
     </div>
   );
 }

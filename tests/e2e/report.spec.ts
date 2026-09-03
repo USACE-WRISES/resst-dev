@@ -28,13 +28,10 @@ async function selectSite(page: Page, name: string) {
 
 /** Click the map at a dam's lng/lat (zooming in first so points separate). */
 async function clickDam(page: Page, lon: number, lat: number) {
-  await page.evaluate(([ln, lt]) => (window as any).__resstMap.jumpTo({ center: [ln, lt], zoom: 10 }), [lon, lat]);
+  await page.evaluate(([ln, lt]) => (window as any).__resstMapInfo.jumpTo(ln, lt, 10), [lon, lat]);
   await page.waitForTimeout(400);
-  const pt = await page.evaluate(([ln, lt]) => {
-    const p = (window as any).__resstMap.project([ln, lt]);
-    return { x: p.x, y: p.y };
-  }, [lon, lat]);
-  const box = (await page.locator(".maplibregl-canvas").boundingBox())!;
+  const pt = await page.evaluate(([ln, lt]) => (window as any).__resstMapInfo.project(ln, lt), [lon, lat]);
+  const box = (await page.locator(".map-panel").boundingBox())!;
   await page.mouse.click(box.x + pt.x, box.y + pt.y);
 }
 
@@ -89,7 +86,7 @@ test("a site report compiles every section and downloads a standalone file", asy
   await expect(dialog.locator(".report-head")).toBeHidden();
   await page.emulateMedia({ media: "screen" });
 
-  const results = await new AxeBuilder({ page }).exclude(".maplibregl-canvas").analyze();
+  const results = await new AxeBuilder({ page }).exclude(".leaflet-tile-pane").exclude(".leaflet-pane svg").exclude(".leaflet-pane canvas").exclude(".leaflet-tooltip-pane").analyze();
   const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
   expect(serious.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`)).toEqual([]);
 
@@ -102,14 +99,7 @@ test("a national-reservoir report reads from the core and skips site sections", 
   await openApp(page);
   await page.getByRole("button", { name: "Layers" }).click();
   await page.getByRole("checkbox", { name: /All modeled reservoirs/ }).check();
-  await expect
-    .poll(() =>
-      page.evaluate(async () => {
-        const src = (window as any).__resstMap.getSource("nat-reservoirs");
-        return src ? (await src.getData()).features.length : 0;
-      }),
-    )
-    .toBe(3);
+  await expect.poll(() => page.evaluate(() => (window as any).__resstMapInfo.counts().national)).toBe(3);
   await page.keyboard.press("Escape");
   await clickDam(page, -96.45, 39.05); // Lone Reservoir — not crosswalked, no surveys
   await expect(page.locator(".details-panel")).toContainText("Lone Reservoir");

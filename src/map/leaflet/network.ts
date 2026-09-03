@@ -62,6 +62,17 @@ export class NetworkLayers {
     return this.up.length + this.down.length + this.mouthMarkers.length + this.lines.getLayers().length;
   }
 
+  /** Feature counts by kind, the shape the e2e suite reads. */
+  kinds(): Record<string, number> {
+    const out: Record<string, number> = {};
+    if (this.up.length) out.up = this.up.length;
+    if (this.down.length) out.down = this.down.length;
+    if (this.mouthMarkers.length) out.mouth = this.mouthMarkers.length;
+    const conn = this.lines.getLayers().length;
+    if (conn) out.conn = conn;
+    return out;
+  }
+
   get basinCount(): number {
     return this.basinOn ? 1 : 0;
   }

@@ -3,7 +3,7 @@
 // them together and pin the unknown-value semantics (a reservoir with no
 // original capacity can match neither a "high" nor a "low" loss criterion).
 import { describe, expect, it } from "vitest";
-import { EMPTY_SCREENING, GAP_PRESETS, buildScreenFilter, screenCore, type ScreeningState } from "../src/sediment/screen";
+import { EMPTY_SCREENING, GAP_PRESETS, screenCore, type ScreeningState } from "../src/sediment/screen";
 import { decodeCore } from "../src/sediment/decode";
 
 // mouth · documented terminal dam 17% lost w/ surveys · undocumented 50% lost · no-storage row
@@ -74,31 +74,5 @@ describe("matchesRow / screenCore", () => {
     expect(screenCore(core, DOCUMENTED, s(byKey["gap-high"])).rows).toEqual([2]);
     expect(screenCore(core, DOCUMENTED, s(byKey["gap-low"])).rows).toEqual([]);
     for (const p of GAP_PRESETS) expect(p.hint).not.toMatch(/needs? intervention/i);
-  });
-});
-
-describe("buildScreenFilter", () => {
-  it("is null when inactive or unconstrained", () => {
-    expect(buildScreenFilter(EMPTY_SCREENING)).toBeNull();
-    expect(buildScreenFilter(s({}))).toBeNull();
-  });
-
-  it("serializes one clause per criterion, mirroring the predicate's fields", () => {
-    const f = buildScreenFilter(
-      s({ pctLost2025Min: 25, terminalOnly: true, documented: "undocumented", state: 1, storageMinAcFt: 1000 }),
-    ) as unknown[];
-    expect(f[0]).toBe("all");
-    const flat = JSON.stringify(f);
-    expect(flat).toContain('[">=",["get","pl25"],25]');
-    expect(flat).toContain('["==",["get","term"],1]');
-    expect(flat).toContain('["==",["get","doc"],0]');
-    expect(flat).toContain('["==",["get","st"],1]');
-    expect(flat).toContain('[">=",["get","storAf"],1000]');
-  });
-
-  it("a pct-lost MAX also guards out the -1 unknown sentinel", () => {
-    const f = JSON.stringify(buildScreenFilter(s({ pctLost2025Max: 25 })));
-    expect(f).toContain('[">=",["get","pl25"],0]');
-    expect(f).toContain('["<=",["get","pl25"],25]');
   });
 });

@@ -7,7 +7,7 @@ import { stubEsri } from "./helpers/esriStub";
 const scan = (page: import("@playwright/test").Page) =>
   new AxeBuilder({ page })
     // The WebGL canvas is decorative for axe purposes; MapLibre controls are scanned.
-    .exclude(".maplibregl-canvas")
+    .exclude(".leaflet-tile-pane").exclude(".leaflet-pane svg").exclude(".leaflet-pane canvas").exclude(".leaflet-tooltip-pane")
     .analyze();
 
 const serious = (r: Awaited<ReturnType<typeof scan>>) =>

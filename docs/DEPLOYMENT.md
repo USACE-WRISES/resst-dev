@@ -26,10 +26,9 @@ Everything is automated through GitHub Actions; there is no server to run.
 
 | Service | Used for | If it breaks |
 |---|---|---|
-| `basemap.nationalmap.gov` (USGS) | fallback basemap tiles (also the boot style and the auto-revert target) | map background blank while on the fallback; app otherwise functional |
-| `cdn.arcgis.com` | default Esri basemap: style + sprite | automatic revert to USGS with a retryable error in the picker |
-| `basemaps.arcgis.com` | default Esri basemap: vector tiles + fonts | same |
-| `services.arcgisonline.com` | default Esri basemap: hillshade tiles | hillshade missing under the Esri style; USGS fallback unaffected |
+| `services.arcgisonline.com` | default basemap: Esri World Topographic Map tiles (also the report figure's and the diagnostics benchmark's hillshade) | map background blank on the default; switch to USGS Topo in the picker |
+| `basemap.nationalmap.gov` (USGS) | the USGS Topo basemap tiles; the report figure's basemap | map background blank while on USGS; app otherwise functional |
+| `cdn.arcgis.com`, `basemaps.arcgis.com` | the `?diag=1` benchmark's Esri vector style, sprite, tiles and fonts (the app itself no longer loads them) | one benchmark leg reports "style unavailable" |
 | NID / Stream Gauges (Esri-hosted public services) | optional live point overlays | that overlay stays empty (console warning); toggles remain |
 | `SDMDataAccess.sc.egov.usda.gov` | SSURGO WMS overlay | same |
 | `carto.nationalmap.gov` (USGS GNIS) | place search (streams, lakes, cities) in the map search box | site-name search keeps working; the Places group shows "Place search unavailable" |
@@ -41,10 +40,10 @@ Their upstream sources — `hydro.nationalmap.gov` (USGS WBD, public domain) and
 the CEC rivers service on `services7.arcgis.com` (CC BY 4.0) — are contacted
 only at build time by `npm run build:overlays`, never by the deployed app.
 
-No API keys, tokens, or secrets exist anywhere in the system. Glyph fonts are
-self-hosted under `public/fonts/`. Cold loads fetch the Esri style at boot;
-the e2e suite stays hermetic by route-stubbing every Esri endpoint
-(`tests/e2e/helpers/esriStub.ts`).
+No API keys, tokens, or secrets exist anywhere in the system. Glyph fonts for
+the report figure and the benchmark are self-hosted under `public/fonts/`.
+The e2e suite stays hermetic by route-stubbing every Esri and USGS tile
+endpoint (`tests/e2e/helpers/esriStub.ts`).
 
 ## Diagnosing a slow map on someone's machine
 
@@ -171,38 +170,47 @@ overlay snapshots is the obstacle, the app could fetch them cross-origin from
 Pages (which sends `Access-Control-Allow-Origin: *`) through a build-time
 overlay base — not implemented.
 
-## Map engine (transition to Leaflet)
+## The map (Leaflet)
 
-The interactive map is moving from MapLibre GL (WebGL) to Leaflet (DOM
-elements and image tiles) because DoD remote browser isolation streams every
-WebGL canvas from a cloud browser at ~4.6 fps while DOM content is mirrored
-and animates locally (the `?diag=1` DOM map trial proved it on a USACE
-laptop). The move is phased so the site never regresses:
+The interactive map is Leaflet: DOM elements and image tiles, no WebGL. It
+replaced MapLibre GL in September 2026 because DoD remote browser isolation
+streams every WebGL canvas from a cloud browser at ~4.6 fps while DOM content
+is mirrored and animates locally (the `?diag=1` DOM map trial proved it on a
+USACE laptop; `notes/2026-09-02-usace-map-lag-isolation-and-plan.md` has the
+evidence and the decision). What that means in practice:
 
-- **Phases 1 and 2 (done):** both engines ship, at feature parity. Each page
-  load picks one, in this order: the URL (`?map=leaflet` or `?map=maplibre`,
-  never persisted), then `localStorage` key `resst.mapEngine` (`leaflet` or
-  `maplibre`; set it by hand, there is no UI), then the WebGL probe — when the
-  page's WebGL renderer is software (SwiftShader, which is what isolation and
-  most VMs report) the Leaflet map loads, otherwise MapLibre. The probe result
-  is memoized per session in `sessionStorage` (`resst.renderClass`). The
-  footer says `Map: Leaflet (preview)` when Leaflet is active. Leaflet is a
-  separate chunk (`DomMapPanel-*.js`) that only loads when chosen; the main
-  bundle is unchanged. On Leaflet the national inventory layer is one canvas
-  drawn from typed arrays (redrawn at settle, transformed during a zoom) and
-  Screening hides the non-matching dots; clicks on it are hit-tested by the
-  panel after the site markers above it have had theirs.
-- **Phase 3 (next):** Leaflet becomes the only map; MapLibre stays only behind
-  a lazy import for the Dam Report's static map figure.
+- Both basemaps are image tiles: Esri's World Topographic Map from
+  `services.arcgisonline.com` (the default) and USGS The National Map. A swap
+  replaces the tile layer and cannot fail as a whole.
+- The site markers are SVG circles; labels are permanent tooltips placed by a
+  greedy first-come pass (at most 150 in view, from zoom 6); popups, the
+  selection rings, the network highlight, the drainage area and the Select
+  sketch are SVG too. Reference overlays and the upstream-dam fan draw on
+  canvas renderers that Leaflet transforms during a gesture and redraws once
+  at settle.
+- The national inventory layer is one canvas drawn from typed arrays (one
+  path per colour bucket, culled to the view, redrawn at settle, transformed
+  during a zoom animation); Screening hides the non-matching dots. The canvas
+  is pointer-transparent: the panel hit-tests the last-drawn dots on a map
+  click that no site marker handled, so a documented dam still routes to its
+  site.
+- Zoom numbers in the code and the tests use the app's original 512 px
+  basis (Leaflet's own zoom sits one step higher); `src/map/leaflet/zoom.ts`
+  converts at the edge.
 
-Code: `src/map/engine.ts` (the choice), `src/map/MapHost.tsx` (mounts one
-panel), `src/map/dom/` (the Leaflet panel and its layers), and the engine-free
-seams both panels implement: `src/map/toolMap.ts` (Select tools) and
-`src/map/overlaySink.ts` (reference overlays). The e2e suite pins MapLibre
-through `playwright.config.ts`'s `storageState` (headless Chromium is
-SwiftShader); `tests/e2e/dom-map.spec.ts` seeds Leaflet for itself. To check
-the Leaflet map on the mirror or on Pages, open the site with `?map=leaflet`;
-on an isolated USACE workstation it loads by itself.
+MapLibre GL remains a dependency for two things that need WebGL and load on
+demand as their own chunks: the Dam Report's static map figure
+(`src/report/ReportMap.tsx`) and the `?diag=1` benchmark. Under isolation the
+report figure still renders (a one-time picture; 10 s fallback).
+
+Code: `src/map/MapPanel.tsx` (the panel, its commands and effects),
+`src/map/leaflet/` (basemaps, sites, labels, popups, place marker, network,
+overlays, the national canvas, the Select-tool adapter), and the seams the
+tools and the overlay runtime use: `src/map/toolMap.ts` and
+`src/map/overlaySink.ts`. The e2e suite reads the map through
+`window.__resstMap` (the Leaflet map) and `window.__resstMapInfo` (counts,
+flags and camera helpers in the app's conventions); `tests/e2e/map.spec.ts`
+covers the map itself.
 
 ## Local development
 

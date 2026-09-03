@@ -123,6 +123,19 @@ export class NationalLayer {
     return this.visible ? this.drawnCount : 0;
   }
 
+  get isVisible(): boolean {
+    return this.visible;
+  }
+
+  get currentMetric(): NationalMetric {
+    return this.metric;
+  }
+
+  /** Whether a screening mask is hiding non-matching dots. */
+  get isMasked(): boolean {
+    return this.mask !== null;
+  }
+
   setVisible(on: boolean): void {
     if (on === this.visible) return;
     this.visible = on;

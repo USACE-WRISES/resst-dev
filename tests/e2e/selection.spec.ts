@@ -43,18 +43,16 @@ async function openApp(page: Page, flags: StubFlags = { failHuc: false }): Promi
 
 /** Jump the camera so the Kansas fixture cluster is comfortably clickable. */
 async function jumpToFixtureArea(page: Page): Promise<void> {
-  await page.evaluate(() => {
-    (window as unknown as { __resstMap: any }).__resstMap.jumpTo({ center: [-96.6, 39.25], zoom: 8 });
-  });
+  await page.evaluate(() => (window as any).__resstMapInfo.jumpTo(-96.6, 39.25, 8));
   await waitForMapIdle(page);
 }
 
 const screenPt = (page: Page, lon: number, lat: number) =>
   page.evaluate(
     ([ln, lt]) => {
-      const m = (window as unknown as { __resstMap: any }).__resstMap;
-      const p = m.project([ln, lt]);
-      const r = m.getCanvas().getBoundingClientRect();
+      const w = window as any;
+      const p = w.__resstMapInfo.project(ln, lt);
+      const r = w.__resstMap.getContainer().getBoundingClientRect();
       return { x: r.left + p.x, y: r.top + p.y };
     },
     [lon, lat],
@@ -71,21 +69,11 @@ const selectBtn = (page: Page) => page.locator(".map-toolbar").getByRole("button
 const hintBar = (page: Page) => page.locator(".map-hint-bar");
 const selectedCount = (page: Page, n: number) =>
   expect(page.locator(".details-panel")).toContainText(`Selected Sites: ${n}`);
-const highlightCount = (page: Page) =>
-  page.evaluate(
-    () =>
-      ((window as unknown as { __resstMap: any }).__resstMap.getSource("ov-select").serialize().data.features ?? [])
-        .length,
-  );
-// Clicks now REQUIRE the resident snapshot (containment/courses run locally),
-// so every HUC- or river-clicking test waits for the layer's data to land.
+const highlightCount = (page: Page) => page.evaluate(() => (window as any).__resstMapInfo.counts().highlight);
+// Clicks REQUIRE the resident snapshot (containment/courses run locally), so
+// every HUC- or river-clicking test waits for the layer's data to land.
 const overlayReady = (page: Page, key: string) =>
-  page.waitForFunction(
-    (k) =>
-      ((window as unknown as { __resstMap: any }).__resstMap.getSource(`ov-${k}`)?.serialize?.().data?.features
-        ?.length ?? 0) > 0,
-    key,
-  );
+  page.waitForFunction((k) => ((window as any).__resstMapInfo.counts().overlays[k] ?? 0) > 0, key);
 
 const armTool = async (page: Page, item: string | RegExp) => {
   await selectBtn(page).click();
@@ -100,7 +88,7 @@ test("the Select menu lists every mode and stays axe-clean open and armed", asyn
     await expect(menu.getByRole("button", { name })).toBeVisible();
   }
   await expect(menu.getByRole("button", { name: "Clear selection" })).toBeDisabled(); // nothing selected yet
-  const openScan = await new AxeBuilder({ page }).exclude(".maplibregl-canvas").analyze();
+  const openScan = await new AxeBuilder({ page }).exclude(".leaflet-tile-pane").exclude(".leaflet-pane svg").exclude(".leaflet-pane canvas").exclude(".leaflet-tooltip-pane").analyze();
   expect(
     openScan.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => v.id),
   ).toEqual([]);
@@ -108,7 +96,7 @@ test("the Select menu lists every mode and stays axe-clean open and armed", asyn
   await menu.getByRole("button", { name: /^Near a river/ }).click();
   await expect(hintBar(page)).toBeVisible();
   await expect(page.getByRole("spinbutton", { name: "Distance from the river in miles" })).toBeVisible();
-  const armedScan = await new AxeBuilder({ page }).exclude(".maplibregl-canvas").analyze();
+  const armedScan = await new AxeBuilder({ page }).exclude(".leaflet-tile-pane").exclude(".leaflet-pane svg").exclude(".leaflet-pane canvas").exclude(".leaflet-tooltip-pane").analyze();
   expect(
     armedScan.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => v.id),
   ).toEqual([]);
@@ -167,11 +155,7 @@ test("polygon draw selects on Enter; Escape cancels a draw in progress", async (
   await clickAt(page, -96.45, 39.35);
   await page.keyboard.press("Escape");
   await expect(hintBar(page)).toHaveCount(0);
-  const drawCount = await page.evaluate(
-    () =>
-      ((window as unknown as { __resstMap: any }).__resstMap.getSource("ov-draw").serialize().data.features ?? [])
-        .length,
-  );
+  const drawCount = await page.evaluate(() => (window as any).__resstMapInfo.counts().sketch);
   expect(drawCount).toBe(0); // the sketch is gone
   await selectedCount(page, 1); // Esc never reverts an applied selection
 });

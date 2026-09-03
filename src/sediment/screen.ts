@@ -1,14 +1,11 @@
 // National screening: transparent, combinable criteria over the modeled
-// inventory (never an opaque composite score — owner decision). Two mirrored
-// implementations on purpose: matchesRow() runs in JS for counts/exports, and
-// buildScreenFilter() emits the equivalent MapLibre filter over the
-// nat-circles feature properties (pl25/pl50/storAf/rateAf/term/ev/doc/st/own/
-// pur — precomputed in map/nationalLayer.ts). Unit tests hold them together.
+// inventory (never an opaque composite score — owner decision). One
+// predicate, matchesRow(), serves the count readout, the CSV export, and the
+// map (leaflet/national.ts masks the dots that fail it).
 //
 // "No documented management" means NOT crosswalked to a RESST site — exact
 // and transparent (a fuzzy nearest-site radius would silently mask real gaps).
 
-import type { ExpressionSpecification } from "maplibre-gl";
 import { FLAG, M3_PER_ACFT, type SedimentCore } from "./types";
 
 export interface ScreeningState {
@@ -124,24 +121,4 @@ export function screenCore(core: SedimentCore, documentedShortIds: ReadonlySet<n
     if (matchesRow(core, documentedShortIds, r, s)) rows.push(r);
   }
   return { matches: rows.length, total, rows };
-}
-
-/** The equivalent MapLibre filter for nat-circles; null = show everything. */
-export function buildScreenFilter(s: ScreeningState): ExpressionSpecification | null {
-  if (!s.active) return null;
-  const clauses: unknown[] = [];
-  if (s.pctLost2025Min != null) clauses.push([">=", ["get", "pl25"], s.pctLost2025Min]);
-  if (s.pctLost2025Max != null) clauses.push([">=", ["get", "pl25"], 0], ["<=", ["get", "pl25"], s.pctLost2025Max]);
-  if (s.pctLost2050Min != null) clauses.push([">=", ["get", "pl50"], s.pctLost2050Min]);
-  if (s.storageMinAcFt != null) clauses.push([">=", ["get", "storAf"], s.storageMinAcFt]);
-  if (s.rateMinAcFtYr != null) clauses.push([">=", ["get", "rateAf"], s.rateMinAcFtYr]);
-  if (s.terminalOnly) clauses.push(["==", ["get", "term"], 1]);
-  if (s.surveyedOnly) clauses.push(["==", ["get", "ev"], 1]);
-  if (s.documented === "documented") clauses.push(["==", ["get", "doc"], 1]);
-  if (s.documented === "undocumented") clauses.push(["==", ["get", "doc"], 0]);
-  if (s.state != null) clauses.push(["==", ["get", "st"], s.state]);
-  if (s.owner != null) clauses.push(["==", ["get", "own"], s.owner]);
-  if (s.purpose != null) clauses.push(["==", ["get", "pur"], s.purpose]);
-  if (clauses.length === 0) return null;
-  return ["all", ...clauses] as ExpressionSpecification;
 }

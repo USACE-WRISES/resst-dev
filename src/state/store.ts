@@ -72,8 +72,6 @@ export interface AppState {
   overlayStatus: Record<string, OverlayStatus>;
   /** Active basemap (persisted per-browser). */
   basemap: BasemapId;
-  /** Esri basemap swap status — null when idle or complete. */
-  basemapStatus: "loading" | "error" | null;
   /** Which side panel is open as a drawer on narrow screens. */
   mobilePanel: "filters" | "details" | null;
   /** Desktop-only side-panel collapse (the drawers take over on narrow screens). */
@@ -128,7 +126,6 @@ let state: AppState = {
       return DEFAULT_BASEMAP;
     }
   })(),
-  basemapStatus: null,
   mobilePanel: null,
   filtersCollapsed: false,
   detailsCollapsed: false,
@@ -272,22 +269,6 @@ export const actions = {
       /* storage unavailable — the choice lasts for this session only */
     }
     set({ basemap: id });
-  },
-  /** Failure revert: show `id` WITHOUT persisting it, and forget the stored
-      choice so the next visit retries the default basemap. */
-  revertBasemap(id: BasemapId): void {
-    try {
-      localStorage.removeItem("resst.basemap");
-    } catch {
-      /* storage unavailable — nothing was persisted anyway */
-    }
-    if (state.basemap === id) return;
-    set({ basemap: id });
-  },
-  /** Written by the basemap swap in map/basemaps.ts; null clears it. */
-  setBasemapStatus(status: "loading" | "error" | null): void {
-    if (state.basemapStatus === status) return; // no-op guard, matches setOverlayStatus
-    set({ basemapStatus: status });
   },
   setActiveTab(tab: TabId): void {
     set({ activeTab: tab });

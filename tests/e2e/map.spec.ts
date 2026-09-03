@@ -1,8 +1,9 @@
-// The Leaflet map panel (src/map/dom): the same props and command contract as
-// the MapLibre panel, drawn with DOM elements and image tiles. Seeded to the
-// Leaflet engine explicitly; the config's storageState pins every other spec
-// to MapLibre (headless Chromium is SwiftShader, which the engine rule would
-// otherwise read as "use Leaflet").
+// The map panel (src/map/MapPanel.tsx, Leaflet): boot, site markers and
+// labels, selection from the map and the table, the four Select tools, the
+// network highlight and NLDI drainage area, the basemap swap, the national
+// inventory layer with Screening, accessibility, and a phone check. Hermetic
+// via the Esri/USGS tile stubs, the sediment fixtures, and the overlay
+// fixtures (the Kansas basin for every HUC level; the test river).
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { stubEsri, stubUsgsTiles } from "./helpers/esriStub";
@@ -10,14 +11,7 @@ import { stubSediment } from "./helpers/sedimentFixtures";
 import { stubNldi } from "./helpers/nldiStub";
 import { KANSAS_BASIN_FC, TEST_RIVER_FC } from "./helpers/overlayFixtures";
 import { openDetailSection } from "./helpers/sections";
-import { domCounts, jumpTo, landed, screenPt, waitForDomMapReady } from "./helpers/domMapReady";
-
-const ORIGIN = "http://localhost:4173";
-const seed = (value: "leaflet" | "maplibre") => ({
-  cookies: [],
-  origins: [{ origin: ORIGIN, localStorage: [{ name: "resst.mapEngine", value }] }],
-});
-test.use({ storageState: seed("leaflet") });
+import { jumpTo, landed, mapCounts, screenPt, waitForMapIdle } from "./helpers/mapReady";
 
 // Tuttle Creek (layout.spec.ts uses the same point).
 const TUTTLE = { lon: -96.5943465450358, lat: 39.2562232982835 };
@@ -26,7 +20,6 @@ test.beforeEach(async ({ page }) => {
   await stubEsri(page); // also serves the raster World_Topo_Map tiles
   await stubUsgsTiles(page);
   await stubSediment(page);
-  // The Kansas basin fixture (3 sites) for every HUC level; the test river for rivers.json.
   await page.route("**/overlays/*.json", (route) =>
     route.fulfill({ json: /huc\d[^/]*\.json$/.test(route.request().url()) ? KANSAS_BASIN_FC : TEST_RIVER_FC }),
   );
@@ -35,7 +28,7 @@ test.beforeEach(async ({ page }) => {
 async function openApp(page: Page): Promise<void> {
   await page.goto("./");
   await page.getByRole("button", { name: "OK" }).click(); // welcome dialog
-  await waitForDomMapReady(page);
+  await waitForMapIdle(page);
 }
 
 const selectBtn = (page: Page) => page.locator(".map-toolbar").getByRole("button", { name: /^Select/ });
@@ -51,45 +44,49 @@ const clickAt = async (page: Page, lon: number, lat: number) => {
   await page.mouse.click(p.x, p.y);
 };
 const overlayReady = (page: Page, key: string) =>
-  expect.poll(async () => (await domCounts(page)).overlays[key] ?? 0, { timeout: 15_000 }).toBeGreaterThan(0);
+  expect.poll(async () => (await mapCounts(page)).overlays[key] ?? 0, { timeout: 15_000 }).toBeGreaterThan(0);
 async function selectFromTable(page: Page, name: string): Promise<void> {
   await page.locator(".table-panel input").first().fill(name);
   await page.locator(".data-table tbody tr", { hasText: name }).first().click();
 }
+/** Turn the national layer on and wait for the fixture's 3 dams to draw (the mouth node is excluded). */
+async function enableNationalLayer(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "Layers" }).click();
+  await page.getByRole("checkbox", { name: /All modeled reservoirs/ }).check();
+  await expect.poll(async () => (await mapCounts(page)).national, { timeout: 10_000 }).toBe(3);
+  await page.keyboard.press("Escape"); // close the popover
+}
 
-test("boots on the Leaflet map with every site drawn and no WebGL canvas", async ({ page }) => {
+test("boots with every site drawn, and labels appear once zoomed in", async ({ page }) => {
   await openApp(page);
   await expect(page.locator(".map-panel.leaflet-container")).toBeVisible();
-  await expect(page.locator(".maplibregl-canvas")).toHaveCount(0);
-  expect(await page.evaluate(() => !!(window as any).__resstMap)).toBe(false);
-  expect(await domCounts(page)).toMatchObject({ sites: 963, selected: 0, labels: 0, network: 0, basin: 0, sketch: 0 });
-  await expect(page.locator(".app-footer")).toContainText("Map: Leaflet");
-  // Labels from MapLibre zoom 6 (Leaflet 7), capped and collision-placed.
+  expect(await mapCounts(page)).toMatchObject({ sites: 963, selected: 0, labels: 0, network: 0, basin: 0, sketch: 0 });
+  // Labels from zoom 6, capped and collision-placed.
   await jumpTo(page, -96.6, 39.25, 8);
-  await expect.poll(async () => (await domCounts(page)).labels).toBeGreaterThan(0);
-  expect((await domCounts(page)).labels).toBeLessThanOrEqual(150);
+  await expect.poll(async () => (await mapCounts(page)).labels).toBeGreaterThan(0);
+  expect((await mapCounts(page)).labels).toBeLessThanOrEqual(150);
 });
 
 test("clicking a marker selects the site, opens the popup, and rings it", async ({ page }) => {
   await openApp(page);
-  // At the CONUS fit Tuttle and Milford overlap; zoom in first, as the WebGL specs do.
+  // At the CONUS fit Tuttle and Milford overlap; zoom in first.
   await jumpTo(page, TUTTLE.lon, TUTTLE.lat, 10);
   await clickAt(page, TUTTLE.lon, TUTTLE.lat);
   await expect(page.locator(".details-panel")).toContainText("Tuttle Creek");
   await selectedCount(page, 1);
   await expect(page.locator(".leaflet-popup")).toContainText("Tuttle Creek");
-  expect((await domCounts(page)).selected).toBe(1);
+  expect((await mapCounts(page)).selected).toBe(1);
   await page.locator(".leaflet-popup").getByRole("button", { name: "Close popup" }).click();
   await expect(page.locator(".leaflet-popup")).toHaveCount(0);
   await selectedCount(page, 1); // closing the popup never clears the selection
 });
 
-test("a table row flies the camera to the site on the MapLibre zoom basis", async ({ page }) => {
+test("a table row flies the camera to the site", async ({ page }) => {
   await openApp(page);
   await selectFromTable(page, "Tuttle Creek");
   await landed(page, TUTTLE.lon, TUTTLE.lat);
-  // max(current, MapLibre 8) → Leaflet 9.
-  expect(await page.evaluate(() => (window as any).__resstLeaflet.getZoom())).toBeCloseTo(9, 5);
+  // max(current, 8) in the app's zoom basis.
+  expect(await page.evaluate(() => (window as any).__resstMapInfo.getZoom())).toBeCloseTo(8, 5);
   await expect(page.locator(".leaflet-popup")).toContainText("Tuttle Creek");
 });
 
@@ -104,7 +101,7 @@ test("box mode selects the dragged sites and disarms", async ({ page }) => {
   await page.mouse.move(end.x, end.y, { steps: 6 });
   await page.mouse.up();
   await selectedCount(page, 3); // Tuttle Creek, Milford, Kansas River
-  expect((await domCounts(page)).selected).toBe(3);
+  expect((await mapCounts(page)).selected).toBe(3);
   await expect(selectBtn(page)).toHaveText(/^Select ▾$/); // one-shot: disarmed
   await expect(hintBar(page)).toHaveCount(0);
 });
@@ -125,10 +122,10 @@ test("polygon draw selects on Enter; Escape clears the sketch", async ({ page })
   await armTool(page, /^Polygon/);
   await clickAt(page, -96.7, 39.1);
   await clickAt(page, -96.45, 39.1);
-  await expect.poll(async () => (await domCounts(page)).sketch).toBeGreaterThan(0);
+  await expect.poll(async () => (await mapCounts(page)).sketch).toBeGreaterThan(0);
   await page.keyboard.press("Escape");
   await expect(hintBar(page)).toHaveCount(0);
-  expect((await domCounts(page)).sketch).toBe(0);
+  expect((await mapCounts(page)).sketch).toBe(0);
   await selectedCount(page, 1); // Esc never reverts an applied selection
 });
 
@@ -159,7 +156,7 @@ test("river mode picks a corridor and recomputes live as the distance changes", 
   await selectedCount(page, 4);
 });
 
-test("network highlight and the NLDI drainage area draw on the Leaflet map", async ({ page }) => {
+test("network highlight and the NLDI drainage area draw on the map", async ({ page }) => {
   await stubNldi(page);
   await openApp(page);
   await selectFromTable(page, "Tuttle Creek");
@@ -167,19 +164,19 @@ test("network highlight and the NLDI drainage area draw on the Leaflet map", asy
   await openDetailSection(page, "Reservoir Network");
   const net = page.locator("#detail-sec-net");
   await net.locator(".nw-btn", { hasText: "Full network" }).click();
-  await expect.poll(async () => (await domCounts(page)).network).toBeGreaterThan(0);
+  await expect.poll(async () => (await mapCounts(page)).network).toBeGreaterThan(0);
   await net.locator(".nw-btn", { hasText: "Drainage area" }).click();
-  await expect.poll(async () => (await domCounts(page)).basin, { timeout: 15_000 }).toBe(1);
+  await expect.poll(async () => (await mapCounts(page)).basin, { timeout: 15_000 }).toBe(1);
   await net.locator(".nw-btn", { hasText: "Drainage area" }).click();
-  await expect.poll(async () => (await domCounts(page)).basin).toBe(0);
+  await expect.poll(async () => (await mapCounts(page)).basin).toBe(0);
   await net.getByRole("button", { name: "Clear" }).click();
-  await expect.poll(async () => (await domCounts(page)).network).toBe(0);
+  await expect.poll(async () => (await mapCounts(page)).network).toBe(0);
 });
 
-test("the basemap picker swaps the raster layer and the engine switch round-trips", async ({ page }) => {
+test("the basemap picker swaps the tile layer", async ({ page }) => {
   await openApp(page);
   const trigger = page.getByRole("button", { name: /^Basemap:/ });
-  const url = () => page.evaluate(() => (window as any).__resstDom.basemapUrl() as string);
+  const url = () => page.evaluate(() => (window as any).__resstMapInfo.basemapUrl() as string);
   expect(await url()).toContain("World_Topo_Map");
   await trigger.click();
   await page.getByRole("radio", { name: "USGS Topo" }).click();
@@ -187,27 +184,7 @@ test("the basemap picker swaps the raster layer and the engine switch round-trip
   await expect(page.locator(".app-footer")).toContainText("USGS The National Map");
   await expect(trigger).toHaveAccessibleName("Basemap: USGS Topo");
   expect(await page.evaluate(() => localStorage.getItem("resst.basemap"))).toBe("usgs");
-  // Engine switch by URL: MapLibre boots, with the USGS choice carried across.
-  await page.goto("./?map=maplibre");
-  await page.getByRole("button", { name: "OK" }).click();
-  await page.waitForFunction(() => !!(window as any).__resstMap && !(window as any).__resstLeaflet);
-  await expect(page.locator(".maplibregl-canvas")).toBeVisible();
-  await expect(page.locator(".leaflet-container")).toHaveCount(0);
-  await expect(page.locator(".app-footer")).not.toContainText("Map: Leaflet");
-  await page.goto("./?map=leaflet");
-  await page.getByRole("button", { name: "OK" }).click();
-  await waitForDomMapReady(page);
-  await expect(page.locator(".maplibregl-canvas")).toHaveCount(0);
-  expect(await page.evaluate(() => !!(window as any).__resstMap)).toBe(false);
 });
-
-/** Turn the national layer on and wait for the fixture's 3 dams to draw (the mouth node is excluded). */
-async function enableNationalLayer(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "Layers" }).click();
-  await page.getByRole("checkbox", { name: /All modeled reservoirs/ }).check();
-  await expect.poll(async () => (await domCounts(page)).national, { timeout: 10_000 }).toBe(3);
-  await page.keyboard.press("Escape"); // close the popover
-}
 
 test("the national layer draws on canvas, follows the metric, and screening filters it", async ({ page }) => {
   await openApp(page);
@@ -218,18 +195,19 @@ test("the national layer draws on canvas, follows the metric, and screening filt
   await page.getByRole("button", { name: "Layers" }).click();
   await page.locator(".metric-select").selectOption("evidence");
   await page.keyboard.press("Escape");
-  expect((await domCounts(page)).national).toBe(3);
+  expect((await mapCounts(page)).national).toBe(3);
+  expect(await page.evaluate(() => (window as any).__resstMapInfo.nationalMetric())).toBe("evidence");
   // Screening hides the non-matching dots; the count readout says how many.
   await page.getByRole("button", { name: /^Screening/ }).click();
   await page.getByRole("button", { name: "Undocumented + high sedimentation" }).click();
   await expect(page.locator(".screen-count")).toContainText("1 of 3 modeled reservoirs match");
-  await expect.poll(async () => (await domCounts(page)).national).toBe(1);
+  await expect.poll(async () => (await mapCounts(page)).national).toBe(1);
   await page.getByRole("button", { name: "Clear screening" }).click();
-  await expect.poll(async () => (await domCounts(page)).national).toBe(3);
+  await expect.poll(async () => (await mapCounts(page)).national).toBe(3);
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Layers" }).click();
   await page.getByRole("checkbox", { name: /All modeled reservoirs/ }).uncheck();
-  await expect.poll(async () => (await domCounts(page)).national).toBe(0);
+  await expect.poll(async () => (await mapCounts(page)).national).toBe(0);
 });
 
 test("clicking an undocumented dam opens ReservoirDetails; a documented dam routes to its site", async ({ page }) => {
@@ -242,16 +220,16 @@ test("clicking an undocumented dam opens ReservoirDetails; a documented dam rout
   await expect(details).toContainText("Lone Reservoir");
   await expect(details).toContainText("No documented RESST sediment-management record");
   await expect(page.locator(".leaflet-popup")).toContainText("Modeled only");
-  expect((await domCounts(page)).reservoir).toBe(1);
+  expect((await mapCounts(page)).reservoir).toBe(1);
   // Tuttle Creek Dam (ShortID 10) shares coordinates with the documented site: the site wins.
   await jumpTo(page, TUTTLE.lon, TUTTLE.lat, 10);
   await clickAt(page, TUTTLE.lon, TUTTLE.lat);
   await expect(details).toContainText("Site Literature (6)");
   await selectedCount(page, 1);
-  expect((await domCounts(page)).reservoir).toBe(0);
+  expect((await mapCounts(page)).reservoir).toBe(0);
 });
 
-test("the Leaflet map is axe-clean with a selection, its popup, and the national layer showing", async ({ page }) => {
+test("the map is axe-clean with a selection, its popup, and the national layer showing", async ({ page }) => {
   await openApp(page);
   await enableNationalLayer(page);
   await selectFromTable(page, "Tuttle Creek"); // popup + ring in scope for the scan
@@ -278,17 +256,4 @@ test("phone: the basemap trigger stays above Leaflet's control stack and its pan
   const panel = (await page.locator(".basemap-panel").boundingBox())!;
   expect(panel.x).toBeGreaterThanOrEqual(0);
   expect(panel.x + panel.width).toBeLessThanOrEqual(390);
-});
-
-test.describe("automatic engine choice", () => {
-  test.use({ storageState: { cookies: [], origins: [] } }); // no seed: the rule decides
-  test("follows the detected render class", async ({ page }) => {
-    await page.goto("./");
-    await page.getByRole("button", { name: "OK" }).click();
-    await page.waitForFunction(() => !!(window as any).__resstLeaflet || !!(window as any).__resstMap);
-    const cls = await page.evaluate(() => sessionStorage.getItem("resst.renderClass"));
-    expect(["software", "hardware", "unknown"]).toContain(cls);
-    const leaflet = await page.evaluate(() => !!(window as any).__resstLeaflet);
-    expect(leaflet).toBe(cls === "software"); // a masked renderer string keeps MapLibre
-  });
 });

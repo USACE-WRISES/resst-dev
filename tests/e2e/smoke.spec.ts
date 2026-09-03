@@ -32,9 +32,7 @@ test("loads with the verified counters and a rendered map", async ({ page }) => 
   // The map must settle on the Esri default (the bare loaded() wait can catch
   // the interim USGS boot style, racing the swap) and render site circles.
   await waitForBasemap(page, true);
-  const rendered = await page.evaluate(() =>
-    (window as any).__resstMap.queryRenderedFeatures({ layers: ["sites-circles"] }).length,
-  );
+  const rendered = await page.evaluate(() => (window as any).__resstMapInfo.counts().sites);
   expect(rendered).toBeGreaterThan(50);
 });
 
