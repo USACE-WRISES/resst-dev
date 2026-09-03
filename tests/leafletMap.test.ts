@@ -1,8 +1,6 @@
 // The Leaflet map's pure helpers (src/map/leaflet). Nothing here may import
 // Leaflet itself (it touches window at import time; vitest runs in node).
 import { describe, expect, it } from "vitest";
-import { classifyRenderer } from "../src/lib/renderClass";
-import { classifyRenderer as diagClassifyRenderer, DOM_TRIAL_LABEL_ZOOM } from "../src/diag/probes";
 import { lz, mz } from "../src/map/leaflet/zoom";
 import {
   LABEL_CHAR_PX,
@@ -14,22 +12,11 @@ import {
   placeLabels,
 } from "../src/map/leaflet/labelCollision";
 
-describe("renderClass", () => {
-  it("is the one classifier the diagnostics page also uses", () => {
-    expect(diagClassifyRenderer).toBe(classifyRenderer);
-    expect(classifyRenderer("ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero)))")).toBe("software");
-    expect(classifyRenderer("ANGLE (Intel, Intel(R) UHD Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)")).toBe("hardware");
-    expect(classifyRenderer(null)).toBe("unknown");
-  });
-});
-
 describe("zoom basis", () => {
   it("converts between Leaflet's 256 px and the app's 512 px zoom bases", () => {
     expect(lz(8)).toBe(9);
     expect(mz(9)).toBe(8);
     expect(mz(lz(6.4))).toBeCloseTo(6.4, 10);
-    // The diagnostics trial's label zoom and the app's label threshold (6) agree.
-    expect(lz(6)).toBe(DOM_TRIAL_LABEL_ZOOM);
   });
 });
 

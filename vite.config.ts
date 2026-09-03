@@ -7,9 +7,8 @@ export default defineConfig({
   // Another session may hold 5173; the launcher injects PORT when it picks a free one.
   server: { port: Number(process.env.PORT) || 5173 },
   plugins: [react()],
-  // MapLibre is reached only through dynamic imports (the report figure, the
-  // diagnostics page); pre-bundling it spares the dev server a reload the
-  // first time one of them runs.
+  // MapLibre is reached only through one dynamic import (the report figure);
+  // pre-bundling it spares the dev server a reload the first time it runs.
   optimizeDeps: { include: ["leaflet", "maplibre-gl"] },
   build: { outDir: "dist", sourcemap: true },
   test: {
