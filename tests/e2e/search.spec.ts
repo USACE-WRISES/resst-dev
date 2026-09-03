@@ -149,8 +149,10 @@ test("the place pin retires on clear, popup close, and table selection", async (
   await input.fill("");
   await expect(page.locator(".dom-place-marker")).toHaveCount(0);
 
-  // Closing the pin's popup retires the pin.
+  // Closing the pin's popup retires the pin. The previous popup's fade-out
+  // node can linger on slow runners; wait for it to leave before clicking.
   await pickPlace();
+  await expect(page.locator(".leaflet-popup")).toHaveCount(1);
   await page.locator(".leaflet-popup-close-button").click();
   await expect(page.locator(".dom-place-marker")).toHaveCount(0);
 
