@@ -14,6 +14,8 @@ export const PANES = {
   networkLines: 402,
   /** Completed Select highlight — under the site circles, like ov-select. */
   select: 405,
+  /** The national inventory canvas: above overlays and highlights, under the sites. */
+  national: 406,
   sites: 410,
   networkDots: 420,
   sitesSelected: 430,

@@ -179,20 +179,21 @@ WebGL canvas from a cloud browser at ~4.6 fps while DOM content is mirrored
 and animates locally (the `?diag=1` DOM map trial proved it on a USACE
 laptop). The move is phased so the site never regresses:
 
-- **Phase 1 (current):** both engines ship. Each page load picks one, in this
-  order: the URL (`?map=leaflet` or `?map=maplibre`, never persisted), then
-  `localStorage` key `resst.mapEngine` (`leaflet` or `maplibre`; set it by
-  hand, there is no UI), then the WebGL probe — when the page's WebGL renderer
-  is software (SwiftShader, which is what isolation and most VMs report) the
-  Leaflet map loads, otherwise MapLibre. The probe result is memoized per
-  session in `sessionStorage` (`resst.renderClass`). The footer says
-  `Map: Leaflet (preview)` when Leaflet is active. Leaflet is a separate chunk
-  (`DomMapPanel-*.js`) that only loads when chosen; the main bundle is
-  unchanged. Not yet on Leaflet: the national inventory layer and Screening
-  (the Layers popover says so; the toggles are disabled).
-- **Phase 2:** the national layer (canvas, redrawn at settle) and Screening.
-- **Phase 3:** Leaflet becomes the only map; MapLibre stays only behind a
-  lazy import for the Dam Report's static map figure.
+- **Phases 1 and 2 (done):** both engines ship, at feature parity. Each page
+  load picks one, in this order: the URL (`?map=leaflet` or `?map=maplibre`,
+  never persisted), then `localStorage` key `resst.mapEngine` (`leaflet` or
+  `maplibre`; set it by hand, there is no UI), then the WebGL probe — when the
+  page's WebGL renderer is software (SwiftShader, which is what isolation and
+  most VMs report) the Leaflet map loads, otherwise MapLibre. The probe result
+  is memoized per session in `sessionStorage` (`resst.renderClass`). The
+  footer says `Map: Leaflet (preview)` when Leaflet is active. Leaflet is a
+  separate chunk (`DomMapPanel-*.js`) that only loads when chosen; the main
+  bundle is unchanged. On Leaflet the national inventory layer is one canvas
+  drawn from typed arrays (redrawn at settle, transformed during a zoom) and
+  Screening hides the non-matching dots; clicks on it are hit-tested by the
+  panel after the site markers above it have had theirs.
+- **Phase 3 (next):** Leaflet becomes the only map; MapLibre stays only behind
+  a lazy import for the Dam Report's static map figure.
 
 Code: `src/map/engine.ts` (the choice), `src/map/MapHost.tsx` (mounts one
 panel), `src/map/dom/` (the Leaflet panel and its layers), and the engine-free

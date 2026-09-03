@@ -845,3 +845,5 @@ button { font: inherit; color: inherit; }
 .map-panel .leaflet-popup-content { margin: 10px 12px; font: inherit; line-height: 1.35; }
 .dom-place-marker { background: none; border: 0; }
 .dom-place-marker svg { display: block; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35)); }
+/* The national inventory canvas: the map handles its clicks (the panel hit-tests it). */
+.map-panel .national-canvas { pointer-events: none; }

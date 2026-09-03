@@ -2,7 +2,17 @@
 // expressions (step ramps + the evidence match), and the 57k-point GeoJSON
 // build — mouth exclusion, precomputed screening props, unknown sentinels.
 import { describe, expect, it } from "vitest";
-import { NATIONAL_METRICS, NAT_UNKNOWN, buildNationalGeoJSON, paintForMetric } from "../src/map/nationalLayer";
+import { Color, expression } from "@maplibre/maplibre-gl-style-spec";
+import {
+  NATIONAL_METRICS,
+  NAT_UNKNOWN,
+  buildNationalGeoJSON,
+  colorForRow,
+  natOpacity,
+  natRadius,
+  natStrokeWidth,
+  paintForMetric,
+} from "../src/map/nationalLayer";
 import { decodeCore } from "../src/sediment/decode";
 import { M3_PER_ACFT } from "../src/sediment/types";
 import type { NationalMetric } from "../src/state/store";
@@ -89,5 +99,85 @@ describe("paintForMetric", () => {
       expect(def.legend.length).toBeGreaterThanOrEqual(2);
       for (const row of def.legend) expect(row.color).toMatch(/^#/);
     }
+  });
+});
+
+// The Leaflet canvas layer paints with colorForRow; MapLibre paints with the
+// paintForMetric expression. Feed the same rows to both — through the real
+// style-spec evaluator — so the two can never drift. The inventory below hits
+// every percent-lost step (below 0 = unknown, 0, 10, 25, 50, 75) and a spread
+// of storage buckets.
+const BUCKET_INVENTORY = {
+  _meta: { trajSpan: 3, trajChunks: 1 },
+  n: 10,
+  dicts: { state: ["Kansas"], owner: ["Federal"], purpose: ["Flood Control"], storSrc: ["NID"] },
+  cols: {
+    id: [-5, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    name: ["Mouth", "D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8", "D9"],
+    nid: ["MOUTH", "N1", "N2", "N3", "N4", "N5", "N6", "N7", "N8", "N9"],
+    lon: [-96, -96.1, -96.2, -96.3, -96.4, -96.5, -96.6, -96.7, -96.8, -96.9],
+    lat: [39, 39.1, 39.2, 39.3, 39.4, 39.5, 39.6, 39.7, 39.8, 39.9],
+    state: [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    owner: [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    purpose: [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    storSrc: [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    yrc: [0, 1950, 1950, 1950, 1950, 1950, 1950, 1950, 1950, 1950],
+    flags: [1, 512, 512 | 16, 512, 512 | 2, 512, 512 | 16, 512, 512, 64],
+    to: [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    deltaTag: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    maxStor: [null, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 5e9, 2e9, null],
+    da: [1000, 100, 100, 100, 100, 100, 100, 100, 100, 100],
+    sca: [800, 80, 80, 80, 80, 80, 80, 80, 80, null],
+    capOrig: [null, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, null],
+    cap2025: [null, 1000, 901, 900, 751, 750, 500, 250, 100, 0],
+    cap2050: [null, 1000, 900, 750, 500, 250, 1, 0, 0, 0],
+    sed2015: [null, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    sed2025: [null, 0, 99, 100, 249, 250, 500, 750, 900, 0],
+    sed2050: [null, 0, 100, 250, 500, 750, 999, 1000, 1000, 0],
+    evd: [0, 1, 2, 1, 2, 0, 1, 2, 1, 2],
+  },
+};
+
+describe("colorForRow mirrors the MapLibre paint expression", () => {
+  const core = decodeCore(BUCKET_INVENTORY);
+  const fc = buildNationalGeoJSON(core, new Map());
+  const colorSpec = {
+    type: "color",
+    "property-type": "data-driven",
+    expression: { interpolated: false, parameters: ["zoom", "feature"] },
+    transition: false,
+  };
+  for (const metric of Object.keys(NATIONAL_METRICS) as NationalMetric[]) {
+    it(`agrees with paintForMetric for every fixture row under ${metric}`, () => {
+      const res = expression.createExpression(paintForMetric(metric) as never, colorSpec as never);
+      expect(res.result).toBe("success");
+      if (res.result !== "success") return;
+      const seen = new Set<string>();
+      for (const f of fc.features) {
+        const row = (f.properties as { row: number }).row;
+        const fromExpr = String(res.value.evaluate({ zoom: 5 } as never, f as never));
+        const mirrored = String(Color.parse(colorForRow(core, row, metric)));
+        expect(mirrored).toBe(fromExpr);
+        seen.add(mirrored);
+      }
+      // The percent metric reaches all five ramp steps plus the unknown colour.
+      if (metric === "pctLost2025") expect(seen.size).toBe(6);
+    });
+  }
+});
+
+describe("canvas style helpers", () => {
+  it("interpolate the MapLibre circle radius and opacity by zoom, clamped at the stops", () => {
+    expect(natRadius(1, 3)).toBeCloseTo(1.6, 10);
+    expect(natRadius(1, 9)).toBeCloseTo(5, 10);
+    expect(natRadius(1, 6)).toBeCloseTo(3.3, 10);
+    expect(natRadius(2, 12)).toBeCloseTo(10, 10);
+    expect(natRadius(1, 0)).toBeCloseTo(1.6, 10);
+    expect(natOpacity(3)).toBeCloseTo(0.55, 10);
+    expect(natOpacity(8)).toBeCloseTo(0.85, 10);
+    expect(natOpacity(5.5)).toBeCloseTo(0.7, 10);
+    expect(natOpacity(1)).toBeCloseTo(0.55, 10);
+    expect(natStrokeWidth(5.9)).toBe(0);
+    expect(natStrokeWidth(6)).toBe(0.75);
   });
 });

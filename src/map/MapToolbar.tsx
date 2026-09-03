@@ -6,7 +6,6 @@
 
 import type { Site } from "../lib/types";
 import type { AppState } from "../state/store";
-import type { MapEngine } from "./engine";
 import { SearchControl } from "./SearchControl";
 import { SelectMenu } from "./SelectMenu";
 import { MapToolPanels } from "./MapToolPanels";
@@ -15,15 +14,12 @@ import { SelectHintBar } from "./SelectHintBar";
 import type { ToolMsg } from "./selectTools";
 
 export function MapToolbar({
-  engine = "maplibre",
   state,
   allSites,
   siteByShortId,
   zoom,
   toolMsg,
 }: {
-  /** Which engine hosts the toolbar (the panels word a few things per engine). */
-  engine?: MapEngine;
   state: AppState;
   /** Full site list (search suggestions). */
   allSites: Site[];
@@ -36,8 +32,8 @@ export function MapToolbar({
     <div className="map-toolbar">
       <SearchControl sites={allSites} />
       <SelectMenu tool={state.mapTool} distance={state.riverDistanceMiles} hasSelection={state.selectedSiteIds.length > 0} />
-      <MapToolPanels state={state} zoom={zoom} siteByShortId={siteByShortId} engine={engine} />
-      <ScreeningPanel state={state} siteByShortId={siteByShortId} engine={engine} />
+      <MapToolPanels state={state} zoom={zoom} siteByShortId={siteByShortId} />
+      <ScreeningPanel state={state} siteByShortId={siteByShortId} />
       {state.mapTool !== "none" && (
         <SelectHintBar
           tool={state.mapTool}
