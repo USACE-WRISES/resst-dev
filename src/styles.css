@@ -180,8 +180,16 @@ button { font: inherit; color: inherit; }
 .panel-resizer-grip {
   position: absolute; left: -4px; top: 0; bottom: 0; width: 9px;
   cursor: col-resize; background: transparent; touch-action: none; z-index: 9;
+  -webkit-user-select: none; user-select: none; /* a press here must not start a text selection */
 }
 @media (max-width: 1100px) { .panel-resizer-grip { display: none; } }
+/* A live divider drag (resizeSession.ts marks <html>): no text selection
+   anywhere on the page, and the resize cursor holds even when the pointer
+   runs ahead of the 9px grip under capture (the cursor source during pointer
+   capture is not consistent across browsers). */
+html[data-resizing] { -webkit-user-select: none; user-select: none; }
+html[data-resizing="col"], html[data-resizing="col"] * { cursor: col-resize !important; }
+html[data-resizing="row"], html[data-resizing="row"] * { cursor: row-resize !important; }
 .panel-title-row { display: flex; align-items: baseline; justify-content: space-between; }
 .panel-title-row h2, .filtered-counts h2 { font-size: 14px; margin: 0; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.04em; }
 
@@ -452,6 +460,7 @@ button { font: inherit; color: inherit; }
   position: absolute; left: 0; right: 0; top: -4px; height: 9px;
   cursor: row-resize; background: transparent;
   touch-action: none; /* pointer-event drags would otherwise scroll on touch */
+  -webkit-user-select: none; user-select: none; /* a press here must not start a text selection */
 }
 .table-resizer-grip:hover,
 .table-resizer-grip[data-dragging] { background: var(--accent-soft); }

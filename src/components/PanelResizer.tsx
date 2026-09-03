@@ -5,9 +5,12 @@
 // width = cached rect.right − pointerX (never content measurements — the
 // ResizeObserver-runaway rule, commit 2cb90e7). Desktop only: the stylesheet
 // hides the grip at drawer widths, where the drawer owns its own sizing.
+// The grip is user-select: none and the drag marks <html> (resizeSession.ts),
+// so a press never starts a text selection across the page.
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { actions, DETAILS_COL_MAX, DETAILS_COL_MIN } from "../state/store";
+import { beginResizeSession, endResizeSession } from "./resizeSession";
 
 /** Keyboard/aria seed while the stylesheet default applies (the 400px track:
     --details-col on :root in styles.css, which this value mirrors). */
@@ -22,6 +25,9 @@ export function PanelResizer({ widthPx }: { widthPx: number | null }) {
 
   const mainEl = () => gripRef.current?.closest<HTMLElement>(".app-main") ?? null;
 
+  // Unmounting mid-drag must not leave the page marked as resizing.
+  useEffect(() => () => endResizeSession("col"), []);
+
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     const panel = gripRef.current?.parentElement; // .details-panel
@@ -29,6 +35,7 @@ export function PanelResizer({ widthPx }: { widthPx: number | null }) {
     dragRef.current = { right: panel.getBoundingClientRect().right, width: widthPx ?? DEFAULT_WIDTH, frame: 0 };
     e.currentTarget.setPointerCapture(e.pointerId);
     e.currentTarget.setAttribute("data-dragging", "");
+    beginResizeSession("col"); // after capture: a throwing capture leaves no mark behind
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -49,6 +56,7 @@ export function PanelResizer({ widthPx }: { widthPx: number | null }) {
     if (d.frame) cancelAnimationFrame(d.frame);
     dragRef.current = null;
     e.currentTarget.removeAttribute("data-dragging");
+    endResizeSession("col");
     if (commit) {
       actions.setDetailsWidth(d.width); // React re-renders the same inline value — no flicker
     } else {

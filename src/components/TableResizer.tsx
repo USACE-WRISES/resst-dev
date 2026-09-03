@@ -5,10 +5,13 @@
 // pointerup, so nothing re-renders per move and the map's ResizeObserver sees
 // at most one resize per frame. Fractions derive from the pointer position
 // against the stack rect cached at pointerdown — never from canvas or content
-// measurements (the ResizeObserver-runaway rule, commit 2cb90e7).
+// measurements (the ResizeObserver-runaway rule, commit 2cb90e7). The grip is
+// user-select: none and the drag marks <html> (resizeSession.ts), so a press
+// never starts a text selection across the toolbar, header and rows.
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { actions, TABLE_ROW_MAX, TABLE_ROW_MIN } from "../state/store";
+import { beginResizeSession, endResizeSession } from "./resizeSession";
 
 /** Keyboard/aria seed while the stylesheet default applies (46%; the phone
     default is 52%, so aria-valuenow starts one nudge low there — corrected by
@@ -26,6 +29,18 @@ export function TableResizer({ collapsed, heightFrac }: { collapsed: boolean; he
 
   const stackEl = () => rootRef.current?.parentElement as HTMLElement | null; // .center-stack
 
+  // Unmounting mid-drag must not leave the page marked as resizing.
+  useEffect(() => () => endResizeSession("row"), []);
+
+  /** Drop a live drag without committing (the grip is about to unmount, so
+      no pointerup could ever reach it). */
+  const abandonDrag = () => {
+    const d = dragRef.current;
+    if (d?.frame) cancelAnimationFrame(d.frame);
+    dragRef.current = null;
+    endResizeSession("row");
+  };
+
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     const stack = stackEl();
@@ -33,6 +48,7 @@ export function TableResizer({ collapsed, heightFrac }: { collapsed: boolean; he
     dragRef.current = { rect: stack.getBoundingClientRect(), frac: heightFrac ?? DEFAULT_FRAC, frame: 0 };
     e.currentTarget.setPointerCapture(e.pointerId);
     e.currentTarget.setAttribute("data-dragging", "");
+    beginResizeSession("row"); // after capture: a throwing capture leaves no mark behind
   };
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -53,6 +69,7 @@ export function TableResizer({ collapsed, heightFrac }: { collapsed: boolean; he
     if (d.frame) cancelAnimationFrame(d.frame);
     dragRef.current = null;
     e.currentTarget.removeAttribute("data-dragging");
+    endResizeSession("row");
     if (commit) {
       actions.setTableHeight(d.frac); // React re-renders the same inline value — no flicker
     } else {
@@ -76,6 +93,7 @@ export function TableResizer({ collapsed, heightFrac }: { collapsed: boolean; he
     else if (e.key === "End") next = TABLE_ROW_MAX;
     else if (e.key === "Enter") {
       e.preventDefault();
+      abandonDrag();
       actions.setTableCollapsed(true);
       // The grip unmounts with the collapse — hand focus to the pill.
       requestAnimationFrame(() => tabRef.current?.focus());

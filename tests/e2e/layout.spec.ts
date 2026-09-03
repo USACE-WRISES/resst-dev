@@ -274,3 +274,74 @@ test("a persisted oversized height clamps to the max", async ({ page }) => {
   const [mapPx, , tablePx] = rows.split(" ").map((v) => parseFloat(v));
   expect(tablePx / (mapPx + tablePx)).toBeCloseTo(0.85, 1);
 });
+
+test("divider drags never select page text", async ({ page }) => {
+  await openApp(page);
+  await waitForMapReady(page);
+  const selected = () => page.evaluate(() => document.getSelection()?.toString() ?? "");
+  const clearSelection = () => page.evaluate(() => document.getSelection()?.removeAllRanges());
+  const resizing = () => page.evaluate(() => document.documentElement.getAttribute("data-resizing"));
+  // A press-move-release; returns the <html> drag-session mark mid-drag and after release.
+  const drag = async (x: number, y: number, dx: number, dy: number) => {
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + dx / 2, y + dy / 2, { steps: 3 });
+    const mid = await resizing();
+    await page.mouse.move(x + dx, y + dy, { steps: 3 });
+    await page.mouse.up();
+    return { mid, after: await resizing() };
+  };
+
+  // Control: a plain drag across the table footer's text must select it, or
+  // the empty-selection assertions below would prove nothing.
+  const footer = (await page.locator(".table-footer").boundingBox())!;
+  await drag(footer.x + 4, footer.y + footer.height / 2, 120, 0);
+  expect(await selected()).toContain("Total");
+  await clearSelection();
+
+  const rowY = await page
+    .locator(".data-table tbody tr")
+    .nth(2)
+    .boundingBox()
+    .then((b) => b!.y + b!.height / 2);
+  const details = page.getByRole("separator", { name: "Resize selected data panel" });
+  const gripCentreX = async () => {
+    const b = (await details.boundingBox())!;
+    return b.x + b.width / 2;
+  };
+  const panelWidth = () =>
+    page.evaluate(() => (document.querySelector(".details-panel") as HTMLElement).offsetWidth);
+  const before = await panelWidth();
+
+  // The details divider dragged wider (left) across the table's cells…
+  let marks = await drag(await gripCentreX(), rowY, -150, 0);
+  expect(await selected()).toBe("");
+  expect(marks).toEqual({ mid: "col", after: null }); // marked on <html> during the drag only
+  await expect.poll(panelWidth).toBeGreaterThan(before + 120); // the resize itself still happened
+
+  // …and narrower (right) across the panel's own heading.
+  const heading = (await page.locator(".details-panel h2").first().boundingBox())!;
+  marks = await drag(await gripCentreX(), heading.y + heading.height / 2, 100, 0);
+  expect(await selected()).toBe("");
+  expect(marks).toEqual({ mid: "col", after: null });
+
+  // The table divider dragged down across the toolbar, header and rows
+  // (x off-centre, clear of the collapse pill that straddles the grip).
+  const table = page.getByRole("separator", { name: "Resize results table" });
+  const tb = (await table.boundingBox())!;
+  marks = await drag(tb.x + tb.width * 0.3, tb.y + tb.height / 2, 0, 100);
+  expect(await selected()).toBe("");
+  expect(marks).toEqual({ mid: "row", after: null });
+
+  // Under remote browser isolation the page's script runs in a cloud browser
+  // and only the DOM and styles are mirrored to the screen, so the local
+  // browser handles the press with no pointer capture and no drag-session
+  // mark. Model that: capture off, the <html> belt neutralised — the grips
+  // must be non-selectable on their own.
+  await page.addStyleTag({ content: "html[data-resizing] { -webkit-user-select: auto !important; user-select: auto !important; }" });
+  await page.evaluate(() => {
+    Element.prototype.setPointerCapture = () => {};
+  });
+  await drag(await gripCentreX(), rowY, -150, 0);
+  expect(await selected()).toBe("");
+});
