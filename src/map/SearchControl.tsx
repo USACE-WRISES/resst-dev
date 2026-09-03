@@ -85,6 +85,7 @@ export function SearchControl({ sites }: { sites: Site[] }) {
   // lookup would fire for it.
   const [chosen, setChosen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const siteItems = useMemo<SearchItem[]>(() => {
     const q = chosen ? "" : text.trim().toLowerCase();
@@ -128,6 +129,15 @@ export function SearchControl({ sites }: { sites: Site[] }) {
     }
     setChosen(true);
     setOpen(false);
+  };
+
+  // The ✕ inside the box: the same retirement as typing the box empty, with
+  // focus kept in (or handed back to) the input so the next search starts at once.
+  const clear = () => {
+    setChosen(false);
+    setText("");
+    mapCommands()?.clearPlaceMarker();
+    inputRef.current?.focus();
   };
 
   // Async place arrivals/removals can shrink the list under the highlight.
@@ -180,6 +190,7 @@ export function SearchControl({ sites }: { sites: Site[] }) {
   return (
     <div className="map-search" ref={ref}>
       <input
+        ref={inputRef}
         type="search"
         placeholder="Find a site or place…"
         aria-label="Find a site or place by name"
@@ -191,7 +202,7 @@ export function SearchControl({ sites }: { sites: Site[] }) {
         onChange={(e) => {
           setChosen(false);
           setText(e.target.value);
-          // Clearing the box (typed or the native search ✕) retires the pin.
+          // Clearing the box (typed, or Escape in Chromium) retires the pin; the ✕ button does the same.
           if (e.target.value.trim() === "") mapCommands()?.clearPlaceMarker();
         }}
         onKeyDown={(e) => {
@@ -208,6 +219,20 @@ export function SearchControl({ sites }: { sites: Site[] }) {
           }
         }}
       />
+      {text !== "" && (
+        <button
+          type="button"
+          className="map-search-clear"
+          aria-label="Clear search"
+          title="Clear search"
+          onMouseDown={(e) => e.preventDefault()} // the click must not move focus out of the input
+          onClick={clear}
+        >
+          <svg aria-hidden="true" focusable="false" width="12" height="12" viewBox="0 0 12 12">
+            <path d="M2.5 2.5l7 7M9.5 2.5l-7 7" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
+        </button>
+      )}
       {open && (
         <div className="map-search-pop">
           {/* The listbox renders only when it has options — an empty listbox

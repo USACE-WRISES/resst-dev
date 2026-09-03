@@ -427,11 +427,22 @@ html[data-resizing="row"], html[data-resizing="row"] * { cursor: row-resize !imp
 .select-huc:hover { background: var(--accent-soft); }
 .select-huc[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
 .select-menu-sep { border-top: 1px solid var(--line); margin: 4px 0; }
-.map-search { position: relative; }
+.map-search { position: relative; display: flex; } /* flex: no inline descender gap, so the ✕ centres on the input */
 .map-search input {
   border: 1px solid var(--line); border-radius: 4px; padding: 6px 10px; width: 230px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.15); background: var(--paper);
 }
+/* One clear control, ours, in every browser: Chromium's native search ✕ shows
+   only while the box is focused or hovered, and Firefox draws none. */
+.map-search input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; display: none; }
+.map-search input:not(:placeholder-shown) { padding-right: 30px; } /* room for the ✕ once there is text */
+.map-search-clear {
+  position: absolute; top: 50%; right: 5px; transform: translateY(-50%);
+  width: 22px; height: 22px; padding: 0; display: flex; align-items: center; justify-content: center;
+  border: none; border-radius: 3px; background: transparent; color: var(--ink-3); cursor: pointer;
+}
+.map-search-clear:hover { background: var(--accent-soft); color: var(--ink); }
+.map-search-clear svg { display: block; }
 .map-search-pop {
   position: absolute; top: calc(100% + 4px); left: 0; width: 300px; max-height: 300px; overflow-y: auto;
   background: var(--paper); border: 1px solid var(--line); border-radius: 4px; box-shadow: 0 4px 14px rgba(0,0,0,0.18);

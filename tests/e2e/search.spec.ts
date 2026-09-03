@@ -199,3 +199,37 @@ test("the open search dropdown is axe-clean", async ({ page }) => {
       .map((v) => `${v.id}: ${v.nodes.length} nodes`),
   ).toEqual([]);
 });
+
+test("the clear button empties the box, retires the pin, and returns focus", async ({ page }) => {
+  await stubEsri(page);
+  await stubGnis(page);
+  await openApp(page);
+  const input = combo(page);
+  const clearBtn = page.getByRole("button", { name: "Clear search" });
+  await expect(clearBtn).toHaveCount(0); // absent while the box is empty
+
+  await input.fill("creek");
+  const platte = listbox(page).getByRole("option", { name: /Platte River/ });
+  await expect(platte).toBeVisible();
+  await platte.dispatchEvent("mousedown");
+  await expect(page.locator(".dom-place-marker")).toHaveCount(1);
+  await expect(input).toHaveValue("Platte River");
+
+  await clearBtn.click();
+  await expect(input).toHaveValue("");
+  await expect(input).toBeFocused();
+  await expect(input).toHaveAttribute("aria-expanded", "false");
+  await expect(page.locator(".dom-place-marker")).toHaveCount(0);
+  await expect(listbox(page)).toHaveCount(0);
+  await expect(clearBtn).toHaveCount(0);
+
+  // Keyboard: Tab reaches the button; Enter clears and hands focus back.
+  await input.fill("creek");
+  await expect(listbox(page)).toBeVisible();
+  await input.press("Tab");
+  await expect(clearBtn).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(input).toHaveValue("");
+  await expect(input).toBeFocused();
+  await expect(listbox(page)).toHaveCount(0);
+});
