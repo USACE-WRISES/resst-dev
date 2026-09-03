@@ -820,6 +820,13 @@ html[data-resizing="row"], html[data-resizing="row"] * { cursor: row-resize !imp
    makes it a stacking context, so Leaflet's panes (200-700) and control
    corners (1000) stay beneath .map-toolbar (z 5) and the popovers (z 8). */
 .map-panel.leaflet-container { z-index: 0; background: #e8ede9; font: inherit; }
+/* Panning must never start a text selection. Leaflet guards this with script
+   (a cancelled selectstart while a drag runs), which has no effect under
+   remote browser isolation, where only the DOM and styles reach the screen
+   and a pan would sweep a highlight over the zoom buttons and the scale bar.
+   The browser decides at the press from user-select alone; tooltips already
+   carry it (leaflet.css). Popup text stays selectable so a name can be copied. */
+.map-panel.leaflet-container { -webkit-user-select: none; user-select: none; }
 .map-panel.leaflet-container a { color: inherit; }
 .map-panel.leaflet-container .leaflet-control-zoom a { color: #000; }
 .map-panel .leaflet-tooltip.site-label,
@@ -832,7 +839,7 @@ html[data-resizing="row"], html[data-resizing="row"] * { cursor: row-resize !imp
 .map-panel .leaflet-tooltip.site-label::before,
 .map-panel .leaflet-tooltip.network-label::before { display: none; }
 .map-panel .leaflet-popup-content-wrapper { border-radius: 6px; }
-.map-panel .leaflet-popup-content { margin: 10px 12px; font: inherit; line-height: 1.35; }
+.map-panel .leaflet-popup-content { margin: 10px 12px; font: inherit; line-height: 1.35; -webkit-user-select: text; user-select: text; }
 .dom-place-marker { background: none; border: 0; }
 .dom-place-marker svg { display: block; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35)); }
 /* The national inventory canvas: the map handles its clicks (the panel hit-tests it). */
