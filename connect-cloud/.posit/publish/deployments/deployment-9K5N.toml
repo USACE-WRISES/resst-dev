@@ -10,22 +10,19 @@ id = "01a06215-18c4-ec7b-8380-94ab98481c42"
 dashboard_url = "https://connect.posit.cloud/gtmenichino/content/01a06215-18c4-ec7b-8380-94ab98481c42"
 direct_url = "https://01a06215-18c4-ec7b-8380-94ab98481c42.share.connect.posit.cloud"
 logs_url = "https://connect.posit.cloud/gtmenichino/content/01a06215-18c4-ec7b-8380-94ab98481c42/history"
-deployed_at = "2026-09-03T01:15:53.872Z"
-bundle_id = "01a064d5-b702-2cff-05ae-e512cce2af40"
+deployed_at = "2026-09-03T03:06:00.692Z"
+bundle_id = "01a0653a-7b46-5e6b-7dbf-8c9251c5b665"
 files = [
     "apple-touch-icon.png",
-    "assets/DiagnosticsPage-Dy4UAqv6.js",
-    "assets/DiagnosticsPage-Dy4UAqv6.js.map",
-    "assets/DomMapPanel-BDNOUXqN.js",
-    "assets/DomMapPanel-BDNOUXqN.js.map",
-    "assets/index-BpXdYgh4.js",
-    "assets/index-BpXdYgh4.js.map",
-    "assets/index-C5elLRPM.css",
-    "assets/leaflet-D3yO41Q-.js",
-    "assets/leaflet-D3yO41Q-.js.map",
-    "assets/leaflet-vh-t_kPv.css",
-    "assets/leafletTrial-CeBPSdR7.js",
-    "assets/leafletTrial-CeBPSdR7.js.map",
+    "assets/DiagnosticsPage-Dj3Pep54.js",
+    "assets/DiagnosticsPage-Dj3Pep54.js.map",
+    "assets/index-BHQ-YcqX.css",
+    "assets/index-CkYduDM0.js",
+    "assets/index-CkYduDM0.js.map",
+    "assets/leafletTrial-D22U9vQh.js",
+    "assets/leafletTrial-D22U9vQh.js.map",
+    "assets/maplibre-gl-9W-W-yU0.js",
+    "assets/maplibre-gl-9W-W-yU0.js.map",
     "assets/rolldown-runtime-Dd_uD5pT.js",
     "data/data-manifest.json",
     "data/literature.json",
