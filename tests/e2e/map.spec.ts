@@ -257,3 +257,66 @@ test("phone: the basemap trigger stays above Leaflet's control stack and its pan
   expect(panel.x).toBeGreaterThanOrEqual(0);
   expect(panel.x + panel.width).toBeLessThanOrEqual(390);
 });
+
+test("a map pan never selects page text", async ({ page }) => {
+  await openApp(page);
+  const selected = () => page.evaluate(() => document.getSelection()?.toString() ?? "");
+  const centre = () =>
+    page.evaluate(() => (window as any).__resstMapInfo.getCenter() as { lng: number; lat: number });
+
+  // Control: a plain drag across the table footer's text must select it, or
+  // the empty-selection assertions below would prove nothing.
+  const footer = (await page.locator(".table-footer").boundingBox())!;
+  await page.mouse.move(footer.x + 4, footer.y + footer.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(footer.x + 124, footer.y + footer.height / 2, { steps: 4 });
+  await page.mouse.up();
+  expect(await selected()).toContain("Total");
+  await page.evaluate(() => document.getSelection()?.removeAllRanges());
+
+  // Under remote browser isolation the page's script runs in a cloud browser
+  // and only the DOM and styles reach the screen, so Leaflet's own guard (a
+  // cancelled selectstart while a drag runs) has no local effect. Model that
+  // by making the cancels inert: the map must be non-selectable on its own.
+  await page.evaluate(() => {
+    const orig = Event.prototype.preventDefault;
+    Event.prototype.preventDefault = function (this: Event) {
+      if (this.type === "selectstart" || this.type === "mousemove" || this.type === "dragstart") return;
+      orig.call(this);
+    };
+  });
+
+  // A pan from the map centre onto a text-bearing control: the scale line
+  // (bottom-left), then the zoom-out button (top-right).
+  const map = (await page.locator(".map-panel.leaflet-container").boundingBox())!;
+  const pan = async (to: { x: number; y: number }) => {
+    const before = await centre();
+    await page.mouse.move(map.x + map.width / 2, map.y + map.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(to.x, to.y, { steps: 8 });
+    await page.waitForTimeout(80); // outlast Leaflet's inertia window so moveend fires on mouseup
+    await page.mouse.up();
+    await waitForMapIdle(page);
+    const after = await centre();
+    expect(Math.abs(after.lng - before.lng) + Math.abs(after.lat - before.lat)).toBeGreaterThan(0.5); // it panned
+    return selected();
+  };
+  const scale = (await page.locator(".leaflet-control-scale-line").boundingBox())!;
+  expect(await pan({ x: scale.x + scale.width / 2, y: scale.y + scale.height / 2 })).toBe("");
+  const zoomOut = (await page.locator(".leaflet-control-zoom-out").boundingBox())!;
+  expect(await pan({ x: zoomOut.x + zoomOut.width / 2, y: zoomOut.y + zoomOut.height / 2 })).toBe("");
+
+  // The one exception: text inside a popup stays selectable, so a value can be
+  // copied. (The bottom row: the popup opens upward from the marker and its
+  // title can sit under the floating map toolbar.)
+  await page.locator(".data-table tbody tr", { hasText: "Tuttle Creek" }).first().click();
+  await landed(page, TUTTLE.lon, TUTTLE.lat);
+  const row = page.locator(".leaflet-popup-content .popup-row").last();
+  const label = (await row.locator("span").first().textContent())!;
+  const rb = (await row.boundingBox())!;
+  await page.mouse.move(rb.x + 2, rb.y + rb.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(rb.x + rb.width - 2, rb.y + rb.height / 2, { steps: 4 });
+  await page.mouse.up();
+  expect(await selected()).toContain(label);
+});
