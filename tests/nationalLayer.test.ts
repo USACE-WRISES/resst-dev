@@ -1,112 +1,26 @@
-// National-layer pure builders (src/map/nationalLayer.ts): the metric paint
-// expressions (step ramps + the evidence match), and the 57k-point GeoJSON
-// build — mouth exclusion, precomputed screening props, unknown sentinels.
+// National-layer pure helpers (src/map/nationalLayer.ts): the per-row metric
+// values, the colour a row gets under each metric (step ramps + the evidence
+// pair), the storage radius scale, and the zoom-driven canvas style. The
+// inventory below hits every percent-lost step (below 0 = unknown, 0, 10, 25,
+// 50, 75) and a spread of storage buckets.
 import { describe, expect, it } from "vitest";
-import { Color, expression } from "@maplibre/maplibre-gl-style-spec";
 import {
+  EV_MEASURED,
+  EV_MODELED,
   NATIONAL_METRICS,
   NAT_UNKNOWN,
-  buildNationalGeoJSON,
+  RAMP,
   colorForRow,
+  metricValue,
   natOpacity,
   natRadius,
   natStrokeWidth,
-  paintForMetric,
+  radiusScale,
 } from "../src/map/nationalLayer";
 import { decodeCore } from "../src/sediment/decode";
 import { M3_PER_ACFT } from "../src/sediment/types";
 import type { NationalMetric } from "../src/state/store";
 
-// Reuse the sedimentData fixture shape via a local minimal inventory.
-const INVENTORY = {
-  _meta: { trajSpan: 3, trajChunks: 2 },
-  n: 3,
-  dicts: { state: ["Kansas"], owner: ["Federal"], purpose: ["Flood Control"], storSrc: ["NID"] },
-  cols: {
-    id: [-5, 10, 20],
-    name: ["Big River", "Dam A", "Dam B"],
-    nid: ["MOUTH_BigR", "KS00001", "KS00002"],
-    lon: [-96.1, -96.2, -96.3],
-    lat: [39.1, 39.2, 39.3],
-    state: [-1, 0, 0],
-    owner: [-1, 0, 0],
-    purpose: [-1, 0, 0],
-    storSrc: [-1, 0, 0],
-    yrc: [0, 1950, 0],
-    flags: [1, 2 | 16 | 512, 512 | 64], // mouth · terminal+surveys+traj · traj+no-storage
-    to: [-1, 0, 1],
-    deltaTag: [0, 0, 0],
-    maxStor: [null, 1.2e9, 5e5],
-    da: [1000, 900, 10],
-    sca: [800, 700, null],
-    capOrig: [null, 1.2e9, null],
-    cap2025: [null, 1.0e9, 0],
-    cap2050: [null, 8.5e8, 0],
-    sed2015: [null, 1.7e8, 0],
-    sed2025: [null, 2.0e8, 0],
-    sed2050: [null, 3.5e8, 0],
-    evd: [0, 1, 2],
-  },
-};
-
-describe("buildNationalGeoJSON", () => {
-  const core = decodeCore(INVENTORY);
-  const fc = buildNationalGeoJSON(core, new Map([[10, "site-a"]]));
-
-  it("excludes mouth nodes and keeps every dam", () => {
-    expect(fc.features).toHaveLength(2);
-    expect(fc.features.map((f) => f.properties!.shortId)).toEqual([10, 20]);
-  });
-
-  it("precomputes metric + screening properties", () => {
-    const a = fc.features[0].properties!;
-    expect(a.pl25).toBeCloseTo(16.7, 1); // 2.0e8 / 1.2e9
-    expect(a.pl50).toBeCloseTo(29.2, 1);
-    expect(a.rateAf).toBeCloseTo((2.0e8 - 1.7e8) / 10 / M3_PER_ACFT, 0);
-    expect(a.storAf).toBe(Math.round(1.2e9 / M3_PER_ACFT));
-    expect(a).toMatchObject({ ev: 1, cls: 1, doc: 1, term: 1, st: 0 });
-    expect(a.rs).toBeGreaterThan(1); // big reservoir draws larger
-  });
-
-  it("uses -1 sentinels for unknowable metrics (no-storage rows)", () => {
-    const b = fc.features[1].properties!;
-    expect(b.pl25).toBe(-1); // capOrig null → unknown, never 0%
-    expect(b).toMatchObject({ ev: 0, cls: 2, doc: 0, term: 0 });
-  });
-});
-
-describe("paintForMetric", () => {
-  it("step ramps lead with the unknown color and pair every stop", () => {
-    for (const metric of ["pctLost2025", "pctLost2050", "rate", "storage"] as NationalMetric[]) {
-      const expr = paintForMetric(metric) as unknown[];
-      expect(expr[0]).toBe("step");
-      expect(expr[2]).toBe(NAT_UNKNOWN);
-      const stops = NATIONAL_METRICS[metric].stops!;
-      expect(expr).toHaveLength(3 + stops.length * 2);
-      // Stops ascend; colors are drawn from the ramp.
-      for (let i = 0; i < stops.length; i++) expect(expr[3 + i * 2]).toBe(stops[i]);
-    }
-  });
-
-  it("evidence uses a categorical match", () => {
-    const expr = paintForMetric("evidence") as unknown[];
-    expect(expr[0]).toBe("match");
-    expect(expr).toContain(1);
-  });
-
-  it("legend rows exist for every metric", () => {
-    for (const def of Object.values(NATIONAL_METRICS)) {
-      expect(def.legend.length).toBeGreaterThanOrEqual(2);
-      for (const row of def.legend) expect(row.color).toMatch(/^#/);
-    }
-  });
-});
-
-// The Leaflet canvas layer paints with colorForRow; MapLibre paints with the
-// paintForMetric expression. Feed the same rows to both — through the real
-// style-spec evaluator — so the two can never drift. The inventory below hits
-// every percent-lost step (below 0 = unknown, 0, 10, 25, 50, 75) and a spread
-// of storage buckets.
 const BUCKET_INVENTORY = {
   _meta: { trajSpan: 3, trajChunks: 1 },
   n: 10,
@@ -138,36 +52,78 @@ const BUCKET_INVENTORY = {
   },
 };
 
-describe("colorForRow mirrors the MapLibre paint expression", () => {
-  const core = decodeCore(BUCKET_INVENTORY);
-  const fc = buildNationalGeoJSON(core, new Map());
-  const colorSpec = {
-    type: "color",
-    "property-type": "data-driven",
-    expression: { interpolated: false, parameters: ["zoom", "feature"] },
-    transition: false,
-  };
-  for (const metric of Object.keys(NATIONAL_METRICS) as NationalMetric[]) {
-    it(`agrees with paintForMetric for every fixture row under ${metric}`, () => {
-      const res = expression.createExpression(paintForMetric(metric) as never, colorSpec as never);
-      expect(res.result).toBe("success");
-      if (res.result !== "success") return;
-      const seen = new Set<string>();
-      for (const f of fc.features) {
-        const row = (f.properties as { row: number }).row;
-        const fromExpr = String(res.value.evaluate({ zoom: 5 } as never, f as never));
-        const mirrored = String(Color.parse(colorForRow(core, row, metric)));
-        expect(mirrored).toBe(fromExpr);
-        seen.add(mirrored);
-      }
-      // The percent metric reaches all five ramp steps plus the unknown colour.
-      if (metric === "pctLost2025") expect(seen.size).toBe(6);
-    });
-  }
+// Rows: 0 = mouth, 1..9 = D1..D9 (decodeCore keeps the inventory order).
+const core = decodeCore(BUCKET_INVENTORY);
+
+describe("metricValue", () => {
+  it("rounds percent lost to a tenth and uses -1 when the original capacity is unknown", () => {
+    expect(metricValue(core, 2, "pctLost2025")).toBe(9.9);
+    expect(metricValue(core, 3, "pctLost2025")).toBe(10);
+    expect(metricValue(core, 9, "pctLost2025")).toBe(-1);
+    expect(metricValue(core, 3, "pctLost2050")).toBe(25);
+  });
+
+  it("converts rate and storage to acre-feet, with -1 for missing storage", () => {
+    expect(metricValue(core, 8, "rate")).toBe(Math.round((900 / 10 / M3_PER_ACFT) * 10) / 10);
+    expect(metricValue(core, 1, "storage")).toBe(Math.round(1e5 / M3_PER_ACFT));
+    expect(metricValue(core, 9, "storage")).toBe(-1);
+  });
+
+  it("passes the evidence class through", () => {
+    expect(metricValue(core, 1, "evidence")).toBe(1);
+    expect(metricValue(core, 2, "evidence")).toBe(2);
+  });
+});
+
+describe("colorForRow", () => {
+  it("steps the percent-lost ramp at 0, 10, 25, 50 and 75, with unknown below", () => {
+    const expected = [RAMP[0], RAMP[0], RAMP[1], RAMP[1], RAMP[2], RAMP[3], RAMP[4], RAMP[4], NAT_UNKNOWN];
+    expected.forEach((color, i) => expect(colorForRow(core, i + 1, "pctLost2025")).toBe(color));
+  });
+
+  it("steps storage by decades of acre-feet", () => {
+    expect(colorForRow(core, 1, "storage")).toBe(RAMP[0]); // 81 ac-ft
+    expect(colorForRow(core, 3, "storage")).toBe(RAMP[1]); // 8.1k
+    expect(colorForRow(core, 4, "storage")).toBe(RAMP[2]); // 81k
+    expect(colorForRow(core, 5, "storage")).toBe(RAMP[3]); // 811k
+    expect(colorForRow(core, 6, "storage")).toBe(RAMP[4]); // 8.1M
+    expect(colorForRow(core, 9, "storage")).toBe(NAT_UNKNOWN);
+  });
+
+  it("pairs the evidence class: survey-constrained vs everything else", () => {
+    expect(colorForRow(core, 1, "evidence")).toBe(EV_MEASURED);
+    expect(colorForRow(core, 2, "evidence")).toBe(EV_MODELED);
+    expect(colorForRow(core, 5, "evidence")).toBe(EV_MODELED); // class 0 (unknown) is not "measured"
+  });
+
+  it("reaches every ramp step plus the unknown colour across the fixture", () => {
+    const seen = new Set<string>();
+    for (let row = 1; row <= 9; row++) seen.add(colorForRow(core, row, "pctLost2025"));
+    expect(seen.size).toBe(6);
+  });
+
+  it("legend rows exist for every metric", () => {
+    for (const def of Object.values(NATIONAL_METRICS)) {
+      expect(def.legend.length).toBeGreaterThanOrEqual(2);
+      for (const row of def.legend) expect(row.color).toMatch(/^#/);
+    }
+    for (const metric of Object.keys(NATIONAL_METRICS) as NationalMetric[]) {
+      expect(colorForRow(core, 1, metric)).toMatch(/^#/);
+    }
+  });
+});
+
+describe("radiusScale", () => {
+  it("grows with the log of storage, clamped to 0.75–1.9, and defaults to 0.75", () => {
+    expect(radiusScale(core, 1)).toBeCloseTo(0.75, 10); // 1e5 m³ → 0.75 exactly
+    expect(radiusScale(core, 4)).toBeCloseTo(1.8, 10); // 1e8 m³
+    expect(radiusScale(core, 6)).toBeCloseTo(1.9, 10); // 1e10 m³, clamped
+    expect(radiusScale(core, 9)).toBe(0.75); // no storage
+  });
 });
 
 describe("canvas style helpers", () => {
-  it("interpolate the MapLibre circle radius and opacity by zoom, clamped at the stops", () => {
+  it("interpolate the circle radius and opacity by zoom, clamped at the stops", () => {
     expect(natRadius(1, 3)).toBeCloseTo(1.6, 10);
     expect(natRadius(1, 9)).toBeCloseTo(5, 10);
     expect(natRadius(1, 6)).toBeCloseTo(3.3, 10);

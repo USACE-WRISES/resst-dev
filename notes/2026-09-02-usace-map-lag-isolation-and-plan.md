@@ -468,3 +468,18 @@ pointer-transparent; the panel's map click hit-tests the last-drawn dot position
 reached a site marker (documented sites win), routing to `selectSite` or `selectReservoir`; hover sets
 the pointer cursor. The Phase-1 "not yet available" notes and disabled toggles are gone. Both engines are
 now at feature parity. Tests: 233 unit, `dom-map.spec.ts` 14. Next: Phase 3 (Leaflet only).
+
+## 14. Phase 3 done (2026-09-02): Leaflet is the only map
+
+The MapLibre panel, its control class, the vector-style swap machinery (`applyBasemap`,
+`mergeAppLayers`, `revertBasemap`, `basemapStatus`), the MapLibre halves of the national/network/overlay
+modules, the MapLibre `ToolMap` adapter, and the engine choice (`engine.ts`, `MapHost`, `?map=`,
+`resst.mapEngine`) are gone. `src/map/MapPanel.tsx` is the Leaflet panel; its layer modules live in
+`src/map/leaflet/`. MapLibre GL stays a dependency for the Dam Report's static figure (`ReportMap.tsx`,
+dynamic import) and the `?diag=1` benchmark, both lazy chunks; `basemaps.ts` keeps the MapLibre styles
+for them. The e2e suite reads the map through `window.__resstMap` (the Leaflet map) and
+`window.__resstMapInfo` (counts, flags, `jumpTo/project/getCenter/getZoom` in the app's lon/lat + 512 px
+zoom conventions); the twelve former `__resstMap` specs were rewritten onto it, `dom-map.spec.ts` became
+`map.spec.ts`, and `playwright.config.ts` no longer seeds an engine. `help-screenshots.mjs` drives the
+Leaflet map. Docs: DEPLOYMENT "The map (Leaflet)" + the external-services table, PARITY row 28, README,
+Help credits (raster World Topographic attribution).

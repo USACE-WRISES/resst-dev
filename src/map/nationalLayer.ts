@@ -1,19 +1,15 @@
-// The national inventory layer: all ~57k modeled reservoirs (ResNet rows
-// minus the synthetic mouth nodes) as one nat-reservoirs GeoJSON source,
-// styled by a picked RATTES metric. Deliberately NOT an OverlayDef — it has
-// a metric picker, custom click routing, and (later) screening filters.
+// The national inventory layer's metrics and styling: all ~57k modeled
+// reservoirs (ResNet rows minus the synthetic mouth nodes), coloured by a
+// picked RATTES metric. Deliberately NOT an OverlayDef — it has a metric
+// picker, custom click routing, and screening filters. The drawing lives in
+// leaflet/national.ts; everything here is pure and unit-tested.
 //
 // Design rules baked in:
-// - nat-circles renders BELOW sites-circles: the documented sites always
-//   sit on top, which itself communicates how rare documented management is.
-// - No text layer for the national set (57k labels is the known perf trap).
-// - Metric switches are setPaintProperty only; screening will be setFilter —
-//   the 57k-feature setData happens once per session.
+// - The national dots render BELOW the documented sites, which itself
+//   communicates how rare documented management is.
+// - No labels for the national set (57k labels is the known perf trap).
 
-import type { GeoJSONSource, Map as MlMap } from "maplibre-gl";
-import type { DataDrivenPropertyValueSpecification, ExpressionSpecification } from "maplibre-gl";
-import type { Feature, FeatureCollection } from "geojson";
-import { FLAG, M3_PER_ACFT, type SedimentCore } from "../sediment/types";
+import { M3_PER_ACFT, type SedimentCore } from "../sediment/types";
 import type { NationalMetric } from "../state/store";
 
 export const NAT_UNKNOWN = "#b8c2cb"; // no-storage / no-model rows
@@ -96,21 +92,10 @@ export const NATIONAL_METRICS: Record<NationalMetric, MetricDef> = {
   },
 };
 
-/** circle-color expression for a metric (pure — unit-tested). */
-export function paintForMetric(metric: NationalMetric): DataDrivenPropertyValueSpecification<string> {
-  const def = NATIONAL_METRICS[metric];
-  if (!def.stops) {
-    return ["match", ["get", def.prop], 1, EV_MEASURED, EV_MODELED] as ExpressionSpecification;
-  }
-  const expr: unknown[] = ["step", ["get", def.prop], NAT_UNKNOWN];
-  def.stops.forEach((stop, i) => expr.push(stop, RAMP[Math.min(i, RAMP.length - 1)]));
-  return expr as ExpressionSpecification;
-}
-
 const r1 = (v: number) => Math.round(v * 10) / 10;
 
-/** The metric's feature value for a core row, exactly as buildNationalGeoJSON
-    stores it (-1 for unknown numerics; the evidence class as is). */
+/** The metric's value for a core row (-1 for unknown numerics; the evidence
+    class as is), rounded the way the screening readout rounds. */
 export function metricValue(core: SedimentCore, row: number, metric: NationalMetric): number {
   switch (metric) {
     case "pctLost2025":
@@ -131,13 +116,13 @@ export function metricValue(core: SedimentCore, row: number, metric: NationalMet
   }
 }
 
-/** JS mirror of paintForMetric: the color a row gets under a metric (the
-    Leaflet canvas layer paints with this; a unit test holds the two together). */
+/** The colour a row gets under a metric: a step ramp for the numeric metrics
+    (below the first stop = unknown; otherwise the last stop ≤ value), the
+    measured/modeled pair for the evidence class. */
 export function colorForRow(core: SedimentCore, row: number, metric: NationalMetric): string {
   const def = NATIONAL_METRICS[metric];
   const v = metricValue(core, row, metric);
   if (!def.stops) return v === 1 ? EV_MEASURED : EV_MODELED;
-  // step: below the first stop → unknown; otherwise the last stop ≤ value.
   let color = NAT_UNKNOWN;
   def.stops.forEach((stop, i) => {
     if (v >= stop) color = RAMP[Math.min(i, RAMP.length - 1)];
@@ -158,112 +143,3 @@ export const natRadius = (rs: number, mapZoom: number): number => (1.6 + 3.4 * c
 export const natOpacity = (mapZoom: number): number => 0.55 + 0.3 * clamp01((mapZoom - 3) / 5);
 /** circle-stroke-width: none below zoom 6, 0.75 px from 6. */
 export const natStrokeWidth = (mapZoom: number): number => (mapZoom >= 6 ? 0.75 : 0);
-
-/**
- * Build the 57k-point FeatureCollection from the decoded core. Mouth nodes
- * are excluded (they are junction markers, not reservoirs). Properties are
- * precomputed for paint + screening; unknown numerics use -1 so step
- * expressions fall into the leading "unknown" color.
- */
-export function buildNationalGeoJSON(core: SedimentCore, siteByShortId: ReadonlyMap<number, string>): FeatureCollection {
-  const features: Feature[] = [];
-  for (let i = 0; i < core.n; i++) {
-    if (core.flags[i] & FLAG.MOUTH) continue;
-    features.push({
-      type: "Feature",
-      geometry: { type: "Point", coordinates: [core.lon[i], core.lat[i]] },
-      properties: {
-        row: i,
-        shortId: core.ids[i],
-        pl25: metricValue(core, i, "pctLost2025"),
-        pl50: metricValue(core, i, "pctLost2050"),
-        rateAf: metricValue(core, i, "rate"),
-        storAf: metricValue(core, i, "storage"),
-        ev: core.flags[i] & FLAG.HAS_SURVEYS ? 1 : 0,
-        cls: core.evd[i],
-        doc: siteByShortId.has(core.ids[i]) ? 1 : 0,
-        term: core.flags[i] & FLAG.TERMINAL ? 1 : 0,
-        st: core.state[i],
-        own: core.owner[i],
-        pur: core.purpose[i],
-        rs: radiusScale(core, i),
-      },
-    });
-  }
-  return { type: "FeatureCollection", features };
-}
-
-export function installNationalLayers(map: MlMap): void {
-  map.addSource("nat-reservoirs", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-  map.addLayer(
-    {
-      id: "nat-circles",
-      type: "circle",
-      source: "nat-reservoirs",
-      layout: { visibility: "none" },
-      paint: {
-        "circle-color": paintForMetric("pctLost2025"),
-        "circle-radius": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          3,
-          ["*", 1.6, ["get", "rs"]],
-          9,
-          ["*", 5, ["get", "rs"]],
-        ],
-        "circle-opacity": ["interpolate", ["linear"], ["zoom"], 3, 0.55, 8, 0.85],
-        "circle-stroke-color": "#ffffff",
-        "circle-stroke-width": ["step", ["zoom"], 0, 6, 0.75],
-      },
-    },
-    "sites-circles",
-  );
-  map.addLayer(
-    {
-      id: "nat-selected",
-      type: "circle",
-      source: "nat-reservoirs",
-      filter: ["==", ["get", "shortId"], -999999],
-      paint: {
-        "circle-radius": 9,
-        "circle-color": "rgba(0,255,255,0.25)",
-        "circle-stroke-color": "#00ffff",
-        "circle-stroke-width": 2.5,
-      },
-    },
-    "sites-circles",
-  );
-}
-
-let appliedCore: SedimentCore | null = null;
-
-/** Sync visibility/metric; feeds the source once per core (memoized). */
-export function updateNationalLayer(
-  map: MlMap,
-  core: SedimentCore | null,
-  siteByShortId: ReadonlyMap<number, string>,
-  on: boolean,
-  metric: NationalMetric,
-): void {
-  if (!map.getLayer("nat-circles")) return;
-  map.setLayoutProperty("nat-circles", "visibility", on ? "visible" : "none");
-  map.setLayoutProperty("nat-selected", "visibility", on ? "visible" : "none");
-  if (!on || !core) return;
-  if (appliedCore !== core) {
-    (map.getSource("nat-reservoirs") as GeoJSONSource | undefined)?.setData(buildNationalGeoJSON(core, siteByShortId));
-    appliedCore = core;
-  }
-  map.setPaintProperty("nat-circles", "circle-color", paintForMetric(metric));
-}
-
-/** Highlight ring for the selected national reservoir (null clears). */
-export function setNationalSelected(map: MlMap, shortId: number | null): void {
-  if (!map.getLayer("nat-selected")) return;
-  map.setFilter("nat-selected", ["==", ["get", "shortId"], shortId ?? -999999]);
-}
-
-/** The applied-core memo must reset when the map instance is torn down. */
-export function resetNationalLayerMemo(): void {
-  appliedCore = null;
-}

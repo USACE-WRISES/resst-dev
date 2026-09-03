@@ -364,7 +364,6 @@ button { font: inherit; color: inherit; }
    cleared/unrendered gap (context lost, pre-style-load resize), it reads as
    map ground, never white. */
 .map-panel { position: absolute; inset: 0; background: #e8ede9; }
-.map-panel .maplibregl-map { position: absolute; inset: 0; }
 .map-toolbar {
   position: absolute; top: 10px; left: 10px; z-index: 5;
   display: flex; flex-wrap: wrap; gap: 8px; row-gap: 6px; align-items: flex-start;
@@ -732,15 +731,13 @@ button { font: inherit; color: inherit; }
 .ov-retry:hover { background: var(--accent-soft); }
 @keyframes ov-spin { to { transform: rotate(360deg); } }
 
-/* ---------- basemap picker (maplibre ctrl under the zoom buttons) ---------- */
-/* The host keeps maplibre's `maplibregl-ctrl` class (that is what turns pointer
-   events back on inside the corner slot and stacks it under the zoom group) but
-   NOT `maplibregl-ctrl-group`, whose button rules would force display:block and
-   outline:none and swap our focus/hover treatment for maplibre's. Instead the
-   trigger restates the group look itself — white, 4px radius, 2px ring shadow,
-   29px box — so it pixel-matches the zoom stack above. The font is restated
-   because .maplibregl-map sets `font: 12px/20px Helvetica Neue,...` across its
-   whole subtree. */
+/* ---------- basemap picker (a Leaflet control under the zoom buttons) ---------- */
+/* The picker's host div is a Leaflet control (MapPanel adds it to the top-right
+   corner right after the zoom control, so it stacks beneath it). The trigger
+   restates the zoom bar's look itself — white, 4px radius, 2px ring shadow,
+   30px box — so it pixel-matches the buttons above. The font is restated
+   because .leaflet-container sets `font: 12px/1.5 Helvetica Neue,...` across
+   its whole subtree. */
 .basemap-picker {
   position: relative;
   font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
@@ -749,16 +746,14 @@ button { font: inherit; color: inherit; }
 .basemap-trigger {
   position: relative;
   display: flex; align-items: center; justify-content: center;
-  width: 29px; height: 29px; padding: 0;
+  width: 30px; height: 30px; padding: 0;
   background: var(--paper); border: none; border-radius: 4px;
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1); /* = .maplibregl-ctrl-group ring */
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1); /* = the zoom bar's ring */
   cursor: pointer;
 }
-/* maplibre's `.maplibregl-ctrl button:not(:disabled):hover` (and its :active
-   twin) paints translucent rgba(0,0,0,.05) at specificity (0,3,1), turning the
-   button see-through over map tiles. The :not(:disabled) below is a specificity
-   shim: it lifts these to (0,4,0)/(0,5,0) so they win on specificity, not
-   import order. */
+/* The :not(:disabled) below is a specificity shim carried over from the
+   MapLibre days (its control stylesheet painted a translucent hover at
+   (0,3,1)); harmless, and it keeps the hover/active treatment explicit. */
 .basemap-picker .basemap-trigger:not(:disabled):hover,
 .basemap-picker .basemap-trigger:not(:disabled):active {
   background: var(--accent-soft);
@@ -774,23 +769,6 @@ button { font: inherit; color: inherit; }
 /* Option rows in the panel (the trigger no longer carries a name span): fill
    the row, truncate rather than blow the box out. */
 .basemap-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-.basemap-picker[data-status="loading"] .basemap-trigger { cursor: progress; }
-.basemap-picker[data-status="loading"] .basemap-icon svg { opacity: 0.25; }
-.basemap-picker[data-status="loading"] .basemap-icon::after {
-  content: ""; position: absolute; inset: 1px; border-radius: 50%;
-  border: 2px solid var(--line); border-top-color: var(--accent);
-  animation: ov-spin 0.8s linear infinite;
-}
-.basemap-picker[data-status="error"] .basemap-icon::after {
-  content: "!"; position: absolute; top: -4px; right: -4px;
-  color: #b3261e; font-weight: 700; font-size: 12px; line-height: 1;
-}
-/* Declared last among the ::after rules — equal specificity, so an open
-   trigger recolors the spinner/badge for the accent background. */
-.basemap-trigger[aria-expanded="true"] .basemap-icon::after {
-  border-color: rgba(255,255,255,0.35); border-top-color: #fff; color: #fff;
-}
 
 .basemap-panel {
   position: absolute; top: calc(100% + 6px); right: 0; z-index: 8;
@@ -813,25 +791,14 @@ button { font: inherit; color: inherit; }
 .basemap-option:hover { background: var(--panel); }
 .basemap-option.active { background: var(--accent-soft); font-weight: 600; }
 .basemap-option input { accent-color: var(--accent); flex: 0 0 auto; margin: 0; }
-.basemap-note, .basemap-error {
-  display: flex; align-items: center; gap: 8px;
-  margin: 6px 0 0; padding: 6px 10px 2px;
-  border-top: 1px solid var(--panel); font-size: 12px;
-}
-.basemap-note { color: var(--ink-3); }
-.basemap-error { color: #b3261e; }
-.basemap-error span { flex: 1 1 auto; min-width: 0; }
-.basemap-error .ov-retry { flex: 0 0 auto; padding: 3px 10px; color: var(--ink); }
 
-/* ---- Leaflet map (the transition engine; src/map/engine.ts) ----
+/* ---- The map (Leaflet; src/map/MapPanel.tsx) ----
    Leaflet mounts INTO .map-panel, which becomes .leaflet-container. z-index 0
    makes it a stacking context, so Leaflet's panes (200-700) and control
    corners (1000) stay beneath .map-toolbar (z 5) and the popovers (z 8). */
 .map-panel.leaflet-container { z-index: 0; background: #e8ede9; font: inherit; }
 .map-panel.leaflet-container a { color: inherit; }
 .map-panel.leaflet-container .leaflet-control-zoom a { color: #000; }
-/* The React basemap picker lives in Leaflet's control stack: match its 30px bar. */
-.map-panel.leaflet-container .basemap-trigger { width: 30px; height: 30px; }
 .map-panel .leaflet-tooltip.site-label,
 .map-panel .leaflet-tooltip.network-label {
   background: transparent; border: 0; box-shadow: none; padding: 0; white-space: nowrap;

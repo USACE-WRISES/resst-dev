@@ -29,7 +29,7 @@ test("the grid contains the map and table, and the details panel is visible on t
     return {
       centerStack: w(".center-stack"),
       mapContainer: w(".map-panel"),
-      canvas: w(".maplibregl-canvas"),
+      canvas: w(".map-panel.leaflet-container"),
       tablePanel: w(".table-panel"),
       docScrollW: document.documentElement.scrollWidth,
       docClientW: document.documentElement.clientWidth,
@@ -57,7 +57,7 @@ test("the grid contains the map and table, and the details panel is visible on t
 test("initial view is the Default CONUS extent", async ({ page }) => {
   await openApp(page);
   await waitForMapReady(page);
-  const c = await page.evaluate(() => (window as any).__resstMap.getCenter());
+  const c = await page.evaluate(() => (window as any).__resstMapInfo.getCenter());
   // Bounds [-116.7544, 30.8881, -79.9282, 46.6079]; the fitted (mercator)
   // center sits at ≈ (-98.34, 39.20) — keep the tolerance ≥ 0.6°.
   expect(Math.abs(c.lng - -98.3413)).toBeLessThan(1);
@@ -72,17 +72,17 @@ test("selecting a site centers the camera on that site", async ({ page }) => {
   // Wait for the fly animation to land near the site (avoids the idle race).
   await page.waitForFunction(
     (lng) => {
-      const m = (window as any).__resstMap;
-      return m && !m.isMoving() && Math.abs(m.getCenter().lng - lng) < 0.05;
+      const info = (window as any).__resstMapInfo;
+      return info && !info.isMoving() && Math.abs(info.getCenter().lng - lng) < 0.05;
     },
     TUTTLE[0],
     { timeout: 15_000 },
   );
 
   const off = await page.evaluate(([lng, lat]) => {
-    const m = (window as any).__resstMap;
-    const p = m.project([lng, lat]);
-    const el = m.getContainer() as HTMLElement;
+    const w = window as any;
+    const p = w.__resstMapInfo.project(lng, lat);
+    const el = w.__resstMap.getContainer() as HTMLElement;
     return { dx: p.x - el.clientWidth / 2, dy: p.y - el.clientHeight / 2 };
   }, TUTTLE);
   expect(Math.abs(off.dx)).toBeLessThan(40);
@@ -127,7 +127,7 @@ test("side panels collapse fully via the edge pills and expand back", async ({ p
 test("no serious/critical violations with a panel collapsed", async ({ page }) => {
   await openApp(page);
   await page.getByRole("button", { name: "Collapse Selected Data panel" }).click();
-  const results = await new AxeBuilder({ page }).exclude(".maplibregl-canvas").analyze();
+  const results = await new AxeBuilder({ page }).exclude(".leaflet-tile-pane").exclude(".leaflet-pane svg").exclude(".leaflet-pane canvas").exclude(".leaflet-tooltip-pane").analyze();
   const serious = results.violations.filter(
     (v) => v.impact === "serious" || v.impact === "critical",
   );
@@ -247,7 +247,7 @@ test("persisted collapse applies on load and stays axe-clean", async ({ page }) 
   await waitForMapReady(page);
   await expect(page.getByRole("button", { name: "Expand results table" })).toBeVisible();
   await expect(page.locator(".table-panel")).toBeHidden();
-  const results = await new AxeBuilder({ page }).exclude(".maplibregl-canvas").analyze();
+  const results = await new AxeBuilder({ page }).exclude(".leaflet-tile-pane").exclude(".leaflet-pane svg").exclude(".leaflet-pane canvas").exclude(".leaflet-tooltip-pane").analyze();
   expect(
     results.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => v.id),
   ).toEqual([]);

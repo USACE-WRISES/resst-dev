@@ -1,26 +1,22 @@
-// Basemap registry and the machinery to swap between them at runtime.
+// Basemap registry for the Leaflet map, plus the MapLibre styles that the
+// ?diag=1 benchmark and the Dam Report's snapshot figure still draw.
 //
-// "esri" is the default (owner request 2026-08-29, restoring the original EXB
-// look): the World Topographic Map vector-tile style over World Hillshade,
-// from the exact public, keyless endpoints the original web map references
-// (verified anonymous + CORS-open; Esri's sanctioned route for custom apps is
-// an API key, so if these endpoints are ever gated the swap fails with a
-// retryable error and the app auto-reverts — un-persisted — to "usgs").
-// "usgs" is the public-domain fallback and the boot style (decision D4), so
-// an offline start still renders a map.
+// "esri" is the default (owner request 2026-08-29, the original EXB look):
+// Esri's World Topographic Map, served to the interactive map as raster tiles
+// from the public, keyless ArcGIS Online service. "usgs" is the public-domain
+// USGS National Map topo (decision D4). Both are plain image-tile layers; a
+// swap replaces the tile layer and cannot fail as a whole (tile errors are
+// per tile).
 //
-// MapLibre cannot consume Esri's published style verbatim:
-//   1. its source `url` points at an ArcGIS VectorTileServer, not TileJSON —
-//      rewritten to an explicit tiles template;
-//   2. its sprite URL contains "/../" — normalized through the URL parser.
-// The swap itself is map.setStyle(next, {transformStyle: mergeAppLayers}),
-// which carries every app-owned source and layer (sites*, ov-*) across
-// styles. GeoJSON sources serialize with their CURRENT data, so loaded
-// overlays survive without refetching and the overlay runtime's readyKey
-// memos stay truthful.
+// The vector Esri style (World Topographic Map over World Hillshade, from the
+// endpoints the original web map references) needs WebGL and remains here
+// only for the diagnostics benchmark, which measures exactly that. MapLibre
+// cannot consume the published style verbatim: its source `url` points at an
+// ArcGIS VectorTileServer, not TileJSON (rewritten to a tiles template), and
+// its sprite URL contains "/../" (normalized through the URL parser).
 
-import type { Map as MlMap, StyleSpecification } from "maplibre-gl";
-import { actions, getState, type BasemapId } from "../state/store";
+import type { StyleSpecification } from "maplibre-gl";
+import type { BasemapId } from "../state/store";
 
 export interface BasemapDef {
   id: BasemapId;
@@ -39,6 +35,22 @@ export const BASEMAPS: Record<BasemapId, BasemapDef> = {
     radio, so arrow-key traversal starts from it). */
 export const BASEMAP_ORDER: readonly BasemapId[] = ["esri", "usgs"];
 
+/** USGS National Map topo raster tiles: one definition for the map, the
+    diagnostics styles, and the report figure. */
+export const USGS_TOPO_TILES =
+  "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}";
+export const USGS_TOPO_ATTRIBUTION =
+  "USGS The National Map: National Boundaries Dataset, 3DEP Elevation Program, Geographic Names Information System, National Hydrography Dataset, National Land Cover Database, National Structures Dataset, and National Transportation Dataset";
+
+/** Esri's raster World Topographic Map. The attribution is the service's
+    copyrightText (…/World_Topo_Map/MapServer?f=json, read 2026-09-02). */
+export const ESRI_TOPO_RASTER_TILES =
+  "https://services.arcgisonline.com/arcgis/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}";
+export const ESRI_TOPO_RASTER_ATTRIBUTION =
+  "Sources: Esri, HERE, Garmin, Intermap, increment P Corp., GEBCO, USGS, FAO, NPS, NRCAN, GeoBase, IGN, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), (c) OpenStreetMap contributors, and the GIS User Community";
+
+// ---- MapLibre styles (diagnostics benchmark, report figure) ----------------
+
 // The style item the original web map's baseMapLayers reference
 // (RESST-migration/02-web-map-configuration/resst-web-map-data.json).
 export const ESRI_STYLE_URL =
@@ -48,29 +60,8 @@ const ESRI_ATTRIBUTION =
 const HILLSHADE_TILES =
   "https://services.arcgisonline.com/arcgis/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}";
 
-/** Sources the app owns and must carry across basemap swaps (sites, ov-*
-    overlays/select scratch, nw-* network highlight, nat-* national layer). */
-const isAppSource = (id: string) => id === "sites" || id.startsWith("ov-") || id.startsWith("nw-") || id.startsWith("nat-");
-/** Layers the app owns (sites-*, every overlay, network + national layers). */
-const isAppLayer = (id: string) =>
-  id.startsWith("sites-") || id.startsWith("ov-") || id.startsWith("nw-") || id.startsWith("nat-");
 /** Ids the composed Esri style reserves; colliding CDN layers get renamed. */
-const isReservedId = (id: string) => id === "background" || id === "esri-hillshade" || isAppLayer(id);
-
-/** USGS National Map topo raster tiles: the one definition shared by the
-    MapLibre style below and the diagnostics page's Leaflet trial. */
-export const USGS_TOPO_TILES =
-  "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}";
-export const USGS_TOPO_ATTRIBUTION =
-  "USGS The National Map: National Boundaries Dataset, 3DEP Elevation Program, Geographic Names Information System, National Hydrography Dataset, National Land Cover Database, National Structures Dataset, and National Transportation Dataset";
-
-/** Esri's raster World Topographic Map: the Leaflet map's stand-in for the
-    vector Esri style, which needs WebGL. The attribution is the service's
-    copyrightText (…/World_Topo_Map/MapServer?f=json, read 2026-09-02). */
-export const ESRI_TOPO_RASTER_TILES =
-  "https://services.arcgisonline.com/arcgis/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}";
-export const ESRI_TOPO_RASTER_ATTRIBUTION =
-  "Sources: Esri, HERE, Garmin, Intermap, increment P Corp., GEBCO, USGS, FAO, NPS, NRCAN, GeoBase, IGN, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), (c) OpenStreetMap contributors, and the GIS User Community";
+const isReservedId = (id: string) => id === "background" || id === "esri-hillshade";
 
 export function buildUsgsStyle(glyphs?: string): StyleSpecification {
   return {
@@ -129,11 +120,8 @@ export function fixupEsriStyle(raw: StyleSpecification): StyleSpecification {
     ...raw,
     sources,
     layers: [
-      // Same id/paint as the USGS style's backdrop, so the swap diffs it as unchanged.
       { id: "background", type: "background", paint: { "background-color": "#e8ede9" } },
       { id: "esri-hillshade", type: "raster", source: "esri-hillshade" },
-      // The rename must escape the app-layer prefixes too, or the renamed
-      // CDN layer would be carried across swaps as if the app owned it.
       ...(raw.layers ?? []).map((l) => (isReservedId(l.id) ? { ...l, id: `esri-basemap:${l.id}` } : l)),
     ],
   };
@@ -155,66 +143,4 @@ export function fetchEsriTopoStyle(fetchImpl: typeof fetch = fetch): Promise<Sty
     });
   }
   return esriStylePromise;
-}
-
-/**
- * The TransformStyleFunction for setStyle: keep the next style's basemap,
- * glyphs, and sprite, and re-attach the app-owned sources and layers from
- * the previous style (appended last, preserving their relative order, so
- * overlays stay under the sites layers and everything sits above basemap
- * labels). Must stay pure — a failed style diff re-applies it.
- */
-export function mergeAppLayers(
-  prev: StyleSpecification | undefined,
-  next: StyleSpecification,
-): StyleSpecification {
-  if (!prev) return next;
-  const sources = { ...next.sources };
-  for (const [id, src] of Object.entries(prev.sources ?? {})) {
-    if (isAppSource(id)) sources[id] = src;
-  }
-  return {
-    ...next,
-    sources,
-    layers: [...(next.layers ?? []), ...(prev.layers ?? []).filter((l) => isAppLayer(l.id))],
-  };
-}
-
-/**
- * Swap the map to the requested basemap. The USGS path is synchronous and
- * cannot fail; the Esri path downloads the style once (cached) and reports
- * loading/error through the store for the picker. On failure the map never
- * left USGS, so the app reverts there WITHOUT persisting and forgets the
- * stored choice — the next visit retries the default.
- */
-export async function applyBasemap(
-  map: Pick<MlMap, "setStyle">,
-  id: BasemapId,
-  fetchImpl?: typeof fetch,
-): Promise<void> {
-  if (id === "usgs") {
-    map.setStyle(buildUsgsStyle(), { transformStyle: mergeAppLayers });
-    return;
-  }
-  actions.setBasemapStatus("loading");
-  try {
-    // Cloned so MapLibre can never mutate the cached style between toggles.
-    const style = structuredClone(await fetchEsriTopoStyle(fetchImpl));
-    if (getState().basemap !== "esri") {
-      actions.setBasemapStatus(null); // superseded while downloading — not an error
-      return;
-    }
-    map.setStyle(style, { transformStyle: mergeAppLayers });
-    actions.setBasemapStatus(null);
-  } catch (err) {
-    console.warn("Esri basemap failed to load.", err);
-    if (getState().basemap === "esri") {
-      actions.setBasemapStatus("error");
-      // "usgs" as the FALLBACK, not "the default" — it is the basemap that
-      // still works when Esri endpoints are unreachable.
-      actions.revertBasemap("usgs");
-    } else {
-      actions.setBasemapStatus(null);
-    }
-  }
 }

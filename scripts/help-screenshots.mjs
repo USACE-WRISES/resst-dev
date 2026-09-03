@@ -2,7 +2,7 @@
 // driving the BUILT app with Playwright — one staged capture per help tab, so
 // the illustrations always show this app's real controls.
 //
-// Dev-time tool, not CI: it exercises the live Esri basemap endpoints and the
+// Dev-time tool, not CI: it exercises the live basemap tile endpoints and the
 // app's self-hosted overlay snapshots. Run it after the selection tools
 // change, or whenever the UI the shots depict does.
 //
@@ -29,12 +29,13 @@ const waitForServer = async () => {
   throw new Error(`vite preview did not come up on :${PORT}`);
 };
 
-/** The map is "photo ready": style + tiles loaded, camera at rest. */
+/** The map is "photo ready": every site drawn, tiles loaded, camera at rest.
+    window.__resstMap is the Leaflet map; __resstMapInfo its counts/flags. */
 const mapSettled = (page) =>
   page.waitForFunction(
     () => {
-      const m = window.__resstMap;
-      return !!m && m.loaded() && m.areTilesLoaded() && !m.isMoving() && !!m.getLayer("esri-hillshade");
+      const info = window.__resstMapInfo;
+      return !!window.__resstMap && !!info && info.counts().sites > 0 && info.tilesLoaded() && !info.isMoving();
     },
     undefined,
     { timeout: 60_000 },
@@ -42,24 +43,15 @@ const mapSettled = (page) =>
 
 const openApp = async (browser) => {
   const page = await browser.newPage({ viewport: VIEW });
-  // Headless Chromium draws WebGL on SwiftShader; the app's engine rule would
-  // open the Leaflet map and mapSettled (which waits on the MapLibre handle)
-  // would never resolve. The shots depict the MapLibre map.
-  await page.addInitScript(() => {
-    try {
-      localStorage.setItem("resst.mapEngine", "maplibre");
-    } catch {
-      /* ignore */
-    }
-  });
   await page.goto(BASE);
   await page.getByRole("button", { name: "OK" }).click();
   await mapSettled(page);
   return page;
 };
 
+/** Zoom is in the app's (512 px) basis, like the map commands; Leaflet sits one step higher. */
 const jumpTo = async (page, center, zoom) => {
-  await page.evaluate(([c, z]) => window.__resstMap.jumpTo({ center: c, zoom: z }), [center, zoom]);
+  await page.evaluate(([c, z]) => window.__resstMap.setView([c[1], c[0]], z + 1, { animate: false }), [center, zoom]);
   await mapSettled(page);
 };
 
@@ -67,8 +59,8 @@ const clickLngLat = async (page, lon, lat, opts = {}) => {
   const p = await page.evaluate(
     ([ln, lt]) => {
       const m = window.__resstMap;
-      const pt = m.project([ln, lt]);
-      const r = m.getCanvas().getBoundingClientRect();
+      const pt = m.latLngToContainerPoint([lt, ln]);
+      const r = m.getContainer().getBoundingClientRect();
       return { x: r.left + pt.x, y: r.top + pt.y };
     },
     [lon, lat],
@@ -89,11 +81,13 @@ const armTool = async (page, item) => {
 };
 
 const overlayReady = (page, key) =>
-  page.waitForFunction(
-    (k) => (window.__resstMap.getSource(`ov-${k}`)?.serialize?.().data?.features?.length ?? 0) > 0,
-    key,
-    { timeout: 60_000 },
-  );
+  page.waitForFunction((k) => (window.__resstMapInfo.counts().overlays[k] ?? 0) > 0, key, { timeout: 60_000 });
+
+/** End the preview server and, on Windows, the process tree its shell started. */
+const stopServer = (server) => {
+  if (process.platform === "win32" && server.pid) spawn("taskkill", ["/pid", String(server.pid), "/t", "/f"], { stdio: "ignore" });
+  else server.kill();
+};
 
 async function main() {
   await mkdir(OUT, { recursive: true });
@@ -101,9 +95,10 @@ async function main() {
     shell: true,
     stdio: "ignore",
   });
+  let browser = null;
   try {
     await waitForServer();
-    const browser = await chromium.launch();
+    browser = await chromium.launch();
 
     console.log("about — the app at its start view");
     {
@@ -116,7 +111,9 @@ async function main() {
       const page = await openApp(browser);
       await page.locator(".table-panel input").first().fill("Big Tujunga");
       await page.locator(".data-table tbody tr", { hasText: "Big Tujunga" }).first().click();
-      await page.locator(".maplibregl-popup").waitFor();
+      await page.locator(".leaflet-popup").waitFor();
+      // Every Selected Data section starts collapsed (round 3): open the one with the chart.
+      await page.locator(".detail-sec-head", { hasText: "Reservoir Sustainability" }).click();
       await page.locator(".traj-chart svg").waitFor({ timeout: 60_000 }); // chunk + surveys resident
       await page.locator(".traj-survey").first().waitFor(); // measured dots plotted
       await page.evaluate(() => document.querySelector(".traj-chart")?.scrollIntoView({ block: "center" }));
@@ -129,7 +126,7 @@ async function main() {
       const page = await openApp(browser);
       await page.locator(".table-panel input").first().fill("Tuttle");
       await page.locator(".data-table tbody tr", { hasText: "Tuttle Creek" }).first().click();
-      await page.locator(".maplibregl-popup").waitFor();
+      await page.locator(".leaflet-popup").waitFor();
       await page.locator(".detail-sec-head", { hasText: "Comparable Reservoirs" }).click();
       await page.getByRole("button", { name: "Find similar reservoirs" }).click();
       await page.locator(".sim-list .sim-row").first().waitFor({ timeout: 60_000 });
@@ -143,14 +140,7 @@ async function main() {
       const page = await openApp(browser);
       await page.getByRole("button", { name: "Layers" }).click();
       await page.getByRole("checkbox", { name: /All modeled reservoirs/ }).check();
-      await page.waitForFunction(
-        async () => {
-          const src = window.__resstMap.getSource("nat-reservoirs");
-          return !!src && (await src.getData()).features.length > 50_000;
-        },
-        undefined,
-        { timeout: 60_000 },
-      );
+      await page.waitForFunction(() => window.__resstMapInfo.counts().national > 40_000, undefined, { timeout: 60_000 });
       await page.keyboard.press("Escape");
       await page.getByRole("button", { name: /^Screening/ }).click();
       await page.getByRole("button", { name: "Undocumented + high sedimentation" }).click();
@@ -183,10 +173,12 @@ async function main() {
       await shoot(page, "by-category");
     }
 
-    await browser.close();
     console.log("done.");
   } finally {
-    server.kill();
+    // Always close the browser: an unclosed one keeps this process alive
+    // after a failure, and the error above would never reach the console.
+    await browser?.close().catch(() => {});
+    stopServer(server);
   }
 }
 

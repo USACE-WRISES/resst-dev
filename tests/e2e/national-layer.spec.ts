@@ -16,33 +16,17 @@ async function openWithLayer(page: Page) {
   await page.getByRole("button", { name: "OK" }).click();
   await page.getByRole("button", { name: "Layers" }).click();
   await page.getByRole("checkbox", { name: /All modeled reservoirs/ }).check();
-  // The fixture core is tiny — wait until the layer is fed and visible.
-  await expect
-    .poll(() =>
-      page.evaluate(async () => {
-        const m = (window as any).__resstMap;
-        const src = m.getSource("nat-reservoirs");
-        if (!src || m.getLayoutProperty("nat-circles", "visibility") !== "visible") return 0;
-        return (await src.getData()).features.length;
-      }),
-    )
-    .toBe(3); // mouth node excluded
+  // The fixture core is tiny — wait until the layer is fed and drawn.
+  await expect.poll(() => page.evaluate(() => (window as any).__resstMapInfo.counts().national)).toBe(3); // mouth node excluded
   await page.keyboard.press("Escape"); // close the popover
 }
 
 /** Click the map at a dam's lng/lat (zooming in first so points separate). */
 async function clickDam(page: Page, lon: number, lat: number) {
-  await page.evaluate(
-    ([ln, lt]) => (window as any).__resstMap.jumpTo({ center: [ln, lt], zoom: 10 }),
-    [lon, lat],
-  );
+  await page.evaluate(([ln, lt]) => (window as any).__resstMapInfo.jumpTo(ln, lt, 10), [lon, lat]);
   await page.waitForTimeout(400); // let the moved frame render before hit-testing
-  const pt = await page.evaluate(([ln, lt]) => {
-    const p = (window as any).__resstMap.project([ln, lt]);
-    return { x: p.x, y: p.y };
-  }, [lon, lat]);
-  const canvas = page.locator(".maplibregl-canvas");
-  const box = (await canvas.boundingBox())!;
+  const pt = await page.evaluate(([ln, lt]) => (window as any).__resstMapInfo.project(ln, lt), [lon, lat]);
+  const box = (await page.locator(".map-panel").boundingBox())!;
   await page.mouse.click(box.x + pt.x, box.y + pt.y);
 }
 
@@ -60,9 +44,8 @@ test("toggle + metric picker style the layer and the legend follows", async ({ p
   await page.getByRole("button", { name: "Legend" }).click();
   await expect(page.locator(".legend-ramp-title")).toContainText("RATTES model class");
   await expect(page.locator(".legend-ramp")).toContainText("Survey-constrained");
-  // The paint switched to the categorical match expression.
-  const paint = await page.evaluate(() => (window as any).__resstMap.getPaintProperty("nat-circles", "circle-color"));
-  expect(JSON.stringify(paint)).toContain("match");
+  // The layer switched to the categorical evidence colouring.
+  expect(await page.evaluate(() => (window as any).__resstMapInfo.nationalMetric())).toBe("evidence");
 });
 
 test("clicking an undocumented dam opens ReservoirDetails; a documented dam routes to its site", async ({ page }) => {
@@ -78,8 +61,8 @@ test("clicking an undocumented dam opens ReservoirDetails; a documented dam rout
   await expect(details.locator("#detail-sec-sust")).toContainText("Est. capacity lost (2025)");
   await expect(details).toContainText("Reservoir Network");
   await expect(details.locator("#detail-sec-lit")).toHaveCount(0); // no literature section for reservoirs
-  await expect(page.locator(".maplibregl-popup")).toContainText("Lone Reservoir");
-  await expect(page.locator(".maplibregl-popup")).toContainText("Modeled only");
+  await expect(page.locator(".leaflet-popup")).toContainText("Lone Reservoir");
+  await expect(page.locator(".leaflet-popup")).toContainText("Modeled only");
 
   // Tuttle Creek Dam (ShortID 10) shares coordinates with the documented site
   // — the site wins and the full site experience renders.
@@ -110,7 +93,7 @@ test("the reservoir panel is axe-clean", async ({ page }) => {
   await openWithLayer(page);
   await clickDam(page, -96.45, 39.05);
   await expect(page.locator(".details-panel")).toContainText("Lone Reservoir");
-  const results = await new AxeBuilder({ page }).exclude(".maplibregl-canvas").analyze();
+  const results = await new AxeBuilder({ page }).exclude(".leaflet-tile-pane").exclude(".leaflet-pane svg").exclude(".leaflet-pane canvas").exclude(".leaflet-tooltip-pane").analyze();
   const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
   expect(serious.map((v) => `${v.id}: ${v.nodes.length} nodes`)).toEqual([]);
 });

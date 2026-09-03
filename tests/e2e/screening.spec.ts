@@ -16,14 +16,13 @@ async function openScreening(page: Page) {
   await expect(page.locator(".screening-panel")).toBeVisible();
 }
 
-const natFilter = (page: Page) => page.evaluate(() => (window as any).__resstMap.getFilter("nat-circles") ?? null);
+/** Whether screening is masking the national dots on the map. */
+const masked = (page: Page) => page.evaluate(() => (window as any).__resstMapInfo.screeningMasked() as boolean);
 
 test("opening screening enables the layer; a gap preset filters and counts", async ({ page }) => {
   await openScreening(page);
   // Auto-enabled the national layer.
-  await expect
-    .poll(() => page.evaluate(() => (window as any).__resstMap.getLayoutProperty("nat-circles", "visibility")))
-    .toBe("visible");
+  await expect.poll(() => page.evaluate(() => (window as any).__resstMapInfo.nationalVisible())).toBe(true);
   // The intro is short and factual; the research-use disclaimer lives on the
   // welcome dialog now (smoke.spec) and the guardrail phrasing in Help (helpContent.test).
   await expect(page.locator(".screen-intro")).toContainText("with transparent criteria");
@@ -31,16 +30,16 @@ test("opening screening enables the layer; a gap preset filters and counts", asy
 
   await page.getByRole("button", { name: "Undocumented + high sedimentation" }).click();
   await expect(page.locator(".screen-count")).toContainText("1 of 3 modeled reservoirs match");
-  const f = JSON.stringify(await natFilter(page));
-  expect(f).toContain('"pl25"');
-  expect(f).toContain('"doc"');
+  // The map hides the dots that fail the criteria: 1 of the 3 fixture dams stays.
+  await expect.poll(() => masked(page)).toBe(true);
+  await expect.poll(() => page.evaluate(() => (window as any).__resstMapInfo.counts().national)).toBe(1);
 
   await page.getByRole("button", { name: "Documented + low sedimentation", exact: true }).click();
   await expect(page.locator(".screen-count")).toContainText("1 of 3");
 
   await page.getByRole("button", { name: "Clear screening" }).click();
   await expect(page.locator(".screen-count")).toContainText("Pick a preset or criterion");
-  expect(await natFilter(page)).toBeNull();
+  await expect.poll(() => masked(page)).toBe(false);
 });
 
 test("criteria compose and export downloads the matching rows", async ({ page }) => {
@@ -61,7 +60,7 @@ test("turning the national layer off ends the screening session", async ({ page 
   await page.getByRole("button", { name: "Layers" }).click();
   await page.getByRole("checkbox", { name: /All modeled reservoirs/ }).uncheck();
   await page.keyboard.press("Escape");
-  expect(await natFilter(page)).toBeNull();
+  await expect.poll(() => masked(page)).toBe(false);
   // Reopening screening re-enables the layer with a fresh (inactive) session.
   await page.getByRole("button", { name: /^Screening/ }).click();
   await expect(page.locator(".screen-count")).toContainText("Pick a preset or criterion");

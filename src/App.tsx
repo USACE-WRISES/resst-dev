@@ -10,8 +10,7 @@ import { DetailsPanel } from "./components/DetailsPanel";
 import { WelcomeDialog } from "./components/WelcomeDialog";
 import { HelpOverlay } from "./components/HelpOverlay";
 import { DownloadPanel } from "./components/DownloadPanel";
-import { MapHost } from "./map/MapHost";
-import { currentEngine } from "./map/engine";
+import { MapPanel } from "./map/MapPanel";
 import { BASEMAPS } from "./map/basemaps";
 import { Logo } from "./components/Logo";
 
@@ -64,8 +63,6 @@ export default function App() {
   }
 
   const derived = derive(data, state);
-  // Decided once per page load (URL, stored choice, then the WebGL probe).
-  const engine = currentEngine();
 
   return (
     <div className="app-shell">
@@ -101,8 +98,7 @@ export default function App() {
           className={state.tableCollapsed ? "center-stack table-collapsed" : "center-stack"}
           style={tableRowStyle}
         >
-          <MapHost
-            engine={engine}
+          <MapPanel
             sites={derived.sites}
             allSites={data.sites}
             siteById={data.siteById}
@@ -178,10 +174,7 @@ export default function App() {
           {data.entries.length.toLocaleString()} literature entries
           <span className="footer-vintage"> · RATTES v1.2 (2026) · ResNet v1 (2025) · RESSED (2013)</span>
         </span>
-        <span>
-          Basemap: {BASEMAPS[state.basemap].label}
-          {engine === "leaflet" && " · Map: Leaflet (preview)"}
-        </span>
+        <span>Basemap: {BASEMAPS[state.basemap].label}</span>
       </footer>
       {state.welcomeOpen && <WelcomeDialog />}
       {state.helpOpen && <HelpOverlay />}

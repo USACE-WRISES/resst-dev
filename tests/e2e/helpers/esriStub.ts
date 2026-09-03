@@ -97,11 +97,12 @@ export async function stubUsgsTiles(page: Page): Promise<void> {
 export const waitForBasemap = (page: Page, esri: boolean) =>
   page.waitForFunction(
     (wantEsri) => {
-      const m = (window as any).__resstMap;
-      if (!m) return false;
-      const hasEsri = !!m.getLayer("esri-hillshade");
-      const hasUsgs = !!m.getLayer("usgs-topo");
-      return (wantEsri ? hasEsri && !hasUsgs : hasUsgs && !hasEsri) && m.isStyleLoaded() && m.loaded();
+      const w = window as any;
+      const info = w.__resstMapInfo;
+      if (!w.__resstMap || !info) return false;
+      const url: string = info.basemapUrl();
+      const isEsri = url.includes("World_Topo_Map");
+      return isEsri === wantEsri && info.counts().sites > 0 && info.tilesLoaded() && !info.isMoving();
     },
     esri,
     { timeout: 20_000 },

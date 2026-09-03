@@ -10,9 +10,14 @@
 // (the footer also disables downloads until this reports "ready"/"failed").
 
 import { useEffect, useRef, useState } from "react";
-import { LngLatBounds, Map as MlMap } from "maplibre-gl";
+import type { Map as MlMap } from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { buildUsgsStyle } from "../map/basemaps";
 import type { NetworkFeatureSet } from "../map/networkLayer";
+
+// MapLibre is only needed for this snapshot (the interactive map is Leaflet),
+// so it loads on demand and stays out of the main bundle.
+const loadMaplibre = () => import("maplibre-gl");
 
 export type ReportMapStatus = "pending" | "ready" | "failed";
 
@@ -40,6 +45,7 @@ export function ReportMap({
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+    const host: HTMLElement = container;
     let done = false;
     let map: MlMap | null = null;
     const finish = (status: ReportMapStatus, dataUrl?: string) => {
@@ -56,28 +62,36 @@ export function ReportMap({
       onStatus(status);
     };
     const timer = setTimeout(() => finish("failed"), 10000);
-    try {
-      map = new MlMap({
-        container,
-        style: buildUsgsStyle(),
-        interactive: false,
-        attributionControl: false,
-        // MapLibre v5 API: context attributes live under canvasContextAttributes.
-        canvasContextAttributes: { preserveDrawingBuffer: true },
-        fadeDuration: 0,
-        pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
-        center: [lon, lat],
-        zoom: 8,
+    void loadMaplibre().then(
+      (ml) => {
+        if (done) return;
+        start(ml);
+      },
+      () => finish("failed"),
+    );
+    function start(ml: typeof import("maplibre-gl")) {
+      try {
+        map = new ml.Map({
+          container: host,
+          style: buildUsgsStyle(),
+          interactive: false,
+          attributionControl: false,
+          // MapLibre v5 API: context attributes live under canvasContextAttributes.
+          canvasContextAttributes: { preserveDrawingBuffer: true },
+          fadeDuration: 0,
+          pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+          center: [lon, lat],
+          zoom: 8,
+        });
+      } catch {
+        finish("failed");
+        return;
+      }
+      map.on("error", () => {
+        // Style/tile-level failure before first idle: fall back rather than stall.
+        if (!map?.loaded()) finish("failed");
       });
-    } catch {
-      finish("failed");
-      return;
-    }
-    map.on("error", () => {
-      // Style/tile-level failure before first idle: fall back rather than stall.
-      if (!map?.loaded()) finish("failed");
-    });
-    map.on("load", () => {
+      map.on("load", () => {
       if (!map || done) return;
       const feats = features ? [...features.features] : [];
       feats.push({
@@ -125,7 +139,7 @@ export function ReportMap({
       });
       const coords = features?.coords ?? [];
       if (coords.length > 1) {
-        const bounds = coords.reduce((b, p) => b.extend(p), new LngLatBounds(coords[0], coords[0]));
+        const bounds = coords.reduce((b, p) => b.extend(p), new ml.LngLatBounds(coords[0], coords[0]));
         map.fitBounds(bounds, { padding: 48, maxZoom: 10, duration: 0 });
       }
       map.once("idle", () => {
@@ -136,7 +150,8 @@ export function ReportMap({
           finish("failed");
         }
       });
-    });
+      });
+    }
     return () => {
       // Unmount: tear down silently — no state writes after unmount.
       done = true;

@@ -23,15 +23,7 @@ async function openOnTuttle(page: Page) {
   await waitForMapIdle(page);
 }
 
-const sourceKinds = (page: Page) =>
-  page.evaluate(async () => {
-    const src = (window as any).__resstMap.getSource("nw-net");
-    if (!src) return null; // mid-swap or not installed yet — poll again
-    const data = await src.getData(); // public API (maplibre ≥4.4)
-    const counts: Record<string, number> = {};
-    for (const f of data.features) counts[f.properties.kind] = (counts[f.properties.kind] ?? 0) + 1;
-    return counts;
-  });
+const sourceKinds = (page: Page) => page.evaluate(() => (window as any).__resstMapInfo.networkKinds());
 
 test("network section reports stats, sentences, and the terminal chip", async ({ page }) => {
   await openOnTuttle(page);
@@ -120,11 +112,7 @@ test("the drainage-area toggle draws the NLDI basin and notes the source", async
   await openOnTuttle(page);
   const net = page.locator("#detail-sec-net");
   await net.locator(".nw-btn", { hasText: "Drainage area" }).click();
-  const basinCount = () =>
-    page.evaluate(async () => {
-      const src = (window as any).__resstMap.getSource("nw-basin");
-      return src ? (await src.getData()).features.length : 0;
-    });
+  const basinCount = () => page.evaluate(() => (window as any).__resstMapInfo.counts().basin);
   // Two NLDI round-trips (position, then basin) plus a setData — more work
   // than a DOM assertion, so this one poll states its own budget.
   await expect.poll(basinCount, { timeout: 15_000 }).toBe(1);
@@ -151,17 +139,5 @@ test("the network highlight survives a basemap swap", async ({ page }) => {
   await page.locator(".basemap-trigger").click();
   await page.getByRole("radio", { name: "USGS Topo" }).check();
   await waitForBasemap(page, false);
-  await expect
-    .poll(() =>
-      page.evaluate(async () => {
-        const m = (window as any).__resstMap;
-        const src = m.getSource("nw-net");
-        if (!m.getLayer("nw-up") || !src) return null; // swap still settling
-        const data = await src.getData();
-        const counts: Record<string, number> = {};
-        for (const f of data.features) counts[f.properties.kind] = (counts[f.properties.kind] ?? 0) + 1;
-        return { layer: true, kinds: counts };
-      }),
-    )
-    .toEqual({ layer: true, kinds: { mouth: 1, conn: 1 } });
+  await expect.poll(() => sourceKinds(page)).toEqual({ mouth: 1, conn: 1 });
 });

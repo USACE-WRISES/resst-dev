@@ -1,11 +1,10 @@
 // Basemap picker — the ArcGIS basemap-gallery pattern: an icon button whose
 // tooltip names the active basemap, opening a panel that lists every basemap
-// by name. Rendered into a maplibre control element (see BasemapControl) so it
-// stacks under the zoom buttons. Selecting does not close the panel: a swap
-// can take a second or fail, and the panel is where that feedback lives.
+// by name. Rendered into a Leaflet control host so it stacks under the zoom
+// buttons (MapPanel portals into it).
 
 import { useEffect, useRef, useState } from "react";
-import { actions, type AppState, type BasemapId } from "../state/store";
+import { actions, type BasemapId } from "../state/store";
 import { BASEMAPS, BASEMAP_ORDER } from "./basemaps";
 import { useDismissPopover } from "./useDismissPopover";
 
@@ -13,7 +12,7 @@ function BasemapIcon() {
   // A 2x2 of map tiles (the ArcGIS basemap-gallery glyph). Authored at 1:1:
   // an 18px viewBox rendered at 18px with 2px strokes on integer coordinates,
   // so every stroke edge lands on a device pixel and the weight holds its own
-  // next to maplibre's solid zoom glyphs.
+  // next to the zoom glyphs.
   return (
     <svg
       width="18"
@@ -34,7 +33,7 @@ function BasemapIcon() {
   );
 }
 
-export function BasemapPicker({ basemap, status }: { basemap: BasemapId; status: AppState["basemapStatus"] }) {
+export function BasemapPicker({ basemap }: { basemap: BasemapId }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -53,30 +52,11 @@ export function BasemapPicker({ basemap, status }: { basemap: BasemapId; status:
     if (open) checkedRef.current?.focus();
   }, [open]);
 
-  // applyBasemap's USGS branch is synchronous and never reports "loading", so
-  // a loading status while USGS is showing means an abandoned Esri swap.
-  const busy = status === "loading" && basemap !== "usgs";
-  // With a two-basemap registry a failure always reverts to the other one
-  // (un-persisted — see revertBasemap; a third basemap would need
-  // basemapStatus to carry the id).
-  const failed = BASEMAPS[basemap === "usgs" ? "esri" : "usgs"];
   const active = BASEMAPS[basemap];
-
-  const choose = (id: BasemapId) => {
-    if (id === basemap) {
-      // Re-picking the active basemap only dismisses a stale error — it must
-      // not clear a swap that is still in flight.
-      if (status === "error") actions.setBasemapStatus(null);
-      return;
-    }
-    actions.setBasemap(id);
-  };
-
-  const triggerLabel =
-    status === "error" ? `Basemap: ${active.shortLabel} (${failed.shortLabel} failed to load)` : `Basemap: ${active.shortLabel}`;
+  const triggerLabel = `Basemap: ${active.shortLabel}`;
 
   return (
-    <div className="basemap-picker" ref={rootRef} data-status={busy ? "loading" : (status ?? "idle")}>
+    <div className="basemap-picker" ref={rootRef}>
       <button
         type="button"
         ref={triggerRef}
@@ -105,32 +85,14 @@ export function BasemapPicker({ basemap, status }: { basemap: BasemapId; status:
                   value={id}
                   checked={id === basemap}
                   ref={id === basemap ? checkedRef : undefined}
-                  onChange={() => choose(id)}
+                  onChange={() => actions.setBasemap(id)}
                 />
                 <span className="basemap-name">{BASEMAPS[id].shortLabel}</span>
               </label>
             ))}
           </div>
-          {/* Siblings of the radiogroup — a paragraph or button owned by a
-              radiogroup is an unallowed child (axe aria-required-children). */}
-          {busy && <p className="basemap-note">Loading {active.shortLabel}…</p>}
-          {status === "error" && (
-            <p className="basemap-error">
-              <span>Couldn’t load {failed.shortLabel}.</span>
-              <button type="button" className="ov-retry" onClick={() => actions.setBasemap(failed.id)}>
-                Retry
-              </button>
-            </p>
-          )}
         </div>
       )}
-      <span className="basemap-live sr-only" role="status">
-        {status === "error"
-          ? `${failed.shortLabel} basemap could not be loaded. Still showing ${active.shortLabel}.`
-          : busy
-            ? `Loading the ${active.shortLabel} basemap.`
-            : ""}
-      </span>
     </div>
   );
 }

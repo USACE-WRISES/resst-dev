@@ -149,7 +149,7 @@ test("the expanded sedimentation panel is axe-clean", async ({ page }) => {
   await page.locator(".detail-sec-head", { hasText: "Evidence" }).click();
   await expect(page.locator(".traj-chart svg")).toBeVisible();
   await page.locator(".chart-data summary").click();
-  const results = await new AxeBuilder({ page }).exclude(".maplibregl-canvas").analyze();
+  const results = await new AxeBuilder({ page }).exclude(".leaflet-tile-pane").exclude(".leaflet-pane svg").exclude(".leaflet-pane canvas").exclude(".leaflet-tooltip-pane").analyze();
   const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
   expect(serious.map((v) => `${v.id}: ${v.nodes.length} nodes`)).toEqual([]);
 });

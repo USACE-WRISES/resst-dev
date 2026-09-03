@@ -13,9 +13,9 @@ Experience Builder version of RESST.
   (sites, literature surveys, literature entries, NID snapshot). Every change
   goes through a pull request, is validated by CI, and automatically rebuilds
   both the app and the GIS downloads. See [docs/DATA-EDITING.md](docs/DATA-EDITING.md).
-- **The app** (Vite + React + TypeScript + MapLibre GL) renders the original
-  app's Esri Topographic basemap by default (keyless; USGS National Map topo
-  is the built-in fallback and stays in the picker) with the site
+- **The app** (Vite + React + TypeScript + Leaflet) renders the original
+  app's Esri Topographic basemap by default (keyless image tiles; USGS
+  National Map topo is the alternative in the picker) with the site
   and literature layers, 40 keyword filters, four result
   tables, cross-linked selection details (including National Inventory of
   Dams records), spatial selection (box, drawn polygon, by HUC basin, near a
@@ -45,7 +45,7 @@ npm run build      # typecheck + production build
 | `scripts/` | Data tooling: validate, build-data, migrate (one-time), export bundles, PR diff, config generators |
 | `src/config/` | Typed app configuration: fields/labels, filters, tabs, help content |
 | `src/filters/` | The pure filter engine (verified parity semantics) |
-| `src/map/` | MapLibre map, overlays, search, the Select tools (box/polygon/HUC/river) |
+| `src/map/` | The Leaflet map (`leaflet/` holds its layers), overlays, search, the Select tools (box/polygon/HUC/river) |
 | `public/data/` | Generated runtime JSON (never edit by hand) |
 | `public/overlays/` | Generated reference-overlay snapshots (USGS WBD HUCs, CEC rivers) — refresh with `npm run build:overlays`, never edit by hand |
 | `tests/` | Vitest unit + Playwright e2e/a11y suites |

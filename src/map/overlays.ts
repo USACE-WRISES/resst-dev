@@ -18,9 +18,8 @@
 // are setData(empty) on toggle-off (keep the JS FC, free the worker tiles)
 // or a small LRU; deliberately not built now.
 //
-// This module is engine-free: it talks to the map through an OverlaySink
-// (overlaySink.ts). overlaysMaplibre.ts installs the MapLibre layers and
-// provides that engine's sink; the Leaflet panel provides its own.
+// This module never touches the map directly: it writes through an
+// OverlaySink (overlaySink.ts), implemented by leaflet/overlays.ts.
 
 import type { FeatureCollection } from "geojson";
 import { actions } from "../state/store";
@@ -84,10 +83,6 @@ export const OVERLAYS: OverlayDef[] = [
     color: "#c8a24b",
   },
 ];
-
-/** Source/layer ids the MapLibre install uses (ov-* rides across basemap swaps). */
-export const overlaySourceId = (key: string) => `ov-${key}`;
-export const overlayLayerId = (key: string) => `ov-${key}-layer`;
 
 // ------------------------------------------------- live points runtime ------
 
