@@ -9,8 +9,9 @@
 import { useRef } from "react";
 import { actions, DETAILS_COL_MAX, DETAILS_COL_MIN } from "../state/store";
 
-/** Keyboard/aria seed while the stylesheet default applies (the 320px track). */
-const DEFAULT_WIDTH = 320;
+/** Keyboard/aria seed while the stylesheet default applies (the 400px track:
+    --details-col on :root in styles.css, which this value mirrors). */
+const DEFAULT_WIDTH = 400;
 
 const clamp = (w: number) => Math.min(DETAILS_COL_MAX, Math.max(DETAILS_COL_MIN, Math.round(w)));
 
