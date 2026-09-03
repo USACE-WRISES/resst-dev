@@ -28,7 +28,7 @@ export default function App() {
       ? `${(state.tableHeightFrac * 100).toFixed(2)}%`
       : undefined;
   const tableRowStyle = tableRow !== undefined ? ({ "--table-row": tableRow } as CSSProperties) : undefined;
-  // Custom Selected Data panel width (drag/keyboard); null keeps the 320px track.
+  // Custom Selected Data panel width (drag/keyboard); null keeps the 400px track.
   const mainStyle =
     state.detailsWidthPx != null ? ({ "--details-col": `${state.detailsWidthPx}px` } as CSSProperties) : undefined;
 

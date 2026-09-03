@@ -22,6 +22,9 @@
   --danger: #a4373a;
   --header-h: 52px;
   --footer-h: 28px;
+  /* Selected Data panel default width (desktop grid track). A drag/keyboard
+     resize overrides it inline on .app-main; PanelResizer.DEFAULT_WIDTH mirrors it. */
+  --details-col: 400px;
   font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -136,9 +139,9 @@ button { font: inherit; color: inherit; }
 
 .app-main {
   flex: 1 1 auto; min-height: 0; min-width: 0; height: 0; display: grid;
-  /* Third track = the Selected Data panel; the PanelResizer drag/keyboard
-     override writes --details-col inline on this element. */
-  grid-template-columns: 270px minmax(0, 1fr) var(--details-col, 320px);
+  /* Third track = the Selected Data panel (default: --details-col on :root);
+     the PanelResizer drag/keyboard override writes it inline on this element. */
+  grid-template-columns: 270px minmax(0, 1fr) var(--details-col);
   position: relative; /* offset parent for the side collapse pills */
 }
 .center-stack {
@@ -676,12 +679,12 @@ button { font: inherit; color: inherit; }
   .side-tab-filters svg { transform: rotate(90deg); } /* chevron points LEFT — the collapse direction */
   .app-main.filters-collapsed .side-tab-filters { left: 0; }
   .app-main.filters-collapsed .side-tab-filters svg { transform: rotate(-90deg); }
-  .side-tab-details { right: var(--details-col, 320px); border-radius: 92px 0 0 92px; }
+  .side-tab-details { right: var(--details-col); border-radius: 92px 0 0 92px; }
   .side-tab-details svg { transform: rotate(-90deg); } /* chevron points RIGHT */
   .app-main.details-collapsed .side-tab-details { right: 0; }
   .app-main.details-collapsed .side-tab-details svg { transform: rotate(90deg); }
 
-  .app-main.filters-collapsed { grid-template-columns: 0px minmax(0, 1fr) var(--details-col, 320px); }
+  .app-main.filters-collapsed { grid-template-columns: 0px minmax(0, 1fr) var(--details-col); }
   .app-main.details-collapsed { grid-template-columns: 270px minmax(0, 1fr) 0px; }
   .app-main.filters-collapsed.details-collapsed { grid-template-columns: 0px minmax(0, 1fr) 0px; }
   /* visibility, NOT display:none: the panel must stay a grid item — there is

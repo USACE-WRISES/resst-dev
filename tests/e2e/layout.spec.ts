@@ -164,9 +164,10 @@ test("the details panel divider drags wider, persists, and keyboard hits the cla
   const panelWidth = () =>
     page.evaluate(() => (document.querySelector(".details-panel") as HTMLElement).offsetWidth);
   const before = await panelWidth();
-  expect(before).toBe(320); // stylesheet default track
+  expect(before).toBe(400); // stylesheet default track (--details-col on :root)
 
   const grip = page.getByRole("separator", { name: "Resize selected data panel" });
+  await expect(grip).toHaveAttribute("aria-valuenow", "400"); // the keyboard seed mirrors the stylesheet token
   const box = (await grip.boundingBox())!;
   const x = box.x + box.width / 2;
   const y = box.y + box.height / 2;
@@ -192,7 +193,7 @@ test("the details panel divider drags wider, persists, and keyboard hits the cla
   await expect(grip2).toHaveAttribute("aria-valuenow", "620");
   await expect.poll(panelWidth).toBe(620);
   await grip2.dblclick();
-  await expect.poll(panelWidth).toBe(320);
+  await expect.poll(panelWidth).toBe(400);
   expect(await page.evaluate(() => localStorage.getItem("resst.detailsWidth"))).toBeNull();
 });
 

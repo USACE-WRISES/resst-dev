@@ -45,7 +45,7 @@ export const parseTableHeight = (raw: string | null): number | null => {
 export const DETAILS_COL_MIN = 280;
 export const DETAILS_COL_MAX = 620;
 /** Persisted Selected Data panel width in px (desktop only — the drawers own
-    narrow screens). Unparseable → the stylesheet's 320px track (null). */
+    narrow screens). Unparseable → the stylesheet's 400px track (null). */
 export const parseDetailsWidth = (raw: string | null): number | null => {
   if (raw == null || raw.trim() === "") return null;
   const n = Number(raw);
@@ -82,7 +82,7 @@ export interface AppState {
   tableHeightFrac: number | null;
   /** Results table collapsed to the half-pill tab (all breakpoints). */
   tableCollapsed: boolean;
-  /** Selected Data panel width in px (null = the stylesheet's 320px track). */
+  /** Selected Data panel width in px (null = the stylesheet's 400px track). */
   detailsWidthPx: number | null;
   helpOpen: boolean;
   downloadsOpen: boolean;
@@ -307,7 +307,7 @@ export const actions = {
     }
     set({ tableCollapsed: collapsed });
   },
-  /** Drag/keyboard resize of the Selected Data panel; null restores the 320px default. */
+  /** Drag/keyboard resize of the Selected Data panel; null restores the 400px default. */
   setDetailsWidth(px: number | null): void {
     const next = px == null ? null : Math.min(DETAILS_COL_MAX, Math.max(DETAILS_COL_MIN, Math.round(px)));
     if (state.detailsWidthPx === next) return; // no-op guard
