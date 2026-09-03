@@ -483,3 +483,13 @@ zoom conventions); the twelve former `__resstMap` specs were rewritten onto it, 
 `map.spec.ts`, and `playwright.config.ts` no longer seeds an engine. `help-screenshots.mjs` drives the
 Leaflet map. Docs: DEPLOYMENT "The map (Leaflet)" + the external-services table, PARITY row 28, README,
 Help credits (raster World Topographic attribution).
+
+## 15. Postscript (2026-09-03): the mirror and the diagnostics page are retired
+
+The Leaflet map shipped to GitHub Pages (cf3c8a9..92ea18b) and resolved the lag, so both scaffolds
+from this investigation were removed the same week: the Posit Connect Cloud mirror (build script,
+Publisher configuration, runbook section; the content item is deleted by hand in the Connect Cloud
+dashboard) and the `?diag=1` diagnostics page with its DOM map trial, `src/lib/renderClass.ts`, the
+MapLibre vector-style half of `src/map/basemaps.ts`, and their tests. Commit 92ea18b is the last
+revision that contains them; `git checkout 92ea18b -- src/diag` recovers the page if a machine ever
+needs diagnosing again. The evidence above stands as recorded.

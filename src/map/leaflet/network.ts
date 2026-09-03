@@ -3,8 +3,8 @@
 // report use. Downstream dots, the mouth node and the schematic connector are
 // SVG; the upstream set (tens of thousands of dams for a big mainstem) goes on
 // a canvas renderer past 500 points — Leaflet transforms the canvas during a
-// gesture and redraws it once at settle, which the ?diag=1 trial showed is
-// smooth under remote browser isolation.
+// gesture and redraws it once at settle, which the 2026-09-02 DOM map trial
+// showed is smooth under remote browser isolation.
 
 import type { Feature } from "geojson";
 import { L } from "./leaflet";
