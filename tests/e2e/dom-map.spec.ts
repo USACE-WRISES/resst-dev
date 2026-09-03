@@ -201,13 +201,59 @@ test("the basemap picker swaps the raster layer and the engine switch round-trip
   expect(await page.evaluate(() => !!(window as any).__resstMap)).toBe(false);
 });
 
-test("unavailable features say so, and the Leaflet map is axe-clean", async ({ page }) => {
+/** Turn the national layer on and wait for the fixture's 3 dams to draw (the mouth node is excluded). */
+async function enableNationalLayer(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "Layers" }).click();
+  await page.getByRole("checkbox", { name: /All modeled reservoirs/ }).check();
+  await expect.poll(async () => (await domCounts(page)).national, { timeout: 10_000 }).toBe(3);
+  await page.keyboard.press("Escape"); // close the popover
+}
+
+test("the national layer draws on canvas, follows the metric, and screening filters it", async ({ page }) => {
   await openApp(page);
-  await page.locator(".map-toolbar").getByRole("button", { name: "Layers" }).click();
-  await expect(page.locator(".layers-list [role='status']").first()).toContainText("not yet available");
-  await expect(page.getByRole("checkbox", { name: /All modeled reservoirs/ })).toBeDisabled();
+  await enableNationalLayer(page);
+  await page.getByRole("button", { name: "Legend" }).click();
+  await expect(page.locator(".legend-ramp-title")).toContainText("Percent capacity lost (2025)");
   await page.keyboard.press("Escape");
-  await expect(page.getByRole("button", { name: /^Screening/ })).toBeDisabled();
+  await page.getByRole("button", { name: "Layers" }).click();
+  await page.locator(".metric-select").selectOption("evidence");
+  await page.keyboard.press("Escape");
+  expect((await domCounts(page)).national).toBe(3);
+  // Screening hides the non-matching dots; the count readout says how many.
+  await page.getByRole("button", { name: /^Screening/ }).click();
+  await page.getByRole("button", { name: "Undocumented + high sedimentation" }).click();
+  await expect(page.locator(".screen-count")).toContainText("1 of 3 modeled reservoirs match");
+  await expect.poll(async () => (await domCounts(page)).national).toBe(1);
+  await page.getByRole("button", { name: "Clear screening" }).click();
+  await expect.poll(async () => (await domCounts(page)).national).toBe(3);
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Layers" }).click();
+  await page.getByRole("checkbox", { name: /All modeled reservoirs/ }).uncheck();
+  await expect.poll(async () => (await domCounts(page)).national).toBe(0);
+});
+
+test("clicking an undocumented dam opens ReservoirDetails; a documented dam routes to its site", async ({ page }) => {
+  await openApp(page);
+  await enableNationalLayer(page);
+  // Lone Reservoir (ShortID 30), no crosswalk.
+  await jumpTo(page, -96.45, 39.05, 10);
+  await clickAt(page, -96.45, 39.05);
+  const details = page.locator(".details-panel");
+  await expect(details).toContainText("Lone Reservoir");
+  await expect(details).toContainText("No documented RESST sediment-management record");
+  await expect(page.locator(".leaflet-popup")).toContainText("Modeled only");
+  expect((await domCounts(page)).reservoir).toBe(1);
+  // Tuttle Creek Dam (ShortID 10) shares coordinates with the documented site: the site wins.
+  await jumpTo(page, TUTTLE.lon, TUTTLE.lat, 10);
+  await clickAt(page, TUTTLE.lon, TUTTLE.lat);
+  await expect(details).toContainText("Site Literature (6)");
+  await selectedCount(page, 1);
+  expect((await domCounts(page)).reservoir).toBe(0);
+});
+
+test("the Leaflet map is axe-clean with a selection, its popup, and the national layer showing", async ({ page }) => {
+  await openApp(page);
+  await enableNationalLayer(page);
   await selectFromTable(page, "Tuttle Creek"); // popup + ring in scope for the scan
   await landed(page, TUTTLE.lon, TUTTLE.lat);
   const results = await new AxeBuilder({ page })

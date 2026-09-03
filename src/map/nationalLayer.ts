@@ -20,10 +20,10 @@ export const NAT_UNKNOWN = "#b8c2cb"; // no-storage / no-model rows
 
 /** Sequential 5-step ramp (BuPu-ish): avoids the site red/yellow, selection
     cyan, Select teal, and the network purple/green. */
-const RAMP = ["#e0ecf4", "#9ebcda", "#8c96c6", "#8856a7", "#810f7c"];
+export const RAMP = ["#e0ecf4", "#9ebcda", "#8c96c6", "#8856a7", "#810f7c"];
 /** Evidence categorical pair. */
-const EV_MEASURED = "#08519c";
-const EV_MODELED = "#9ecae1";
+export const EV_MEASURED = "#08519c";
+export const EV_MODELED = "#9ecae1";
 
 interface MetricDef {
   label: string;
@@ -107,6 +107,58 @@ export function paintForMetric(metric: NationalMetric): DataDrivenPropertyValueS
   return expr as ExpressionSpecification;
 }
 
+const r1 = (v: number) => Math.round(v * 10) / 10;
+
+/** The metric's feature value for a core row, exactly as buildNationalGeoJSON
+    stores it (-1 for unknown numerics; the evidence class as is). */
+export function metricValue(core: SedimentCore, row: number, metric: NationalMetric): number {
+  switch (metric) {
+    case "pctLost2025":
+    case "pctLost2050": {
+      const capOrig = core.capOrig[row];
+      if (!(Number.isFinite(capOrig) && capOrig > 0)) return -1;
+      const sed = metric === "pctLost2025" ? core.sed2025[row] : core.sed2050[row];
+      return r1((100 * sed) / capOrig);
+    }
+    case "rate": {
+      const rate = Number.isFinite(core.sed2025[row]) ? (core.sed2025[row] - core.sed2015[row]) / 10 : NaN;
+      return Number.isFinite(rate) ? r1(rate / M3_PER_ACFT) : -1;
+    }
+    case "storage":
+      return Number.isFinite(core.maxStor[row]) ? Math.round(core.maxStor[row] / M3_PER_ACFT) : -1;
+    case "evidence":
+      return core.evd[row];
+  }
+}
+
+/** JS mirror of paintForMetric: the color a row gets under a metric (the
+    Leaflet canvas layer paints with this; a unit test holds the two together). */
+export function colorForRow(core: SedimentCore, row: number, metric: NationalMetric): string {
+  const def = NATIONAL_METRICS[metric];
+  const v = metricValue(core, row, metric);
+  if (!def.stops) return v === 1 ? EV_MEASURED : EV_MODELED;
+  // step: below the first stop → unknown; otherwise the last stop ≤ value.
+  let color = NAT_UNKNOWN;
+  def.stops.forEach((stop, i) => {
+    if (v >= stop) color = RAMP[Math.min(i, RAMP.length - 1)];
+  });
+  return color;
+}
+
+/** Radius multiplier from storage (sqrt-ish via log): 0.75×–1.9×. */
+export function radiusScale(core: SedimentCore, row: number): number {
+  const stor = core.maxStor[row];
+  return Number.isFinite(stor) && stor > 0 ? Math.min(1.9, Math.max(0.75, 0.35 * Math.log10(stor) - 1)) : 0.75;
+}
+
+const clamp01 = (t: number) => Math.max(0, Math.min(1, t));
+/** circle-radius: 1.6·rs at MapLibre zoom 3 → 5·rs at zoom 9, linear between. */
+export const natRadius = (rs: number, mapZoom: number): number => (1.6 + 3.4 * clamp01((mapZoom - 3) / 6)) * rs;
+/** circle-opacity: 0.55 at zoom 3 → 0.85 at zoom 8. */
+export const natOpacity = (mapZoom: number): number => 0.55 + 0.3 * clamp01((mapZoom - 3) / 5);
+/** circle-stroke-width: none below zoom 6, 0.75 px from 6. */
+export const natStrokeWidth = (mapZoom: number): number => (mapZoom >= 6 ? 0.75 : 0);
+
 /**
  * Build the 57k-point FeatureCollection from the decoded core. Mouth nodes
  * are excluded (they are junction markers, not reservoirs). Properties are
@@ -115,24 +167,18 @@ export function paintForMetric(metric: NationalMetric): DataDrivenPropertyValueS
  */
 export function buildNationalGeoJSON(core: SedimentCore, siteByShortId: ReadonlyMap<number, string>): FeatureCollection {
   const features: Feature[] = [];
-  const r1 = (v: number) => Math.round(v * 10) / 10;
   for (let i = 0; i < core.n; i++) {
     if (core.flags[i] & FLAG.MOUTH) continue;
-    const capOrig = core.capOrig[i];
-    const hasCap = Number.isFinite(capOrig) && capOrig > 0;
-    const pl25 = hasCap ? r1((100 * core.sed2025[i]) / capOrig) : -1;
-    const pl50 = hasCap ? r1((100 * core.sed2050[i]) / capOrig) : -1;
-    const rate = Number.isFinite(core.sed2025[i]) ? (core.sed2025[i] - core.sed2015[i]) / 10 : NaN;
     features.push({
       type: "Feature",
       geometry: { type: "Point", coordinates: [core.lon[i], core.lat[i]] },
       properties: {
         row: i,
         shortId: core.ids[i],
-        pl25,
-        pl50,
-        rateAf: Number.isFinite(rate) ? r1(rate / M3_PER_ACFT) : -1,
-        storAf: Number.isFinite(core.maxStor[i]) ? Math.round(core.maxStor[i] / M3_PER_ACFT) : -1,
+        pl25: metricValue(core, i, "pctLost2025"),
+        pl50: metricValue(core, i, "pctLost2050"),
+        rateAf: metricValue(core, i, "rate"),
+        storAf: metricValue(core, i, "storage"),
         ev: core.flags[i] & FLAG.HAS_SURVEYS ? 1 : 0,
         cls: core.evd[i],
         doc: siteByShortId.has(core.ids[i]) ? 1 : 0,
@@ -140,10 +186,7 @@ export function buildNationalGeoJSON(core: SedimentCore, siteByShortId: Readonly
         st: core.state[i],
         own: core.owner[i],
         pur: core.purpose[i],
-        // Radius multiplier from storage (sqrt-ish via log): 0.75×–1.9×.
-        rs: Number.isFinite(core.maxStor[i]) && core.maxStor[i] > 0
-          ? Math.min(1.9, Math.max(0.75, 0.35 * Math.log10(core.maxStor[i]) - 1))
-          : 0.75,
+        rs: radiusScale(core, i),
       },
     });
   }

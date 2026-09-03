@@ -12,7 +12,6 @@ import { mapCommands } from "./mapBus";
 import { NATIONAL_METRICS } from "./nationalLayer";
 import { NET_DOWN, NET_MOUTH, NET_UP } from "./palette";
 import { useDismissPopover } from "./useDismissPopover";
-import type { MapEngine } from "./engine";
 
 function ToolPopover({ label, children, ariaLabel }: { label: string; children: ReactNode; ariaLabel: string }) {
   const [open, setOpen] = useState(false);
@@ -32,19 +31,7 @@ function ToolPopover({ label, children, ariaLabel }: { label: string; children: 
   );
 }
 
-export function MapToolPanels({
-  state,
-  zoom,
-  siteByShortId,
-  engine = "maplibre",
-}: {
-  state: AppState;
-  zoom: number;
-  siteByShortId: Map<number, string>;
-  /** The Leaflet map does not draw the national layer yet (transition Phase 2). */
-  engine?: MapEngine;
-}) {
-  const nationalUnavailable = engine === "leaflet";
+export function MapToolPanels({ state, zoom, siteByShortId }: { state: AppState; zoom: number; siteByShortId: Map<number, string> }) {
   const visibleOverlays = OVERLAYS.filter((d) => state.overlays[d.key]);
   // A checked "All modeled reservoirs" silently showing a fraction of them
   // would be confusing — say so whenever screening filters the layer.
@@ -58,17 +45,11 @@ export function MapToolPanels({
     <>
       <ToolPopover label="Layers" ariaLabel="Reference layers">
         <div className="layers-list">
-          {nationalUnavailable && (
-            <p className="nat-screen-note" role="status">
-              All modeled reservoirs and Screening are not yet available in the Leaflet map.
-            </p>
-          )}
           <div className="layer-row nat-row">
             <label className="value-option">
               <input
                 type="checkbox"
                 checked={state.nationalLayer.on}
-                disabled={nationalUnavailable}
                 onChange={(e) => actions.setNationalLayer(e.target.checked)}
               />
               <span className="swatch nat-swatch" aria-hidden="true" />

@@ -4,9 +4,9 @@
 // remote browser (see engine.ts). Loaded by dynamic import from MapHost, so
 // Leaflet compiles to its own chunk.
 //
-// Not drawn here yet (Phase 2 of the transition): the national reservoir
-// layer and its screening filter. The Layers popover says so in this engine,
-// and a persisted "on" is switched off on mount so nothing claims to show it.
+// The national inventory layer (all ~57k modeled reservoirs) is a canvas
+// drawn from typed arrays (national.ts); the map's own click handler routes a
+// hit on one of its dots, after the site markers above it have had theirs.
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -20,7 +20,7 @@ import { popupHtml, reservoirPopupHtml } from "../popupHtml";
 import { startSelectSession, recomputeRiver, type RiverPick, type SessionCtx, type ToolMsg } from "../selectTools";
 import type { ToolMap } from "../toolMap";
 import { updateOverlays, scheduleOverlayRefresh, retryOverlay, disposeOverlays } from "../overlays";
-import { getCore } from "../../sediment/data";
+import { ensureCore, getCore } from "../../sediment/data";
 import { createPanes } from "./panes";
 import { BASEMAP_TILES, createBasemapLayer } from "./basemap";
 import { RING_STYLE, SiteMarkers } from "./sites";
@@ -28,6 +28,7 @@ import { SiteLabels } from "./labels";
 import { openPopup } from "./popups";
 import { createPlaceMarker } from "./placeMarker";
 import { NetworkLayers } from "./network";
+import { NationalLayer } from "./national";
 import { LeafletOverlays } from "./overlays";
 import { createLeafletToolMap } from "./toolMapLeaflet";
 import { lz, mz } from "./zoom";
@@ -47,6 +48,8 @@ interface DomHandles {
     network: number;
     basin: number;
     sketch: number;
+    national: number;
+    reservoir: number;
     overlays: Record<string, number>;
   };
   basemapUrl(): string;
@@ -66,6 +69,7 @@ export default function DomMapPanel({ sites, allSites, siteById, siteByShortId, 
   const siteMarkersRef = useRef<SiteMarkers | null>(null);
   const labelsRef = useRef<SiteLabels | null>(null);
   const networkRef = useRef<NetworkLayers | null>(null);
+  const natLayerRef = useRef<NationalLayer | null>(null);
   const basemapLayerRef = useRef<L.TileLayer | null>(null);
   const popupRef = useRef<L.Popup | null>(null);
   const placeMarkerRef = useRef<L.Marker | null>(null);
@@ -83,12 +87,12 @@ export default function DomMapPanel({ sites, allSites, siteById, siteByShortId, 
   sitesRef.current = sites;
   const siteByIdRef = useRef(siteById);
   siteByIdRef.current = siteById;
+  const siteByShortIdRef = useRef(siteByShortId);
+  siteByShortIdRef.current = siteByShortId;
   const overlaysVisibleRef = useRef(state.overlays);
   overlaysVisibleRef.current = state.overlays;
   const basemapRef = useRef(state.basemap);
   basemapRef.current = state.basemap;
-  const nationalRef = useRef(state.nationalLayer);
-  nationalRef.current = state.nationalLayer;
   const [toolMsg, setToolMsg] = useState<ToolMsg | null>(null);
   const [zoomTick, setZoomTick] = useState(4);
   const selectedIds = state.selectedSiteIds;
@@ -156,10 +160,40 @@ export default function DomMapPanel({ sites, allSites, siteById, siteByShortId, 
     labelsRef.current = labels;
     const network = new NetworkLayers(map);
     networkRef.current = network;
+    const national = new NationalLayer(map);
+    natLayerRef.current = national;
     const select = L.layerGroup().addTo(map);
     const sketch = L.layerGroup().addTo(map);
     const toolMap = createLeafletToolMap(map, { select, sketch });
     toolMapRef.current = toolMap;
+
+    // National dots. The site markers sit above the canvas and handle their
+    // own clicks (the map click still bubbles), so a click that reached a
+    // marker is not ours; otherwise the dot under the pointer is routed — a
+    // documented dam to its site experience, any other to ReservoirDetails.
+    map.on("click", (e: L.LeafletMouseEvent) => {
+      if (mapToolRef.current !== "none") return; // an armed Select session owns clicks
+      const target = e.originalEvent.target as Element | null;
+      if (target?.closest?.(".leaflet-interactive")) return;
+      const core = getCore();
+      const row = national.hitTest(map.mouseEventToContainerPoint(e.originalEvent));
+      if (row == null || !core) return;
+      const shortId = core.ids[row];
+      const siteId = siteByShortIdRef.current.get(shortId);
+      if (siteId) actions.selectSite(siteId);
+      else actions.selectReservoir(String(shortId));
+    });
+    let hoverPending = false;
+    map.on("mousemove", (e: L.LeafletMouseEvent) => {
+      if (hoverPending || mapToolRef.current !== "none") return;
+      hoverPending = true;
+      const pt = map.mouseEventToContainerPoint(e.originalEvent);
+      requestAnimationFrame(() => {
+        hoverPending = false;
+        if (mapToolRef.current !== "none") return;
+        el.style.cursor = national.hitTest(pt) != null ? "pointer" : "";
+      });
+    });
 
     map.on("movestart", () => {
       movingRef.current = true;
@@ -238,9 +272,6 @@ export default function DomMapPanel({ sites, allSites, siteById, siteByShortId, 
     siteMarkers.sync(sitesRef.current);
     labels.refresh();
     updateOverlays(overlays, overlaysVisibleRef.current);
-    // Phase 1: no national layer in this engine. A persisted "on" would show
-    // a checked box drawing nothing (and Screening would claim to filter it).
-    if (nationalRef.current.on) actions.setNationalLayer(false);
 
     const handles = window as unknown as Handles;
     handles.__resstLeaflet = map;
@@ -253,6 +284,8 @@ export default function DomMapPanel({ sites, allSites, siteById, siteByShortId, 
         network: network.count,
         basin: network.basinCount,
         sketch: sketch.getLayers().length,
+        national: national.drawn,
+        reservoir: reservoirRingRef.current ? 1 : 0,
         overlays: overlays.counts(),
       }),
       basemapUrl: () => BASEMAP_TILES[basemapRef.current],
@@ -278,6 +311,7 @@ export default function DomMapPanel({ sites, allSites, siteById, siteByShortId, 
       reservoirRingRef.current?.remove();
       reservoirRingRef.current = null;
       network.remove();
+      national.remove();
       overlays.remove();
       labels.clear();
       siteMarkers.remove();
@@ -288,6 +322,7 @@ export default function DomMapPanel({ sites, allSites, siteById, siteByShortId, 
       siteMarkersRef.current = null;
       labelsRef.current = null;
       networkRef.current = null;
+      natLayerRef.current = null;
       basemapLayerRef.current = null;
       delete handles.__resstLeaflet;
       delete handles.__resstDom;
@@ -319,6 +354,29 @@ export default function DomMapPanel({ sites, allSites, siteById, siteByShortId, 
     if (!overlays) return;
     updateOverlays(overlays, state.overlays);
   }, [state.overlays]);
+
+  // National inventory layer: visibility + metric. The core feeds the canvas
+  // once per instance; the ensureCore resolution flips sedimentStatus.core,
+  // which re-runs this effect.
+  useEffect(() => {
+    const nat = natLayerRef.current;
+    if (!nat) return;
+    const core = getCore();
+    if (core) {
+      nat.setCore(core);
+      nat.setMetric(state.nationalLayer.metric);
+      nat.setScreening(state.screening, new Set(siteByShortId.keys()));
+    }
+    nat.setVisible(state.nationalLayer.on);
+    if (state.nationalLayer.on && !core) void ensureCore().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.nationalLayer, state.sedimentStatus.core, siteByShortId]);
+
+  // Screening criteria hide the non-matching dots (the panel's count says
+  // what is hidden).
+  useEffect(() => {
+    natLayerRef.current?.setScreening(state.screening, new Set(siteByShortId.keys()));
+  }, [state.screening, siteByShortId]);
 
   // Keep the markers in sync with the filtered sites (a diff by id: the
   // array's identity changes on every selection).
@@ -414,7 +472,7 @@ export default function DomMapPanel({ sites, allSites, siteById, siteByShortId, 
     <div className="map-panel-wrap">
       <div ref={containerRef} className="map-panel" role="application" aria-label="Map of reservoir sediment sites" />
       <div ref={boxRef} className="select-box" aria-hidden="true" />
-      <MapToolbar engine="leaflet" state={state} allSites={allSites} siteByShortId={siteByShortId} zoom={zoomTick} toolMsg={toolMsg} />
+      <MapToolbar state={state} allSites={allSites} siteByShortId={siteByShortId} zoom={zoomTick} toolMsg={toolMsg} />
       {createPortal(<BasemapPicker basemap={state.basemap} status={state.basemapStatus} />, basemapHostRef.current)}
     </div>
   );

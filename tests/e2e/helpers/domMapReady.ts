@@ -11,6 +11,10 @@ export interface DomCounts {
   network: number;
   basin: number;
   sketch: number;
+  /** National inventory dots drawn in the last redraw (0 while the layer is off). */
+  national: number;
+  /** 1 while a national reservoir is selected (its ring is drawn). */
+  reservoir: number;
   overlays: Record<string, number>;
 }
 

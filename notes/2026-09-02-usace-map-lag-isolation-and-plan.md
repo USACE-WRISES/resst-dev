@@ -451,3 +451,20 @@ needs `z-index: 0` so Leaflet's panes and control corners stay under the app too
 Next: owner deploys the mirror and checks the Leaflet map on the USACE laptop (it loads by itself
 there; `?map=maplibre` for comparison); then Phase 2 (national layer + Screening), then Phase 3
 (remove MapLibre except the report snapshot, rewrite the `__resstMap` specs).
+
+**Readout of Phase 1 on the USACE laptop (owner, 2026-09-02): "much improved with Leaflet." Phase 2
+(national layer + Screening on Leaflet) started the same day.**
+
+## 13. Phase 2 done (2026-09-02): the national layer and Screening on Leaflet
+
+`src/map/dom/national.ts`: all ~57k modeled reservoirs on one canvas from typed arrays (world pixels at
+zoom 0, radius scale, colour bucket per point), one Path2D per colour, culled to the view, redrawn at
+settle; during a zoom animation the canvas is CSS-transformed like Leaflet's image overlays
+(`_latLngBoundsToNewLayerBounds`, the same private call ImageOverlay uses). Colours come from
+`colorForRow` in `nationalLayer.ts`, a JS mirror of the MapLibre `paintForMetric` expression that a unit
+test evaluates side by side through `@maplibre/maplibre-gl-style-spec`; radius/opacity/stroke by zoom
+mirror the circle paint. Screening hides non-matching dots via the existing `matchesRow`. The canvas is
+pointer-transparent; the panel's map click hit-tests the last-drawn dot positions unless the click
+reached a site marker (documented sites win), routing to `selectSite` or `selectReservoir`; hover sets
+the pointer cursor. The Phase-1 "not yet available" notes and disabled toggles are gone. Both engines are
+now at feature parity. Tests: 233 unit, `dom-map.spec.ts` 14. Next: Phase 3 (Leaflet only).
