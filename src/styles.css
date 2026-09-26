@@ -134,6 +134,38 @@ button { font: inherit; color: inherit; }
   margin: 12px 0 0; padding: 9px 12px;
   background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0;
 }
+/* The welcome: the Tuttle Creek release photo down the left, the text beside
+   it (owner decisions 2026-09-26). The photo fills whatever height the text
+   sets, and its right part dissolves into the card's white (a mask, so the
+   caption band fades with it; the caption stays on the solid part). On
+   phones it becomes an unfaded strip across the top and the text scrolls.
+   Two classes: the general .dialog rules come later in this file. */
+.dialog.welcome-dialog {
+  max-width: 880px; padding: 0; overflow: hidden; max-height: calc(100vh - 32px);
+  display: grid; grid-template-columns: 340px minmax(0, 1fr);
+}
+.welcome-photo {
+  position: relative; margin: 0; min-height: 0; background: #33424c;
+  -webkit-mask-image: linear-gradient(to right, #000 70%, transparent);
+  mask-image: linear-gradient(to right, #000 70%, transparent);
+}
+.welcome-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.welcome-photo figcaption {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 40px 16px 14px;
+  display: flex; flex-direction: column; gap: 1px;
+  font-size: 12px; line-height: 1.35; color: #fff;
+  background: linear-gradient(to top, rgba(12, 22, 30, 0.8), rgba(12, 22, 30, 0));
+}
+.welcome-photo-place { font-size: 13px; font-weight: 600; }
+.welcome-body { padding: 22px 26px 20px; overflow: auto; min-height: 0; }
+/* The focus trap focuses the container so screen readers announce it; a ring
+   around the whole card would only frame the photo. Its controls keep theirs. */
+.dialog.welcome-dialog:focus-visible { outline: none; }
+@media (max-width: 760px) {
+  .dialog.welcome-dialog { grid-template-columns: minmax(0, 1fr); grid-template-rows: 150px minmax(0, 1fr); }
+  .welcome-photo { -webkit-mask-image: none; mask-image: none; }
+  .welcome-photo img { object-position: 50% 78%; }
+}
 
 /* ---------- shell ---------- */
 /* clip, not just hidden: a hidden box is still a scroll container, and with

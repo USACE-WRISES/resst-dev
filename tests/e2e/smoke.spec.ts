@@ -15,11 +15,42 @@ test("the welcome dialog leads with the research-use note", async ({ page }) => 
   await stubEsri(page);
   await page.goto("./");
   const dialog = page.getByRole("dialog");
-  await expect(dialog.locator(".welcome-note")).toContainText(
-    "Results are for data collection and research purposes only",
-  );
-  await expect(dialog.locator(".welcome-note")).toContainText("further evaluated before decision-making");
+  await expect(dialog.locator(".welcome-note")).toContainText("For research and data collection only.");
+  await expect(dialog.locator(".welcome-note")).toContainText("Evaluate any sediment-management opportunity further before making decisions.");
   await page.getByRole("button", { name: "OK" }).click();
+  await expect(dialog).toHaveCount(0);
+});
+
+test("the welcome shows the Tuttle Creek release photo beside its text, and above it on phones", async ({ page }) => {
+  await stubEsri(page);
+  await page.goto("./");
+  const dialog = page.getByRole("dialog");
+  const photo = dialog.getByRole("img", { name: "Sediment-laden water surging down a dam outlet channel" });
+  await expect(photo).toBeVisible();
+  await expect.poll(() => photo.evaluate((img: HTMLImageElement) => (img.complete ? img.naturalWidth : 0))).toBeGreaterThan(0);
+  await expect(dialog.locator(".welcome-photo figcaption span")).toHaveText([
+    "Tuttle Creek Dam, Kansas",
+    "Water Injection Dredging release",
+  ]);
+  const heading = dialog.getByRole("heading", { name: "Welcome to ReSST" });
+  const fits = async (height: number) => {
+    const d = (await dialog.boundingBox())!;
+    expect(d.y).toBeGreaterThanOrEqual(0);
+    expect(d.y + d.height).toBeLessThanOrEqual(height);
+  };
+  // Beside the text on a laptop.
+  let p = (await photo.boundingBox())!;
+  let h = (await heading.boundingBox())!;
+  expect(p.x + p.width).toBeLessThanOrEqual(h.x);
+  await fits(900);
+  // A strip above the text on a phone, with OK still in reach.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(async () => (await photo.boundingBox())!.width).toBeGreaterThan(300);
+  p = (await photo.boundingBox())!;
+  h = (await heading.boundingBox())!;
+  expect(p.y + p.height).toBeLessThanOrEqual(h.y);
+  await fits(844);
+  await dialog.getByRole("button", { name: "OK", exact: true }).click();
   await expect(dialog).toHaveCount(0);
 });
 
