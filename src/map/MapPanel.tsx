@@ -20,7 +20,8 @@ import { createPortal } from "react-dom";
 import { L } from "./leaflet/leaflet";
 import type { LiteratureEntry, Site } from "../lib/types";
 import type { SiteSedimentLink } from "../sediment/types";
-import { actions, type AppState } from "../state/store";
+import { actions, getState, type AppState } from "../state/store";
+import { NARROW, isNarrow, useMediaQuery } from "../lib/useMediaQuery";
 import { registerMapCommands } from "./mapBus";
 import { MapToolbar } from "./MapToolbar";
 import { BasemapPicker } from "./BasemapPicker";
@@ -33,7 +34,7 @@ import { createPanes } from "./leaflet/panes";
 import { BASEMAP_TILES, createBasemapLayer } from "./leaflet/basemap";
 import { RING_STYLE, SiteMarkers } from "./leaflet/sites";
 import { SiteLabels } from "./leaflet/labels";
-import { openPopup } from "./leaflet/popups";
+import { openPopup, syncPopupActions, type PopupAction } from "./leaflet/popups";
 import { createPlaceMarker } from "./leaflet/placeMarker";
 import { NetworkLayers } from "./leaflet/network";
 import { NationalLayer } from "./leaflet/national";
@@ -57,8 +58,30 @@ export interface MapPanelProps {
   state: AppState;
 }
 
-// Initial view — the captured CONUS extent the original app opened on.
+// Initial view — centred on the captured CONUS extent the original app
+// opened on, one zoom level further out (openingView).
 const CONUS_BOUNDS = L.latLngBounds([30.8881, -116.7544], [46.6079, -79.9282]);
+/** Fractional zoom steps (Leaflet's zoomSnap). */
+const ZOOM_SNAP = 0.25;
+
+/**
+ * The opening view: the lower 48 centred one zoom level further out than a
+ * fit with 20 px to spare (owner request 2026-09-26), so southern Canada,
+ * Mexico and the Caribbean frame the country instead of the map's edges.
+ * Counted from the exact fit and rounded to the snap step: fitBounds floors
+ * to the step, so "its zoom minus one" could open up to a quarter level
+ * further out than asked (at 1440 px wide the exact fit is 5.74).
+ */
+function openingView(map: L.Map): { center: L.LatLng; zoom: number } {
+  const nw = map.project(CONUS_BOUNDS.getNorthWest(), 0);
+  const se = map.project(CONUS_BOUNDS.getSouthEast(), 0);
+  const room = map.getSize().subtract([40, 40]);
+  const fit = map.getScaleZoom(Math.min(room.x / (se.x - nw.x), room.y / (se.y - nw.y)), 0);
+  return {
+    center: map.unproject(nw.add(se).divideBy(2), 0), // fitBounds' centre: the projected midpoint
+    zoom: Math.round((fit - 1) / ZOOM_SNAP) * ZOOM_SNAP,
+  };
+}
 /** Camera animations take 700 ms (Leaflet counts seconds). */
 const FLY = { duration: 0.7 };
 
@@ -111,6 +134,15 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, entriesBySi
   const natLayerRef = useRef<NationalLayer | null>(null);
   const basemapLayerRef = useRef<L.TileLayer | null>(null);
   const popupRef = useRef<L.Popup | null>(null);
+  // Which panels are open, for the popup's Show/Hide toggles: the details
+  // drawer at 1100px and narrower, the Selected Data column above that.
+  const narrow = useMediaQuery(NARROW);
+  const panelsOpen: Record<PopupAction, boolean> = {
+    details: narrow ? state.mobilePanel === "details" : !state.detailsCollapsed,
+    table: !state.tableCollapsed,
+  };
+  const panelsOpenRef = useRef(panelsOpen);
+  panelsOpenRef.current = panelsOpen;
   const placeMarkerRef = useRef<L.Marker | null>(null);
   const ringsRef = useRef(new Map<string, L.CircleMarker>());
   const reservoirRingRef = useRef<L.CircleMarker | null>(null);
@@ -197,12 +229,48 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, entriesBySi
     map.flyTo(target, z, FLY);
   };
 
-  /** The popup's "Show details": open the drawer on narrow layouts, or
-      expand a collapsed Selected Data panel on wide ones. */
-  const showDetails = () => {
-    if (window.matchMedia("(max-width: 1100px)").matches) actions.setMobilePanel("details");
-    else actions.setPanelCollapsed("details", false);
+  /** After a panel opens or closes from the popup, the map has a new size:
+      aim the camera again (as flyToSelection does) so the popup stays in
+      the map and clear of the toolbar. Two frames: the grid change, then the
+      ResizeObserver's invalidateSize. */
+  const reaimPopup = () => {
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        const map = mapRef.current;
+        const popup = popupRef.current;
+        const at = popup?.getLatLng();
+        const box = popup?.getElement();
+        if (!map || !popup || !at || !box) return;
+        const el = map.getContainer();
+        const { toolbar, dock } = chromeRects();
+        const { dx, dy } = popupShift({
+          mapW: el.clientWidth,
+          mapH: el.clientHeight,
+          popupW: box.offsetWidth,
+          popupH: box.offsetHeight,
+          toolbar,
+          dock,
+        });
+        const z = map.getZoom();
+        map.panTo(map.unproject(map.project(at, z).subtract(L.point(dx, dy)), z), { animate: true, duration: 0.35 });
+      }),
+    );
   };
+
+  /** The popup's toggles: Selected Data (the drawer on narrow layouts, the
+      column on wide ones) and the results table, each opened or closed. */
+  const onPopupAction = (action: PopupAction) => {
+    const s = getState();
+    if (action === "table") actions.setTableCollapsed(!s.tableCollapsed);
+    else if (isNarrow()) actions.setMobilePanel(s.mobilePanel === "details" ? null : "details");
+    else actions.setPanelCollapsed("details", !s.detailsCollapsed);
+    reaimPopup();
+  };
+
+  // Keep the open popup's labels right whichever control opened a panel.
+  useEffect(() => {
+    syncPopupActions(popupRef.current, panelsOpen);
+  }, [panelsOpen.details, panelsOpen.table]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -213,15 +281,16 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, entriesBySi
       // No on-map attribution control (owner request); the credits live in
       // the footer's basemap label and Help → About → Credits.
       attributionControl: false,
-      zoomSnap: 0.25,
+      zoomSnap: ZOOM_SNAP,
       minZoom: lz(2),
       maxZoom: lz(17),
       worldCopyJump: false,
     });
     mapRef.current = map;
     createPanes(map);
-    // Before any listener, so the initial fit is not a "gesture".
-    map.fitBounds(CONUS_BOUNDS, { padding: [20, 20], animate: false });
+    // Before any listener, so the opening view is not a "gesture".
+    const opening = openingView(map);
+    map.setView(opening.center, opening.zoom, { animate: false });
     L.control.zoom({ position: "topright" }).addTo(map);
     const PickerControl = L.Control.extend({
       onAdd() {
@@ -415,10 +484,14 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, entriesBySi
     // re-measures and re-centres. The size also feeds --map-h / --map-w, which
     // cap the docked Screening panel to the map (custom properties on the
     // wrap: nothing they style can resize the observed map).
+    // A narrow map (Selected Data open on a laptop) compacts the toolbar so it
+    // stays one row: the class restyles only the floating toolbar, which
+    // cannot resize the observed map.
     const ro = new ResizeObserver(() => {
       map.invalidateSize({ animate: false });
       el.parentElement?.style.setProperty("--map-h", `${el.clientHeight}px`);
       el.parentElement?.style.setProperty("--map-w", `${el.clientWidth}px`);
+      el.parentElement?.classList.toggle("map-compact", el.clientWidth < 860);
     });
     ro.observe(el);
 
@@ -551,7 +624,8 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, entriesBySi
       references: entriesBySite.get(site.site_id)?.length ?? 0,
       link: siteSediment.get(site.site_id) ?? null,
     });
-    const popup = openPopup(map, site.longitude, site.latitude, html, showDetails);
+    const popup = openPopup(map, site.longitude, site.latitude, html, onPopupAction);
+    syncPopupActions(popup, panelsOpenRef.current);
     popupRef.current = popup;
     flyToSelection(map, site.latitude, site.longitude, popup);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -575,7 +649,8 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, entriesBySi
     const lon = core.lon[row];
     const lat = core.lat[row];
     reservoirRingRef.current = L.circleMarker([lat, lon], RING_STYLE).addTo(map);
-    const popup = openPopup(map, lon, lat, reservoirPopupHtml(core, row), showDetails);
+    const popup = openPopup(map, lon, lat, reservoirPopupHtml(core, row), onPopupAction);
+    syncPopupActions(popup, panelsOpenRef.current);
     popupRef.current = popup;
     flyToSelection(map, lat, lon, popup);
     // eslint-disable-next-line react-hooks/exhaustive-deps

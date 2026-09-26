@@ -8,7 +8,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { AppData } from "../../lib/types";
-import { actions, useAppState, type ReturnTarget } from "../../state/store";
+import { actions, useMapViewState, type ReturnTarget } from "../../state/store";
 import { ensureCore, getCore } from "../../sediment/data";
 import { findSimilar, type SimilarMatch } from "../../sediment/similar";
 import { formatPct, pctLost } from "../../sediment/format";
@@ -20,7 +20,7 @@ import { InfoTip, SourceLine } from "./ui";
 const FIRST = 5;
 
 export function ComparablesSection({ row, data, from }: { row: number | null; data: AppData; from: ReturnTarget }) {
-  useAppState(); // sedimentStamp re-render
+  useMapViewState(); // sedimentStamp re-render
   const [error, setError] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
   const [showAll, setShowAll] = useState(false);

@@ -6,6 +6,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { stubEsri, waitForBasemap } from "./helpers/esriStub";
+import { showPanels } from "./helpers/panels";
 
 const GNIS_ROUTE = /carto\.nationalmap\.gov\/arcgis\/rest\/services\/geonames\/MapServer\/(\d+)\/query/;
 
@@ -135,6 +136,7 @@ test("the place pin retires on clear, popup close, and table selection", async (
   await stubEsri(page);
   await stubGnis(page);
   await openApp(page);
+  await showPanels(page, { table: true });
   const input = combo(page);
   const pickPlace = async () => {
     await input.fill("creek");

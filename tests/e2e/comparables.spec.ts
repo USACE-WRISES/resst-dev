@@ -7,12 +7,14 @@ import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { stubEsri } from "./helpers/esriStub";
 import { stubSediment } from "./helpers/sedimentFixtures";
+import { showPanels } from "./helpers/panels";
 
 async function openComparables(page: Page) {
   await stubEsri(page);
   await stubSediment(page);
   await page.goto("./");
   await page.getByRole("button", { name: "OK" }).click();
+  await showPanels(page);
   await page.locator(".table-panel input").first().fill("Tuttle");
   await page.locator(".data-table tbody tr", { hasText: "Tuttle Creek" }).first().click();
   await page.locator(".detail-sec-head", { hasText: "Comparable Reservoirs" }).click();

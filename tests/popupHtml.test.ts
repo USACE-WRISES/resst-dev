@@ -1,6 +1,7 @@
 // Map popup bodies (src/map/popupHtml.ts): the documented-site card (who and
 // where, purpose + NID ID, the three team-documented fields, the modeled loss
-// and the reference count) and the national-reservoir card.
+// and the reference count, then the details and table toggles) and the
+// national-reservoir card (details toggle only).
 import { describe, expect, it } from "vitest";
 import { popupHtml, reservoirPopupHtml } from "../src/map/popupHtml";
 import { decodeCore } from "../src/sediment/decode";
@@ -58,11 +59,12 @@ describe("popupHtml (documented site)", () => {
     expect(text(html)).toContain("Ecological concern|Sand Bars, Water Quality");
   });
 
-  it("ends with the modeled loss and the reference count", () => {
-    const t = text(popupHtml(SITE, { references: 6, link: LINK }));
+  it("ends with the modeled loss, the reference count, and the two panel toggles", () => {
+    const html = popupHtml(SITE, { references: 6, link: LINK });
+    const t = text(html);
     expect(t).toContain("17%| capacity lost by 2025 |(modeled)");
-    expect(t).toContain("6 references|Show details"); // the button shares the facts row
-    expect(t).toContain("6 references");
+    expect(t).toMatch(/6 references\|Show details\|Show table$/); // written collapsed; syncPopupActions relabels
+    expect([...html.matchAll(/data-action="(\w+)" aria-expanded="false"/g)].map((m) => m[1])).toEqual(["details", "table"]);
     expect(text(popupHtml(SITE, { references: 1, link: null }))).toContain("1 reference");
   });
 
@@ -122,5 +124,7 @@ describe("reservoirPopupHtml (national reservoir)", () => {
     expect(text(html)).toContain("Est. capacity lost (2025)|10%");
     expect(text(html)).toContain("Evidence|Modeled only");
     expect(text(html)).toContain("No documented RESST record");
+    // A national reservoir is not a row in the RESST table: details only.
+    expect([...html.matchAll(/data-action="(\w+)"/g)].map((m) => m[1])).toEqual(["details"]);
   });
 });

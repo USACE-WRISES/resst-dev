@@ -9,6 +9,7 @@ import { stubEsri } from "./helpers/esriStub";
 import { stubSediment } from "./helpers/sedimentFixtures";
 import { openDetailSection } from "./helpers/sections";
 import { waitForMapIdle } from "./helpers/mapReady";
+import { showPanels } from "./helpers/panels";
 
 const PHONE = { width: 390, height: 844 };
 
@@ -18,6 +19,7 @@ async function openPhone(page: Page) {
   await stubSediment(page);
   await page.goto("./");
   await page.getByRole("button", { name: "OK" }).click();
+  await showPanels(page, { table: true }); // phones open clean too; the table's tab opens it
 }
 
 async function clickDam(page: Page, lon: number, lat: number) {
@@ -116,4 +118,6 @@ test("phone: the popup clears the two-row toolbar, and Show details opens the dr
   const details = page.locator(".details-panel");
   await expect(details).toBeInViewport();
   await expect(details.locator(".site-name")).toHaveText("Tuttle Creek");
+  // The toggle under the drawer now offers to hide it.
+  await expect(page.locator(".leaflet-popup").locator('[data-action="details"]')).toHaveAttribute("aria-expanded", "true");
 });

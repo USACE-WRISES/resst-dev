@@ -3,6 +3,7 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { stubEsri } from "./helpers/esriStub";
+import { showPanels } from "./helpers/panels";
 
 const scan = (page: import("@playwright/test").Page) =>
   new AxeBuilder({ page })
@@ -13,12 +14,14 @@ const scan = (page: import("@playwright/test").Page) =>
 const serious = (r: Awaited<ReturnType<typeof scan>>) =>
   r.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
 
-test("no serious/critical violations on the main view", async ({ page }) => {
+test("no serious/critical violations on the main view, clean and with every panel open", async ({ page }) => {
   await stubEsri(page); // the default basemap boots from Esri endpoints — keep CI hermetic
   await page.goto("./");
   await page.getByRole("button", { name: "OK" }).click();
-  const results = await scan(page);
-  expect(serious(results).map((v) => `${v.id}: ${v.nodes.length} nodes`)).toEqual([]);
+  expect(serious(await scan(page)).map((v) => `${v.id}: ${v.nodes.length} nodes`)).toEqual([]);
+  // The clean start hides the panels from axe; open them for their own scan.
+  await showPanels(page, { table: true, filters: true, details: true });
+  expect(serious(await scan(page)).map((v) => `${v.id}: ${v.nodes.length} nodes`)).toEqual([]);
 });
 
 test("no serious/critical violations with dialogs open", async ({ page }) => {
@@ -93,6 +96,7 @@ test("phone layout keeps full function: filters drawer changes counts, details d
   await stubEsri(page); // the default basemap boots from Esri endpoints — keep CI hermetic
   await page.goto("./");
   await page.getByRole("button", { name: "OK" }).click();
+  await showPanels(page, { table: true });
 
   // Open the filters drawer and apply Sediment Release = Dam Removal.
   await page.getByRole("navigation", { name: "Panels" }).getByRole("button", { name: "Filters" }).click();

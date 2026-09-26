@@ -75,6 +75,20 @@ const shoot = async (page, name) => {
   await page.close();
 };
 
+// The Map view opens clean (every panel collapsed, 2026-09-26), so each shot
+// opens the panels it depicts the way a person does.
+const openData = (page) => page.locator(".map-toolbar").getByRole("button", { name: /^Data filters/ }).click();
+const openTable = (page) => page.locator(".map-toolbar").getByRole("button", { name: "Table", exact: true }).click();
+
+/** Pick a documented site from the map search, then open its record with the popup's Show details. */
+const openSiteDetails = async (page, name) => {
+  await page.getByRole("combobox", { name: "Find a site or place by name" }).fill(name);
+  await page.locator("#map-search-results").getByRole("option", { name: new RegExp(name) }).first().dispatchEvent("mousedown");
+  await page.locator(".leaflet-popup").waitFor();
+  await page.locator('.leaflet-popup [data-action="details"]').click();
+  await page.locator(".details-panel .site-name").getByText(name).waitFor();
+};
+
 const armTool = async (page, item) => {
   await page.locator(".map-toolbar").getByRole("button", { name: /^Select/ }).click();
   await page.locator(".select-menu").getByRole("button", { name: item }).click();
@@ -98,9 +112,15 @@ async function main() {
   let browser = null;
   try {
     await waitForServer();
-    browser = await chromium.launch();
+    // GPU-style rasterization (SwiftShader through ANGLE). Headless Chromium's
+    // default software compositor draws hairline seams around the block of
+    // basemap tiles the map clips at fractional zooms (the opening view is
+    // 4.75), which real browsers do not show.
+    browser = await chromium.launch({
+      args: ["--enable-gpu-rasterization", "--ignore-gpu-blocklist", "--use-gl=angle", "--use-angle=swiftshader"],
+    });
 
-    console.log("about — the app at its start view");
+    console.log("about — the app as it opens: the map with every panel folded to its tab");
     {
       const page = await openApp(browser);
       await shoot(page, "about");
@@ -109,9 +129,7 @@ async function main() {
     console.log("assess — Big Tujunga with the trajectory chart and measured surveys in view");
     {
       const page = await openApp(browser);
-      await page.locator(".table-panel input").first().fill("Big Tujunga");
-      await page.locator(".data-table tbody tr", { hasText: "Big Tujunga" }).first().click();
-      await page.locator(".leaflet-popup").waitFor();
+      await openSiteDetails(page, "Big Tujunga");
       // Every Selected Data section starts collapsed (round 3): open the one with the chart.
       await page.locator(".detail-sec-head", { hasText: "Reservoir Sustainability" }).click();
       await page.locator(".traj-chart svg").waitFor({ timeout: 60_000 }); // chunk + surveys resident
@@ -124,9 +142,7 @@ async function main() {
     console.log("analogs — Tuttle Creek's comparable reservoirs");
     {
       const page = await openApp(browser);
-      await page.locator(".table-panel input").first().fill("Tuttle");
-      await page.locator(".data-table tbody tr", { hasText: "Tuttle Creek" }).first().click();
-      await page.locator(".leaflet-popup").waitFor();
+      await openSiteDetails(page, "Tuttle Creek");
       // The card ranks its analogs as it opens (no button since 2026-09-25).
       await page.locator(".detail-sec-head", { hasText: "Comparable Reservoirs" }).click();
       await page.locator("#detail-sec-sim .sim-card").first().waitFor({ timeout: 60_000 });
@@ -151,7 +167,7 @@ async function main() {
       await shoot(page, "screen");
     }
 
-    console.log("by-huc — a HUC-4 basin selected by click");
+    console.log("by-huc — a HUC-4 basin selected by click (Selected Data opens by itself)");
     {
       const page = await openApp(browser);
       await jumpTo(page, [-97.2, 38.9], 6);
@@ -166,6 +182,8 @@ async function main() {
     console.log("by-category — filtered to Sediment Release = Dam Removal");
     {
       const page = await openApp(browser);
+      await openData(page);
+      await openTable(page);
       const item = page.locator(".filter-item", { has: page.locator('label:text-is("Sediment Release")') });
       await item.locator(".expander").click();
       await item.locator(".value-option", { hasText: "Dam Removal" }).locator("input").check();
@@ -173,6 +191,29 @@ async function main() {
       await page.locator(".filtered-counts").getByText("Sites: 8").waitFor();
       await mapSettled(page);
       await shoot(page, "by-category");
+    }
+
+    console.log("dashboard — the Dashboard with Dam Removal drilled into its sites");
+    {
+      // Every load shows the hints: the tiles' stays in the shot, the chart's
+      // fades when Dam Removal is clicked.
+      const page = await openApp(browser);
+      await page.getByRole("button", { name: "Dashboard", exact: true }).click();
+      // The national figures fill once the inventory lands: wait for the Capacity lost tile's percentage.
+      await page.locator("#dash-tab-capacity .dash-topic-value").getByText(/%$/).waitFor({ timeout: 60_000 });
+      await page.getByRole("button", { name: /^Dam Removal/ }).click();
+      await page.locator(".dash-table tbody tr").first().waitFor();
+      await shoot(page, "dashboard");
+    }
+
+    console.log("library — the Library with a publication open");
+    {
+      const page = await openApp(browser);
+      await page.getByRole("button", { name: "Library", exact: true }).click();
+      await page.locator(".lib-search input").fill("Tuttle Creek");
+      await page.locator(".lib-row .lib-row-btn").first().click();
+      await page.locator(".lib-detail-title").waitFor();
+      await shoot(page, "library");
     }
 
     console.log("done.");

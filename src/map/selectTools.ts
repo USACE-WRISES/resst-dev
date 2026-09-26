@@ -105,12 +105,12 @@ function matchSites(sites: Site[], test: (p: Pt) => boolean): string[] {
 function applySelection(
   ctx: SessionCtx,
   ids: string[],
-  opts: { additive: boolean; disarm: boolean; highlight: Feature | null },
+  opts: { additive: boolean; disarm: boolean; highlight: Feature | null; live?: boolean },
 ): void {
   const final = opts.additive ? [...getState().selectedSiteIds, ...ids] : ids; // selectSites dedupes
   ctx.map.setHighlight(opts.highlight);
   ctx.keepHighlightRef.current = true; // consumed by the panel's selection effect
-  actions.selectSites(final);
+  actions.selectSites(final, { live: opts.live });
   if (opts.disarm) actions.setMapTool("none");
 }
 
@@ -357,7 +357,7 @@ function startRiver(ctx: SessionCtx): () => void {
       base: e.originalEvent.shiftKey ? getState().selectedSiteIds : [],
       name: hit.name || "this stream",
     };
-    recomputeRiver(ctx); // refine stage begins; distance edits re-enter here
+    recomputeRiver(ctx, false); // the pick is a gesture; distance edits re-enter live
   };
   map.on("click", onClick);
   return () => {
@@ -367,8 +367,10 @@ function startRiver(ctx: SessionCtx): () => void {
 }
 
 /** Refine stage: base ∪ within-distance, applied live. Also entered from
- * the panel's riverDistanceMiles effect. Never disarms — Done/Esc do. */
-export function recomputeRiver(ctx: SessionCtx): void {
+ * the panel's riverDistanceMiles effect. Never disarms — Done/Esc do.
+ * `live` (a distance edit) opens Selected Data only when the selection first
+ * grows past one site; the pick itself opens it like any other tool. */
+export function recomputeRiver(ctx: SessionCtx, live = true): void {
   const pick = ctx.riverRef.current;
   if (!pick) return;
   const mi = getState().riverDistanceMiles;
@@ -377,6 +379,7 @@ export function recomputeRiver(ctx: SessionCtx): void {
   applySelection(ctx, [...pick.base, ...ids], {
     additive: false,
     disarm: false,
+    live,
     highlight: {
       type: "Feature",
       properties: {},

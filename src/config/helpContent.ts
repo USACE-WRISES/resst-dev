@@ -65,13 +65,14 @@ export const HELP_VIEWS: HelpView[] = [
     title: "About RESST",
     image: {
       src: "help/about.jpg",
-      alt: "The RESST application: map of sites, Data Filters panel, results tables, and Selected Data panel.",
+      alt: "The RESST map as it opens: every documented site on a full-width map, the Data, Table and Screening buttons in the toolbar, and small tabs at the edges for the Data Filters, the results tables and Selected Data.",
     },
     lead: [
       "The Reservoir Sustainable Sediment Tool (RESST) compiles case studies, analytical approaches, and literature on sediment release from reservoirs. It gives reservoir managers and environmental engineers one searchable place to explore precedent projects, sediment management strategies, ecological concerns, and analytical methods across sites and regions.",
+      "The map opens uncluttered, with the panels folded away. <strong>Data</strong> in the map toolbar opens the keyword filters and <strong>Table</strong> the results tables; a site's popup opens its full record with <strong>Show details</strong>. The small tabs at the map's edges open the same panels, and each control closes what it opened.",
       "Work the interactive map, apply keyword filters, review site-linked and general literature, and export the results. Selection is the core move: pick sites one at a time, or use the map's <strong>Select</strong> menu to grab them by dragged box, drawn polygon, watershed (HUC) boundary, or distance from a river.",
       "Around that documented core, RESST places national sedimentation context: modeled storage-loss trajectories for more than 57,000 reservoirs (RATTES), measured sedimentation surveys (RESSED), and the routed upstream–downstream dam network (ResNet). Every value is labeled <strong>Reported</strong>, <strong>Measured</strong>, <strong>Modeled</strong>, or <strong>Network-derived</strong> so observations and model estimates never blur; the ⓘ marks carry each source's citation.",
-      "The tabs above walk through five common workflows.",
+      "The tabs above walk through five common workflows, then the Dashboard and Library views. The header switch moves between the <strong>Map</strong>, the <strong>Dashboard</strong> (the whole dataset as charts that drill down to their sites and reservoirs) and the <strong>Library</strong> (every publication, searchable by site and topic).",
     ],
     credits: [
       "Basemaps: Esri World Topographic Map (Sources: Esri, HERE, Garmin, Intermap, increment P Corp., GEBCO, USGS, FAO, NPS, NRCAN, GeoBase, IGN, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), © OpenStreetMap contributors, and the GIS User Community). USGS The National Map: National Boundaries Dataset, 3DEP Elevation Program, Geographic Names Information System, National Hydrography Dataset, National Land Cover Database, National Structures Dataset, and National Transportation Dataset.",
@@ -97,7 +98,7 @@ export const HELP_VIEWS: HelpView[] = [
     steps: [
       {
         title: "Select the reservoir",
-        body: "Find it with the map's <strong>Search</strong> box (site names and USGS place names) or click its point. Red points are RESST documented sites; with the national layer on, every other modeled reservoir is clickable too. The popup gives the first look (place, agency, purpose, the documented release method, ecological concern, and analysis, the modeled share of capacity lost, and how many references exist), and the full record opens in the <strong>Selected Data</strong> panel.",
+        body: "Find it with the map's <strong>Search</strong> box (site names and USGS place names) or click its point. Red points are RESST documented sites; with the national layer on, every other modeled reservoir is clickable too. The popup gives the first look (place, agency, purpose, the documented release method, ecological concern, and analysis, the modeled share of capacity lost, and how many references exist); its <strong>Show details</strong> opens the full record in the <strong>Selected Data</strong> panel, and <strong>Hide details</strong> folds it away again.",
         notes: [
           { label: "Tip", text: "The panel's cards open one at a time. Collapsed, each header still shows its source badge and a one-line summary, such as the share of capacity lost." },
         ],
@@ -131,7 +132,7 @@ export const HELP_VIEWS: HelpView[] = [
       },
       {
         title: "Export and go deeper",
-        body: "Export table rows with <strong>Actions</strong>, or the full datasets from <strong>Download Data</strong>. The trajectory chart's <strong>View data table</strong> exposes its numbers.",
+        body: "Open the results tables with <strong>Table</strong> and export rows with <strong>Actions</strong>, or take the full datasets from <strong>Download Data</strong>. The trajectory chart's <strong>View data table</strong> exposes its numbers.",
       },
     ],
   },
@@ -152,7 +153,7 @@ export const HELP_VIEWS: HelpView[] = [
     steps: [
       {
         title: "Select your reservoir",
-        body: "A documented site or, with the national layer on, any modeled reservoir.",
+        body: "A documented site or, with the national layer on, any modeled reservoir; <strong>Show details</strong> in its popup opens the Selected Data panel.",
       },
       {
         title: "Open Comparable Reservoirs",
@@ -169,7 +170,7 @@ export const HELP_VIEWS: HelpView[] = [
       },
       {
         title: "Build the reading list",
-        body: "From each documented analog, collect its <strong>Site Literature</strong>; export tabs with <strong>Actions</strong> as you go.",
+        body: "From each documented analog, collect its <strong>Site Literature</strong>; open the tables with <strong>Table</strong> and export tabs with <strong>Actions</strong> as you go.",
       },
     ],
   },
@@ -194,7 +195,7 @@ export const HELP_VIEWS: HelpView[] = [
       },
       {
         title: "Open Screening",
-        body: "The <strong>Screening</strong> toggle beside the search box opens a panel docked at the left edge of the map. It stays open while you pan, zoom, and click reservoirs; close it with the toggle, ✕, or Esc. Opening it switches the national layer on if it isn't already.",
+        body: "The <strong>Screening</strong> button in the map toolbar opens a panel docked at the left edge of the map. It stays open while you pan, zoom, and click reservoirs; close it with the toggle, ✕, or Esc. Opening it switches the national layer on if it isn't already.",
       },
       {
         title: "Start with a question",
@@ -237,7 +238,7 @@ export const HELP_VIEWS: HelpView[] = [
         title: "Click your basin",
         body: "Click anywhere inside it. RESST looks up the boundary and selects every documented site within.",
         notes: [
-          { label: "Result", text: "The Selected Data panel and tables update to the basin." },
+          { label: "Result", text: "Selected Data opens on the basin's sites, and the tables follow." },
           { label: "Tip", text: "Shift+click adds another basin to the selection." },
         ],
       },
@@ -250,7 +251,7 @@ export const HELP_VIEWS: HelpView[] = [
       },
       {
         title: "Confirm in the Sites tab",
-        body: "Check that the count and spread match your intent. <strong>Show selection</strong> isolates the selected rows.",
+        body: "Open the tables with <strong>Table</strong> and check that the count and spread match your intent. <strong>Show selection</strong> isolates the selected rows.",
       },
       {
         title: "Review the region's literature",
@@ -258,7 +259,7 @@ export const HELP_VIEWS: HelpView[] = [
       },
       {
         title: "Focus with filters (optional)",
-        body: "Use <strong>Data Filters</strong> to narrow within the region, for example Sediment Source = bank erosion or Analysis = sediment transport modeling.",
+        body: "Open <strong>Data</strong> in the map toolbar and use the Data Filters to narrow within the region, for example Sediment Source = bank erosion or Analysis = sediment transport modeling.",
       },
       {
         title: "Export the set",
@@ -283,8 +284,11 @@ export const HELP_VIEWS: HelpView[] = [
     steps: [
       {
         title: "Start with one filter",
-        body: "In <strong>Data Filters</strong>, switch on a category and pick a single value, say Sediment Release = drawdown. The map and tables update immediately.",
-        notes: [{ label: "Tip", text: "One filter at a time keeps you out of zero-result dead ends." }],
+        body: "Open <strong>Data</strong> in the map toolbar, switch on a category and pick a single value, say Sediment Release = drawdown. The map and tables update immediately.",
+        notes: [
+          { label: "Tip", text: "One filter at a time keeps you out of zero-result dead ends." },
+          { label: "Note", text: "While any filter is on, a dot on <strong>Data</strong> says so, even with the panel closed." },
+        ],
       },
       {
         title: "Add a second to sharpen",
@@ -292,11 +296,11 @@ export const HELP_VIEWS: HelpView[] = [
       },
       {
         title: "Scan the map and tables",
-        body: "The map shows where matches cluster; <strong>Site Literature</strong> and <strong>General Literature</strong> build the reading list.",
+        body: "The map shows where matches cluster; open <strong>Table</strong> for the <strong>Site Literature</strong> and <strong>General Literature</strong> tabs that build the reading list.",
       },
       {
         title: "Check promising analogs",
-        body: "Click a promising site and confirm its attributes in <strong>Selected Data</strong>, the fastest is-this-relevant check.",
+        body: "Click a promising site and use <strong>Show details</strong> in its popup to confirm its attributes in <strong>Selected Data</strong>, the fastest is-this-relevant check.",
       },
       {
         title: "Export the theme set",
@@ -305,6 +309,84 @@ export const HELP_VIEWS: HelpView[] = [
       {
         title: "Reset for the next theme",
         body: "Use <strong>Clear all</strong> at the top of Data Filters so stacked filters from the last pass don't hide results.",
+      },
+    ],
+  },
+  {
+    id: "dashboard",
+    name: "Dashboard",
+    title: "Dashboard: the whole dataset at a glance",
+    image: {
+      src: "help/dashboard.jpg",
+      alt: "The Dashboard view: the hint to click a tile, the four headline tiles that are also its tabs, and the Sediment management topic with Dam Removal drilled into its sites.",
+    },
+    facets: {
+      goal: "See the national picture in a few charts, then drill from any slice, quadrant, loss class or state to the sites and reservoirs behind it.",
+      when: "You want trends across the database rather than one site: which management methods are documented, what the literature covers, and where modeled storage loss concentrates.",
+      get: "Four headline tiles that open four topics: the documented sites by their management keywords; the literature by its keywords; the four screening quadrants with the same counts as the Screening panel; and percent capacity lost across the country by class and by state.",
+      tip: "The Dashboard always summarizes the whole dataset. Data Filters set on the Map view do not apply here; a notice says so while they are on.",
+    },
+    steps: [
+      {
+        title: "Switch to the Dashboard",
+        body: "Use the <strong>Map · Dashboard · Library</strong> switch in the header. The map keeps its position, selection and layers underneath, so switching back costs nothing.",
+      },
+      {
+        title: "Pick a topic",
+        body: "The four headline tiles are also the tabs: <strong>Sediment management</strong> (documented sites), <strong>Literature</strong> (publications), <strong>Management and loss</strong> (sites with modeled data) and <strong>Capacity lost</strong> (the nation's original storage lost by 2025). Click one (the arrow on each tile opens it), or use the arrow keys, to show that topic below. Every number is computed from the loaded data.",
+        notes: [
+          { label: "Note", text: "Keyword counts are exact keywords, so a site tagged Hydraulic Dredging does not count under Dredging (the Data Filters match text fragments instead)." },
+        ],
+      },
+      {
+        title: "Pick a dimension",
+        body: "In the first two topics, the switch centred above the chart picks one keyword field at a time: choose a site keyword (sediment release, ecological concern, analysis, site type) or a literature keyword and the publication scope. Sites and publications may carry several keywords, so slices count keyword mentions and the legend counts records.",
+      },
+      {
+        title: "Click a slice to drill down",
+        body: "The slice slides out and a panel opens below it: a second keyword breakdown, the modeled loss at the sites linked to a reservoir, and the list of members. The same works for a screening quadrant, a loss class, or a state tile. Each topic keeps its own drill-down while you look at the others.",
+        notes: [{ label: "Result", text: "The state tiles are coloured by the share of each state's modeled reservoirs that have lost 25% or more of their capacity by 2025." }],
+      },
+      {
+        title: "Follow a site or reservoir to the map",
+        body: "<strong>Show on map</strong> selects it and opens the Map view on it; <strong>Show all on map</strong> frames a whole slice and lists its sites in Selected Data. <strong>Open in Screening</strong> puts a quadrant's question into the docked Screening panel, and <strong>Screen this state on the map</strong> does the same for a state; <strong>Open in Library</strong> takes a literature keyword to the Library.",
+      },
+    ],
+  },
+  {
+    id: "library",
+    name: "Library",
+    title: "Library: every publication in one place",
+    image: {
+      src: "help/library.jpg",
+      alt: "The Library view: the filters on the left with one group open, the publication table in the middle, and the open publication on the right with its sites and keywords in one table.",
+    },
+    facets: {
+      goal: "Find publications by site, topic, method, document type or decade, and read each one's full keyword record.",
+      when: "You are building a reading list, checking what has been written about a site, or looking for the methods used in comparable work.",
+      get: "A sortable table of the site-linked and general literature, each publication's citation and source link, the sites it covers (each a way to the map), and every recorded field in one table.",
+      tip: "Every count follows the other criteria, so the numbers beside the options and the scopes always say how many publications a click would leave.",
+    },
+    steps: [
+      {
+        title: "Search",
+        body: "Type in the search box above the table to match titles, authors, years, document types, geography and site names; every word must match. The count follows as you type.",
+      },
+      {
+        title: "Filter",
+        body: "Open a filter group on the left (one opens at a time) and tick document types, decades, focus and method keywords, sediment characteristics and sources, settings, covered topics, or risk themes. Values within one facet combine with OR; facets combine with AND. A number on a group's header counts its ticks. Active criteria appear above the table; remove one with its ✕ or use <strong>Clear all</strong>.",
+      },
+      {
+        title: "Choose the scope and the order",
+        body: "<strong>All</strong>, <strong>Site literature</strong> (publications tied to documented sites) or <strong>General</strong> (publications with no site). Click the <strong>Title</strong>, <strong>Year</strong> or <strong>Site</strong> heading to sort by that column; click it again to reverse.",
+      },
+      {
+        title: "Read a publication",
+        body: "Click a row to read it on the right, or move through the rows with the up and down arrow keys. The pane shows the citation, <strong>Open source</strong> for its link, and one table of every recorded field. Click any keyword there to filter the list by it; click it again to remove that filter.",
+      },
+      {
+        title: "Jump to its sites",
+        body: "A site in the pane selects that site and opens the Map view on it; <strong>Show all sites on map</strong> frames every site the publication covers. The site's own Selected Data panel lists the same literature under Site Literature.",
       },
     ],
   },

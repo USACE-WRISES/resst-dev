@@ -6,6 +6,7 @@ import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { stubEsri, stubUsgsTiles } from "./helpers/esriStub";
 import { stubSediment } from "./helpers/sedimentFixtures";
+import { showPanels } from "./helpers/panels";
 
 async function openApp(page: Page) {
   await stubEsri(page);
@@ -19,6 +20,7 @@ async function openApp(page: Page) {
   });
   await page.goto("./");
   await page.getByRole("button", { name: "OK" }).click();
+  await showPanels(page);
 }
 
 async function selectSite(page: Page, name: string) {

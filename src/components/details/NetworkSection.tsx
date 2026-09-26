@@ -11,7 +11,7 @@
 // survives opening another card.
 
 import { useEffect, useId, useState } from "react";
-import { actions, useAppState, type AppState, type NetworkMode } from "../../state/store";
+import { actions, useMapViewState, type AppState, type NetworkMode } from "../../state/store";
 import { ensureCore, getCore } from "../../sediment/data";
 import { downstreamPath, networkStats } from "../../sediment/network";
 import { formatKm2 } from "../../sediment/format";
@@ -47,7 +47,7 @@ function directShare(daSqKm: number, scaSqKm: number): string {
 }
 
 export function NetworkSection({ row }: { row: number | null }) {
-  const state = useAppState(); // sedimentStamp + networkView re-renders
+  const state = useMapViewState(); // sedimentStamp + networkView re-renders
   const mode = state.networkView.mode;
   const basinOn = state.networkView.basin;
   const [error, setError] = useState(false);

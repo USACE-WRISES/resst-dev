@@ -9,7 +9,7 @@ import { HELP_VIEWS } from "../src/config/helpContent";
 const allText = JSON.stringify(HELP_VIEWS);
 
 describe("help content", () => {
-  it("has the five workflows plus About, each structurally complete", () => {
+  it("has the five workflows plus About, the Dashboard and the Library, each structurally complete", () => {
     expect(HELP_VIEWS.map((v) => v.name)).toEqual([
       "About",
       "Assess a Reservoir",
@@ -17,6 +17,8 @@ describe("help content", () => {
       "Screen Nationally",
       "By Region & River",
       "By Category",
+      "Dashboard",
+      "Library",
     ]);
     for (const v of HELP_VIEWS.slice(1)) {
       expect(v.facets, v.id).toBeDefined();

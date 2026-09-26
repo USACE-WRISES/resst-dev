@@ -3,7 +3,8 @@
 // network highlight and NLDI drainage area, the basemap swap, the national
 // inventory layer with Screening, accessibility, and a phone check. Hermetic
 // via the Esri/USGS tile stubs, the sediment fixtures, and the overlay
-// fixtures (the Kansas basin for every HUC level; the test river).
+// fixtures (the Kansas basin for every HUC level; the test river). The map
+// opens clean (every panel collapsed); tests open what they use.
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { stubEsri, stubUsgsTiles } from "./helpers/esriStub";
@@ -12,6 +13,7 @@ import { stubNldi } from "./helpers/nldiStub";
 import { KANSAS_BASIN_FC, TEST_RIVER_FC } from "./helpers/overlayFixtures";
 import { openDetailSection } from "./helpers/sections";
 import { jumpTo, landed, mapCounts, screenPt, waitForMapIdle } from "./helpers/mapReady";
+import { showPanels } from "./helpers/panels";
 
 // Tuttle Creek (layout.spec.ts uses the same point).
 const TUTTLE = { lon: -96.5943465450358, lat: 39.2562232982835 };
@@ -83,6 +85,7 @@ test("clicking a marker selects the site, opens the popup, and rings it", async 
 
 test("a table row flies the camera to the site", async ({ page }) => {
   await openApp(page);
+  await showPanels(page);
   await selectFromTable(page, "Tuttle Creek");
   await landed(page, TUTTLE.lon, TUTTLE.lat);
   // max(current, 8) in the app's zoom basis.
@@ -102,6 +105,9 @@ test("box mode selects the dragged sites and disarms", async ({ page }) => {
   await page.mouse.up();
   await selectedCount(page, 3); // Tuttle Creek, Milford, Kansas River
   expect((await mapCounts(page)).selected).toBe(3);
+  // A multi-site selection has no popup, so Selected Data opens by itself.
+  await expect(page.locator(".details-panel")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Collapse Selected Data panel" })).toBeVisible();
   await expect(selectBtn(page)).toHaveText(/^Select ▾$/); // one-shot: disarmed
   await expect(hintBar(page)).toHaveCount(0);
 });
@@ -148,9 +154,18 @@ test("river mode picks a corridor and recomputes live as the distance changes", 
   await clickAt(page, -96.55, 39.25);
   await expect(hintBar(page)).toContainText("1 site within 10 mi of Test River");
   await selectedCount(page, 1);
+  await expect(page.locator(".details-panel")).toBeHidden(); // one site: no panel yet
   await page.getByRole("spinbutton", { name: "Distance from the river in miles" }).fill("25");
   await expect(hintBar(page)).toContainText("4 sites within 25 mi of Test River");
   await selectedCount(page, 4);
+  // Growing past one site opens Selected Data once; closed mid-refinement, it stays closed.
+  await expect(page.locator(".details-panel")).toBeVisible();
+  await page.getByRole("button", { name: "Collapse Selected Data panel" }).click();
+  await page.getByRole("spinbutton", { name: "Distance from the river in miles" }).fill("30");
+  await expect(hintBar(page)).toContainText("within 30 mi of Test River");
+  await expect(page.locator(".details-panel")).toBeHidden();
+  await page.getByRole("spinbutton", { name: "Distance from the river in miles" }).fill("25");
+  await expect(hintBar(page)).toContainText("4 sites within 25 mi of Test River");
   await hintBar(page).getByRole("button", { name: "Done" }).click();
   await expect(hintBar(page)).toHaveCount(0);
   await selectedCount(page, 4);
@@ -159,6 +174,7 @@ test("river mode picks a corridor and recomputes live as the distance changes", 
 test("network highlight and the NLDI drainage area draw on the map", async ({ page }) => {
   await stubNldi(page);
   await openApp(page);
+  await showPanels(page);
   await selectFromTable(page, "Tuttle Creek");
   await landed(page, TUTTLE.lon, TUTTLE.lat);
   await openDetailSection(page, "Reservoir Network");
@@ -177,6 +193,7 @@ test("the site popup gives the first look at a dam and clears the toolbar, even 
   // Table at 60%: a ~330px map, where a centred site would put the popup under the toolbar.
   await page.addInitScript(() => localStorage.setItem("resst.tableHeight", "0.6"));
   await openApp(page);
+  await showPanels(page);
   await selectFromTable(page, "Tuttle Creek");
   await expect(page.locator(".leaflet-popup")).toHaveCount(1);
   await waitForMapIdle(page);
@@ -191,8 +208,8 @@ test("the site popup gives the first look at a dam and clears the toolbar, even 
   // The two numbers that say whether to dig in (fixture link: 2.0e8 / 1.2e9).
   await expect(popup.locator(".popup-facts")).toContainText("17% capacity lost by 2025 (modeled)");
   await expect(popup.locator(".popup-facts")).toContainText("6 references");
-  // Wide layout with the panel showing: no "Show details" button.
-  await expect(popup.getByRole("button", { name: "Show details" })).toBeHidden();
+  // Both panels are open, so both toggles offer to hide them.
+  await expect(popup.locator(".popup-action")).toHaveText(["Hide details", "Hide table"]);
   const pb = (await popup.boundingBox())!;
   const tb = (await page.locator(".map-toolbar").boundingBox())!;
   const mb = (await page.locator(".map-panel").boundingBox())!;
@@ -206,6 +223,7 @@ test("toolbar popovers draw above the results table, not under its divider", asy
   // A short map (table at 75%) so the Legend with the national ramp runs past it.
   await page.addInitScript(() => localStorage.setItem("resst.tableHeight", "0.75"));
   await openApp(page);
+  await showPanels(page);
   await enableNationalLayer(page);
   await page.getByRole("button", { name: "Legend" }).click();
   const legend = page.locator(".tool-popover-panel", { has: page.locator(".legend-list") });
@@ -220,15 +238,21 @@ test("toolbar popovers draw above the results table, not under its divider", asy
   expect(onTop).toBe(true);
 });
 
-test("the popup's Show details expands a collapsed Selected Data panel", async ({ page }) => {
+test("the popup's Show details opens Selected Data and turns into Hide details, which closes it", async ({ page }) => {
   await openApp(page);
-  await page.getByRole("button", { name: "Collapse Selected Data panel" }).click();
+  await showPanels(page, { table: true });
   await selectFromTable(page, "Tuttle Creek");
-  const more = page.locator(".leaflet-popup").getByRole("button", { name: "Show details" });
-  await expect(more).toBeVisible();
-  await more.click();
+  const toggle = page.locator(".leaflet-popup").locator('[data-action="details"]');
+  await expect(toggle).toHaveText("Show details");
+  await toggle.click();
   await expect(page.getByRole("button", { name: "Collapse Selected Data panel" })).toBeVisible();
   await expect(page.locator(".details-panel .site-name")).toHaveText("Tuttle Creek");
+  await expect(toggle).toHaveText("Hide details");
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await toggle.click();
+  await expect(page.locator(".details-panel")).toBeHidden();
+  await expect(page.getByRole("button", { name: "Expand Selected Data panel" })).toBeVisible();
+  await expect(toggle).toHaveText("Show details");
 });
 
 test("the basemap picker swaps the tile layer", async ({ page }) => {
@@ -289,6 +313,7 @@ test("clicking an undocumented dam opens ReservoirDetails; a documented dam rout
 
 test("the map is axe-clean with a selection, its popup, and the national layer showing", async ({ page }) => {
   await openApp(page);
+  await showPanels(page);
   await enableNationalLayer(page);
   await selectFromTable(page, "Tuttle Creek"); // popup + ring in scope for the scan
   await landed(page, TUTTLE.lon, TUTTLE.lat);
@@ -318,6 +343,7 @@ test("phone: the basemap trigger stays above Leaflet's control stack and its pan
 
 test("a map pan never selects page text", async ({ page }) => {
   await openApp(page);
+  await showPanels(page);
   const selected = () => page.evaluate(() => document.getSelection()?.toString() ?? "");
   const centre = () =>
     page.evaluate(() => (window as any).__resstMapInfo.getCenter() as { lng: number; lat: number });

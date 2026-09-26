@@ -3,6 +3,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { stubEsri, waitForBasemap } from "./helpers/esriStub";
 import { openDetailSection } from "./helpers/sections";
+import { showPanels } from "./helpers/panels";
 
 async function openApp(page: Page): Promise<void> {
   await stubEsri(page); // the default basemap boots from Esri endpoints — keep CI hermetic
@@ -38,6 +39,7 @@ test("loads with the verified counters and a rendered map", async ({ page }) => 
 
 test("filter baselines reproduce through the UI: 8 → 77 → 42", async ({ page }) => {
   await openApp(page);
+  await showPanels(page, { filters: true, table: true });
   const item = (label: string) => page.locator(".filter-item", { has: page.locator(`label:text-is("${label}")`) });
   const value = (label: string, v: string) => item(label).locator(".value-option", { hasText: v }).locator("input");
 
@@ -61,6 +63,7 @@ test("filter baselines reproduce through the UI: 8 → 77 → 42", async ({ page
 
 test("selecting Tuttle Creek shows its literature and NID record", async ({ page }) => {
   await openApp(page);
+  await showPanels(page);
   await page.locator(".data-table tbody tr", { hasText: "Tuttle Creek" }).first().click();
   const details = page.locator(".details-panel");
   await expect(details).toContainText("Tuttle Creek");
@@ -72,6 +75,7 @@ test("selecting Tuttle Creek shows its literature and NID record", async ({ page
 
 test("exports download the filtered rows", async ({ page }) => {
   await openApp(page);
+  await showPanels(page, { table: true });
   await page.getByRole("button", { name: "Actions" }).click();
   const dl = page.waitForEvent("download");
   await page.getByRole("menuitem", { name: "Export CSV" }).click();
@@ -79,7 +83,7 @@ test("exports download the filtered rows", async ({ page }) => {
   expect(download.suggestedFilename()).toMatch(/^resst-sites-\d{4}-\d{2}-\d{2}\.csv$/);
 });
 
-test("help overlay shows the five workflows in the dense layout", async ({ page }) => {
+test("help overlay shows the five workflows and the two views in the dense layout", async ({ page }) => {
   await openApp(page);
   await page.getByRole("button", { name: "Help" }).click();
   const pills = page.locator(".help-pills .pill");
@@ -90,6 +94,8 @@ test("help overlay shows the five workflows in the dense layout", async ({ page 
     "Screen Nationally",
     "By Region & River",
     "By Category",
+    "Dashboard",
+    "Library",
   ]);
   await pills.nth(1).click();
   await expect(page.locator(".help-title")).toContainText("Reservoir Sediment Assessment");

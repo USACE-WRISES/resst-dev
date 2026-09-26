@@ -19,7 +19,10 @@ Experience Builder version of RESST.
   and literature layers, 40 keyword filters, four result
   tables, cross-linked selection details (including National Inventory of
   Dams records), spatial selection (box, drawn polygon, by HUC basin, near a
-  river), reference overlays, guided help, and exports.
+  river), reference overlays, guided help, and exports. A header switch adds
+  a **Dashboard** (national charts that drill down to their sites and
+  reservoirs) and a **Library** (every publication, searchable by site and
+  topic) beside the map.
 - **Behavioral parity** with the retired Experience Builder app was captured
   and verified record-for-record before the rebuild — see
   [docs/PARITY.md](docs/PARITY.md) and the full assessment under
@@ -46,6 +49,8 @@ npm run build      # typecheck + production build
 | `src/config/` | Typed app configuration: fields/labels, filters, tabs, help content |
 | `src/filters/` | The pure filter engine (verified parity semantics) |
 | `src/map/` | The Leaflet map (`leaflet/` holds its layers), overlays, search, the Select tools (box/polygon/HUC/river) |
+| `src/dashboard/` | The Dashboard view: statistics over the documented data and the modeled inventory, SVG charts, the state tile grid, drill-down panels |
+| `src/library/` | The Library view: the publication index (search, facets, sorting) and its three-column page |
 | `public/data/` | Generated runtime JSON (never edit by hand) |
 | `public/overlays/` | Generated reference-overlay snapshots (USGS WBD HUCs, CEC rivers) — refresh with `npm run build:overlays`, never edit by hand |
 | `tests/` | Vitest unit + Playwright e2e/a11y suites |

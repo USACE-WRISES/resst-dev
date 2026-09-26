@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 import type { AppData } from "../../lib/types";
-import { useAppState } from "../../state/store";
+import { useMapViewState } from "../../state/store";
 import { ensureCore, getCore } from "../../sediment/data";
 import { formatKm2, formatVolumeAcft } from "../../sediment/format";
 import { FLAG, PROVENANCE } from "../../sediment/types";
@@ -19,7 +19,7 @@ import { ComparablesSection } from "./ComparablesSection";
 import { KeyValues, SourceLine } from "./ui";
 
 export function ReservoirDetails({ shortId, data }: { shortId: string; data: AppData }) {
-  const state = useAppState(); // sedimentStamp + networkView re-render
+  const state = useMapViewState(); // sedimentStamp + networkView re-render
   const [error, setError] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
   useEffect(() => {

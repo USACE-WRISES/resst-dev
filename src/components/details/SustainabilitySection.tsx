@@ -7,7 +7,7 @@
 // that as today's water volume). The labels match the Dam Report's.
 
 import { useEffect, useState } from "react";
-import { useAppState } from "../../state/store";
+import { useMapViewState } from "../../state/store";
 import { ensureCore, ensureSurveys, ensureTrajectory, getCore, getTrajectory, surveysForRow } from "../../sediment/data";
 import { annualRateM3, formatPct, formatRateAcftPerYear, formatVolumeAcft, pctLost } from "../../sediment/format";
 import { PROVENANCE, type SiteSedimentLink } from "../../sediment/types";
@@ -52,7 +52,7 @@ export function SustainabilitySection({
   link: SiteSedimentLink | null;
   hasSurveys: boolean;
 }) {
-  useAppState(); // re-render when sedimentStamp bumps (core/chunk/surveys arrive)
+  useMapViewState(); // re-render when sedimentStamp bumps (core/chunk/surveys arrive)
   const [chartError, setChartError] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
 

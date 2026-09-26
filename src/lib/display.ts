@@ -18,6 +18,10 @@ export function splitKeywords(value: string | null | undefined): string[] {
   return out;
 }
 
+/** A count with thousands separators ("57,307"), locale-fixed so tests and
+    users read the same digits. */
+export const formatCount = (v: number): string => v.toLocaleString("en-US");
+
 /** A free-text list as prose: the data often omits the space after a comma
     ("USACE,Kansas City District"). */
 export const tidyList = (value: string | null | undefined): string => (value ?? "").trim().replace(/\s*,\s*/g, ", ");

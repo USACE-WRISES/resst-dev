@@ -8,12 +8,14 @@ import AxeBuilder from "@axe-core/playwright";
 import { stubEsri } from "./helpers/esriStub";
 import { stubSediment } from "./helpers/sedimentFixtures";
 import { openDetailSection } from "./helpers/sections";
+import { showPanels } from "./helpers/panels";
 
 async function openWithLayer(page: Page) {
   await stubEsri(page);
   await stubSediment(page);
   await page.goto("./");
   await page.getByRole("button", { name: "OK" }).click();
+  await showPanels(page);
   await page.getByRole("button", { name: "Layers" }).click();
   await page.getByRole("checkbox", { name: /All modeled reservoirs/ }).check();
   // The fixture core is tiny — wait until the layer is fed and drawn.

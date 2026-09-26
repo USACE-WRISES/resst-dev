@@ -1,13 +1,15 @@
-// The map's top-left toolbar: search, the Screening toggle (right beside the
-// search box, above the docked panel it opens at the map's left edge), the
-// Select menu, the Layers/Legend popovers, and the hint bar of an armed
-// Select tool. Its children stay direct children of .map-toolbar: the
-// stylesheet's pointer-events rule (`.map-toolbar > *`) and the e2e
-// selectors depend on that flat shape.
+// The map's top-left toolbar: search, the Data and Table panel toggles (the
+// Map view starts with its panels collapsed), the Screening toggle (above the
+// docked panel it opens at the map's left edge), the Select menu, the
+// Layers/Legend popovers, and the hint bar of an armed Select tool. Its
+// children stay direct children of .map-toolbar: the stylesheet's
+// pointer-events rule (`.map-toolbar > *`) and the e2e selectors depend on
+// that flat shape.
 
 import type { Site } from "../lib/types";
 import type { AppState } from "../state/store";
 import { SearchControl } from "./SearchControl";
+import { PanelToggles } from "./PanelToggles";
 import { SelectMenu } from "./SelectMenu";
 import { MapToolPanels } from "./MapToolPanels";
 import { ScreeningPanel } from "./ScreeningPanel";
@@ -32,6 +34,7 @@ export function MapToolbar({
   return (
     <div className="map-toolbar">
       <SearchControl sites={allSites} />
+      <PanelToggles state={state} />
       <ScreeningPanel state={state} siteByShortId={siteByShortId} />
       <SelectMenu
         tool={state.mapTool}

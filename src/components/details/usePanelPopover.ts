@@ -28,7 +28,7 @@ export function usePanelPopover(
     const pop = popRef.current;
     if (!open || !wrap || !pop) return;
     if (!fullWidth) {
-      const host = wrap.closest<HTMLElement>(".details-panel, .screening-dock");
+      const host = wrap.closest<HTMLElement>(".details-panel, .screening-dock, .dash-card, .lib-detail");
       const hostLeft = host ? host.getBoundingClientRect().left + host.clientLeft : 0;
       // The open popover can lengthen the panel enough to bring its scrollbar
       // in, narrowing the content box: keep that strip free up front.

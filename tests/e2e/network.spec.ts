@@ -10,6 +10,7 @@ import { stubEsri, waitForBasemap } from "./helpers/esriStub";
 import { screenPt, waitForMapIdle } from "./helpers/mapReady";
 import { inventoryWithUpstream, stubSediment } from "./helpers/sedimentFixtures";
 import { openDetailSection } from "./helpers/sections";
+import { showPanels } from "./helpers/panels";
 
 // Tuttle Creek (the site and its fixture dam share these coordinates).
 const TUTTLE_LON = -96.5943465450358;
@@ -20,6 +21,7 @@ async function openOnTuttle(page: Page) {
   await stubSediment(page);
   await page.goto("./");
   await page.getByRole("button", { name: "OK" }).click();
+  await showPanels(page);
   await page.locator(".table-panel input").first().fill("Tuttle");
   await page.locator(".data-table tbody tr", { hasText: "Tuttle Creek" }).first().click();
   await openDetailSection(page, "Reservoir Network");
@@ -65,6 +67,7 @@ test("a mid-network dam's path names the reservoirs sediment would encounter", a
   await stubSediment(page);
   await page.goto("./");
   await page.getByRole("button", { name: "OK" }).click();
+  await showPanels(page);
   // Upstream Dam (20) is a national-layer reservoir: turn the layer on and click its dot.
   await page.getByRole("button", { name: "Layers" }).click();
   await page.getByRole("checkbox", { name: /All modeled reservoirs/ }).check();
@@ -150,6 +153,7 @@ test("a canvas-drawn upstream highlight never blocks the site markers, and clear
   await stubSediment(page, { inventory: inventoryWithUpstream(520) });
   await page.goto("./");
   await page.getByRole("button", { name: "OK" }).click();
+  await showPanels(page);
   await page.locator(".table-panel input").first().fill("Tuttle");
   await page.locator(".data-table tbody tr", { hasText: "Tuttle Creek" }).first().click();
   await openDetailSection(page, "Reservoir Network");

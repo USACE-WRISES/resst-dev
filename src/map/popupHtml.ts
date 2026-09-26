@@ -3,11 +3,13 @@
 // (owner decision 2026-09-25): who and where, its purpose and NID ID, what
 // the RESST team documented there (release method, ecological concern,
 // analysis), then the two numbers that say whether to dig in: the modeled
-// share of capacity lost and how many references exist. A "Show details"
-// button beside those numbers appears (CSS) only while the Selected Data
-// panel is hidden; sharing their row keeps the card short enough to clear a
-// phone's two-row toolbar. <div>s rather than <p>s: Leaflet's
-// `.leaflet-popup-content p` margin would eat the room above the site.
+// share of capacity lost and how many references exist. The card ends with
+// toggles for the panels the Map view starts with collapsed: "Show details" /
+// "Hide details" (Selected Data) and, for documented sites, "Show table" /
+// "Hide table" (the results table). They are written collapsed here;
+// syncPopupActions (leaflet/popups.ts) relabels them for the panels' real
+// state. <div>s rather than <p>s: Leaflet's `.leaflet-popup-content p`
+// margin would eat the room above the site.
 
 import type { Site } from "../lib/types";
 import { splitKeywords, tidyList } from "../lib/display";
@@ -19,7 +21,12 @@ export const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;")
 const row = (label: string, valueHtml: string) =>
   `<div class="popup-row"><span>${esc(label)}</span><b>${valueHtml}</b></div>`;
 const sub = (text: string) => (text ? `<div class="popup-sub">${esc(text)}</div>` : "");
-const MORE = '<button type="button" class="popup-more">Show details</button>';
+const toggle = (action: "details" | "table") =>
+  `<button type="button" class="popup-action" data-action="${action}" aria-expanded="false">Show ${action}</button>`;
+/** A documented site's toggles: its details and its row in the results table. */
+const SITE_ACTIONS = `<div class="popup-actions">${toggle("details")}${toggle("table")}</div>`;
+/** A national reservoir is not a row in the RESST table: details only. */
+const RESERVOIR_ACTIONS = `<div class="popup-actions">${toggle("details")}</div>`;
 
 /** A keyword field as prose, or a muted placeholder when it says nothing. */
 function keywords(raw: string | null | undefined): string {
@@ -52,7 +59,7 @@ export function popupHtml(site: Site, facts: SitePopupFacts): string {
     (lost != null
       ? `<div><b>${esc(formatPct(lost))}</b> capacity lost by 2025 <span class="popup-none">(modeled)</span></div>`
       : "") +
-    `<div>${esc(refs)}</div></div>${MORE}</div></div>`
+    `<div>${esc(refs)}</div></div></div>${SITE_ACTIONS}</div>`
   );
 }
 
@@ -80,6 +87,6 @@ export function reservoirPopupHtml(core: SedimentCore, r: number): string {
     (lost != null ? row("Est. capacity lost (2025)", esc(formatPct(lost))) : "") +
     (storage !== "—" ? row("Max storage", esc(storage)) : "") +
     row("Evidence", core.flags[r] & FLAG.HAS_SURVEYS ? "Measured surveys" : "Modeled only") +
-    `</div><div class="popup-facts"><div class="popup-facts-text popup-note">No documented RESST record</div>${MORE}</div></div>`
+    `</div><div class="popup-facts"><div class="popup-facts-text popup-note">No documented RESST record</div></div>${RESERVOIR_ACTIONS}</div>`
   );
 }

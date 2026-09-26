@@ -8,8 +8,97 @@ import { FILTER_DEFS } from "../config/filters.generated";
 import { emptyItemState } from "../filters/engine";
 import type { TabId } from "../config/tabs";
 import { EMPTY_SCREENING, isEmptyScreening, type ScreeningState } from "../sediment/screen";
+import { parseViewHash, type View } from "./viewRoute";
 
 export type OverlayStatus = "loading" | "ready" | "error";
+
+/** Site keyword fields the Dashboard charts. */
+export type SiteDim = "sediment_release" | "ecological_concern" | "analysis" | "site_type";
+/** Which publications a literature chart or the Library counts. */
+export type LitScope = "all" | "site" | "general";
+
+/** The Dashboard's topics, one shown at a time behind the headline tiles. */
+export type DashTopic = "sites" | "literature" | "screening" | "capacity";
+
+/** An open drill-down: a chart slice, a screening quadrant, a loss class or a
+    state, and (for the keyword charts) the "Break down by" field inside it. */
+export interface DashDrill {
+  card: "sites" | "lit" | "quadrants" | "loss" | "state";
+  key: string;
+  /** null = the chart's default breakdown. */
+  dim: string | null;
+}
+
+/** The drills without one topic's (for a dimension change that closes it). */
+export const dropDrill = (drills: Partial<Record<DashTopic, DashDrill>>, topic: DashTopic): Partial<Record<DashTopic, DashDrill>> => {
+  const next = { ...drills };
+  delete next[topic];
+  return next;
+};
+
+/** The Dashboard's hints (true = still due): "Click a tile to switch
+    topics" above the tiles, and each topic's own "Click a slice or a
+    keyword…" under its title. The tiles' hint retires at the first topic
+    switch; a topic's chart hint at the first drill-down in that topic, so
+    the others stay until their own charts are used. Every page load shows
+    them all again: nothing about them is stored (owner decisions
+    2026-09-26). */
+export interface DashHints {
+  topics: boolean;
+  explore: Record<DashTopic, boolean>;
+}
+
+/** Every hint due: the state each page load starts from. */
+const freshHints = (): DashHints => ({
+  topics: true,
+  explore: { sites: true, literature: true, screening: true, capacity: true },
+});
+
+/** The Dashboard's own UI state: the open topic, the charted dimensions,
+    each topic's open drill-down (so switching tabs keeps every one), and the
+    hints. Session-only, so leaving and returning restores the page. */
+export interface DashboardState {
+  topic: DashTopic;
+  siteDim: SiteDim;
+  /** A literature keyword field (src/library/index.ts LIT_FIELDS). */
+  litDim: string;
+  litScope: LitScope;
+  drills: Partial<Record<DashTopic, DashDrill>>;
+  hints: DashHints;
+}
+
+/** A sortable column of the Library's publication table. */
+export type LibrarySortKey = "year" | "title" | "site";
+export interface LibrarySort {
+  key: LibrarySortKey;
+  dir: "asc" | "desc";
+}
+
+/** The Library's search state (session-only). */
+export interface LibraryState {
+  query: string;
+  scope: LitScope;
+  sort: LibrarySort;
+  /** Selected facet values by field (OR within a field, AND across fields). */
+  facets: Record<string, string[]>;
+  /** Only publications about this site. */
+  siteId: string | null;
+  /** The publication chosen for the reading pane (null: none chosen yet). */
+  openLitId: string | null;
+  /** The one open filter group in the rail, by title (one at a time, like
+      the Selected Data cards); null closes them all. */
+  openGroup: string | null;
+}
+
+export const EMPTY_LIBRARY: LibraryState = {
+  query: "",
+  scope: "all",
+  sort: { key: "year", dir: "desc" },
+  facets: {},
+  siteId: null,
+  openLitId: null,
+  openGroup: "Document type",
+};
 
 /** Lazily-fetched sedimentation bundles that report load status (trajectory
     chunks stay chip-less — the chart section handles them inline). */
@@ -53,9 +142,12 @@ export const parseTableHeight = (raw: string | null): number | null => {
 };
 
 export const DETAILS_COL_MIN = 280;
-export const DETAILS_COL_MAX = 620;
+/** The widest a dragged Selected Data panel may be; the layout also caps it
+    at 70% of the window (PanelResizer, MapView), so the map keeps room. */
+export const DETAILS_COL_MAX = 1200;
 /** Persisted Selected Data panel width in px (desktop only — the drawers own
-    narrow screens). Unparseable → the stylesheet's 400px track (null). */
+    narrow screens). Unparseable → the stylesheet's default track (null),
+    min(800px, 50vw). */
 export const parseDetailsWidth = (raw: string | null): number | null => {
   if (raw == null || raw.trim() === "") return null;
   const n = Number(raw);
@@ -64,6 +156,11 @@ export const parseDetailsWidth = (raw: string | null): number | null => {
 };
 
 export interface AppState {
+  /** The top-level view: the map (the app as it always was), the Dashboard or
+      the Library. The map stays mounted underneath the other two. */
+  view: View;
+  dashboard: DashboardState;
+  library: LibraryState;
   filters: FilterState;
   /** Selected sites — one from a click, several from the map Select tools. */
   selectedSiteIds: string[];
@@ -84,15 +181,18 @@ export interface AppState {
   basemap: BasemapId;
   /** Which side panel is open as a drawer on narrow screens. */
   mobilePanel: "filters" | "details" | null;
-  /** Desktop-only side-panel collapse (the drawers take over on narrow screens). */
+  /** Desktop-only side-panel collapse (the drawers take over on narrow
+      screens). Both start collapsed on every visit. */
   filtersCollapsed: boolean;
   detailsCollapsed: boolean;
   /** Results-table split: fraction of the center stack given to the table
       (null = the responsive stylesheet default — 46%, 52% on phones). */
   tableHeightFrac: number | null;
-  /** Results table collapsed to the half-pill tab (all breakpoints). */
+  /** Results table collapsed to the half-pill tab (all breakpoints); starts
+      collapsed on every visit. */
   tableCollapsed: boolean;
-  /** Selected Data panel width in px (null = the stylesheet's 400px track). */
+  /** Selected Data panel width in px (null = the stylesheet's default track,
+      min(800px, 50vw)). */
   detailsWidthPx: number | null;
   helpOpen: boolean;
   downloadsOpen: boolean;
@@ -127,6 +227,11 @@ const initialFilters = (): FilterState =>
   Object.fromEntries(FILTER_DEFS.map((d) => [d.key, emptyItemState()]));
 
 let state: AppState = {
+  // The URL hash names the view at boot (#dashboard, #library); the store
+  // also runs under vitest in Node, where there is no location.
+  view: (typeof location !== "undefined" && parseViewHash(location.hash)) || "map",
+  dashboard: { topic: "sites", siteDim: "sediment_release", litDim: "purpose", litScope: "all", drills: {}, hints: freshHints() },
+  library: EMPTY_LIBRARY,
   filters: initialFilters(),
   selectedSiteIds: [],
   activeTab: "sites",
@@ -144,8 +249,11 @@ let state: AppState = {
     }
   })(),
   mobilePanel: null,
-  filtersCollapsed: false,
-  detailsCollapsed: false,
+  // The Map view opens clean on every visit: the full map, with the Data
+  // Filters, the results table and Selected Data collapsed (owner decision
+  // 2026-09-26). Only the sizes people drag are remembered.
+  filtersCollapsed: true,
+  detailsCollapsed: true,
   tableHeightFrac: (() => {
     try {
       return parseTableHeight(localStorage.getItem("resst.tableHeight"));
@@ -155,10 +263,11 @@ let state: AppState = {
   })(),
   tableCollapsed: (() => {
     try {
-      return localStorage.getItem("resst.tableCollapsed") === "1";
+      localStorage.removeItem("resst.tableCollapsed"); // the old per-browser setting; the table now always starts collapsed
     } catch {
-      return false;
+      /* storage unavailable */
     }
+    return true;
   })(),
   detailsWidthPx: (() => {
     try {
@@ -200,6 +309,33 @@ export function useAppState(): AppState {
   return useSyncExternalStore(subscribe, getState, getState);
 }
 
+/** The state as the Map view sees it: the same object until something
+    other than the Dashboard's or the Library's own state, or the view,
+    changes. The Map view stays mounted (hidden) under those pages, so
+    without this every click there, and every switch between views, would
+    re-render the whole map, table and panels. The Map view reads the view
+    itself through useView. */
+const PAGE_ONLY: ReadonlySet<keyof AppState> = new Set<keyof AppState>(["library", "dashboard", "view"]);
+let mapViewSnapshot: AppState = state;
+export const getMapViewState = (): AppState => {
+  if (mapViewSnapshot !== state) {
+    const prev = mapViewSnapshot;
+    const changed = (Object.keys(state) as Array<keyof AppState>).some((k) => !PAGE_ONLY.has(k) && state[k] !== prev[k]);
+    if (changed) mapViewSnapshot = state;
+  }
+  return mapViewSnapshot;
+};
+
+export function useMapViewState(): AppState {
+  return useSyncExternalStore(subscribe, getMapViewState, getMapViewState);
+}
+
+const getView = (): View => state.view;
+/** The current view alone: a component using it re-renders only on a switch. */
+export function useView(): View {
+  return useSyncExternalStore(subscribe, getView, getView);
+}
+
 function set(partial: Partial<AppState>): void {
   state = { ...state, ...partial };
   emit();
@@ -236,15 +372,23 @@ export const actions = {
       returnTo: null,
     });
   },
-  /** Multi-selection from the map Select tools. Dedupes and touches nothing
-      else beyond the selection invariant — tool sessions disarm explicitly
-      via setMapTool. */
-  selectSites(siteIds: string[]): void {
+  /** Multi-selection from the map Select tools and the pages' "Show on map".
+      Dedupes and touches nothing else beyond the selection invariant — tool
+      sessions disarm explicitly via setMapTool.
+      A multi-site selection has no popup, so it opens Selected Data (the
+      desktop flag; narrow screens keep their drawers closed). A `live`
+      refinement (the river tool's distance edits) opens it only when the
+      selection first grows past one site, so a panel closed mid-refinement
+      stays closed. */
+  selectSites(siteIds: string[], opts: { live?: boolean } = {}): void {
+    const ids = [...new Set(siteIds)];
+    const reveal = ids.length > 1 && (!opts.live || state.selectedSiteIds.length <= 1);
     set({
-      selectedSiteIds: [...new Set(siteIds)],
+      selectedSiteIds: ids,
       selectedReservoirId: null,
       networkView: { mode: "none", basin: false },
       returnTo: null,
+      ...(reveal ? { detailsCollapsed: false } : {}),
     });
   },
   /** National-inventory reservoir selection (non-documented dams). Clears any
@@ -343,6 +487,7 @@ export const actions = {
     set({ mobilePanel: panel });
   },
   setPanelCollapsed(panel: "filters" | "details", collapsed: boolean): void {
+    if ((panel === "filters" ? state.filtersCollapsed : state.detailsCollapsed) === collapsed) return; // no-op guard
     set(panel === "filters" ? { filtersCollapsed: collapsed } : { detailsCollapsed: collapsed });
   },
   /** Drag/keyboard resize of the results table; null restores the responsive default. */
@@ -357,17 +502,12 @@ export const actions = {
     }
     set({ tableHeightFrac: next });
   },
+  /** Open or close the results table (not persisted: every visit starts collapsed). */
   setTableCollapsed(collapsed: boolean): void {
     if (state.tableCollapsed === collapsed) return; // no-op guard
-    try {
-      if (collapsed) localStorage.setItem("resst.tableCollapsed", "1");
-      else localStorage.removeItem("resst.tableCollapsed");
-    } catch {
-      /* storage unavailable — persists for this session only */
-    }
     set({ tableCollapsed: collapsed });
   },
-  /** Drag/keyboard resize of the Selected Data panel; null restores the 400px default. */
+  /** Drag/keyboard resize of the Selected Data panel; null restores the default width. */
   setDetailsWidth(px: number | null): void {
     const next = px == null ? null : Math.min(DETAILS_COL_MAX, Math.max(DETAILS_COL_MIN, Math.round(px)));
     if (state.detailsWidthPx === next) return; // no-op guard
@@ -444,6 +584,68 @@ export const actions = {
   setScreeningOpen(open: boolean): void {
     if (state.screeningOpen === open) return;
     set({ screeningOpen: open });
+  },
+  /** Switch the top-level view. A mobile drawer belongs to the Map view, so it closes. */
+  setView(view: View): void {
+    if (state.view === view) return;
+    set({ view, mobilePanel: null });
+  },
+  setDashboard(partial: Partial<DashboardState>): void {
+    set({ dashboard: { ...state.dashboard, ...partial } });
+  },
+  /** Show one Dashboard topic (its headline tile is the tab). The first
+      switch retires the tiles' hint. */
+  setDashboardTopic(topic: DashTopic): void {
+    if (state.dashboard.topic === topic) return;
+    const h = state.dashboard.hints;
+    set({ dashboard: { ...state.dashboard, topic, hints: h.topics ? { ...h, topics: false } : h } });
+  },
+  /** Open, change or (null) close one topic's drill-down; the others stay.
+      The first one opened in a topic retires that topic's chart hint;
+      closing one does not. */
+  setDashboardDrill(topic: DashTopic, drill: DashDrill | null): void {
+    const drills = { ...state.dashboard.drills };
+    if (drill) drills[topic] = drill;
+    else delete drills[topic];
+    const h = state.dashboard.hints;
+    const hints = drill && h.explore[topic] ? { ...h, explore: { ...h.explore, [topic]: false } } : h;
+    set({ dashboard: { ...state.dashboard, drills, hints } });
+  },
+  setLibrary(partial: Partial<LibraryState>): void {
+    set({ library: { ...state.library, ...partial } });
+  },
+  /** Add or remove one facet value (matched case-insensitively). */
+  toggleLibraryFacet(field: string, value: string): void {
+    const cur = state.library.facets[field] ?? [];
+    const key = value.toLowerCase();
+    const next = cur.some((v) => v.toLowerCase() === key) ? cur.filter((v) => v.toLowerCase() !== key) : [...cur, value];
+    const facets = { ...state.library.facets };
+    if (next.length > 0) facets[field] = next;
+    else delete facets[field];
+    set({ library: { ...state.library, facets } });
+  },
+  /** Clear every search criterion; the sort order, the open publication and
+      the open filter group stay. */
+  clearLibrary(): void {
+    const { sort, openLitId, openGroup } = state.library;
+    set({ library: { ...EMPTY_LIBRARY, sort, openLitId, openGroup } });
+  },
+  /** Open the Library on a fresh search seeded from elsewhere (a Dashboard
+      slice, a site): everything else is cleared. `group` opens the filter
+      group that holds the seeded keyword, so its tick is in view. */
+  openLibrary(seed: { facet?: { field: string; value: string }; scope?: LitScope; siteId?: string | null; group?: string | null }): void {
+    set({
+      view: "library",
+      mobilePanel: null,
+      library: {
+        ...EMPTY_LIBRARY,
+        sort: state.library.sort,
+        scope: seed.scope ?? "all",
+        siteId: seed.siteId ?? null,
+        facets: seed.facet ? { [seed.facet.field]: [seed.facet.value] } : {},
+        openGroup: seed.group !== undefined ? seed.group : state.library.openGroup,
+      },
+    });
   },
   closeWelcome(dontShowAgain: boolean): void {
     if (dontShowAgain) {

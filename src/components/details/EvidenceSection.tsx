@@ -10,7 +10,7 @@
 // out, glossary popover for the rest), then the original-record links.
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useAppState } from "../../state/store";
+import { useMapViewState } from "../../state/store";
 import { ensureSurveys, getCore, surveyProvenanceForRow, surveysForRow } from "../../sediment/data";
 import { compact, m3ToAcft, surveyMethodText, surveyMonthLabel } from "../../sediment/format";
 import { PROVENANCE, SURVEY_POOL_LABELS, ressedDatasheetUrl } from "../../sediment/types";
@@ -133,7 +133,7 @@ export function EvidenceSection({
   /** Most recent survey year when known at render time (site links carry it); badge-only, see evidenceBadgeFor. */
   latestYear?: number | null;
 }) {
-  useAppState(); // re-render on sedimentStamp
+  useMapViewState(); // re-render on sedimentStamp
   const [error, setError] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
 

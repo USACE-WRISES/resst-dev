@@ -8,12 +8,14 @@ import AxeBuilder from "@axe-core/playwright";
 import { stubEsri } from "./helpers/esriStub";
 import { stubSediment, type SedimentRouteOptions } from "./helpers/sedimentFixtures";
 import { openDetailSection } from "./helpers/sections";
+import { showPanels } from "./helpers/panels";
 
 async function openApp(page: Page, options?: SedimentRouteOptions) {
   await stubEsri(page);
   const routes = await stubSediment(page, options);
   await page.goto("./");
   await page.getByRole("button", { name: "OK" }).click();
+  await showPanels(page);
   return routes;
 }
 
@@ -146,6 +148,37 @@ test("all cards start collapsed; one opens at a time and stays open across sites
     "aria-expanded",
     "true",
   );
+});
+
+test("the open card is marked, and its header stays pinned while the card scrolls", async ({ page }) => {
+  await openApp(page);
+  await selectSite(page, "Tuttle Creek");
+  const details = page.locator(".details-panel");
+  const head = details.locator(".detail-sec-head", { hasText: "Reservoir Sustainability" });
+  await head.click();
+  await expect(page.locator(".traj-chart svg")).toBeVisible();
+
+  // One marked card: the tinted header band over an accent edge, and the pin.
+  await expect(details.locator(".detail-section.is-open")).toHaveCount(1);
+  await expect(head).toHaveCSS("background-color", "rgb(238, 245, 248)");
+  await expect(details.locator(".detail-section.is-open > .sec-h")).toHaveCSS("position", "sticky");
+
+  // Scrolled past where the header would sit, it is still at the panel's top.
+  const naturalTop = await details.evaluate((panel) => (panel.querySelector(".detail-section.is-open > .sec-h") as HTMLElement).offsetTop);
+  const scrolled = await details.evaluate((panel) => {
+    panel.scrollTop = panel.scrollHeight;
+    return panel.scrollTop;
+  });
+  expect(scrolled).toBeGreaterThan(naturalTop); // a plain header would now be above the fold
+  await expect
+    .poll(async () => Math.abs((await head.boundingBox())!.y - (await details.boundingBox())!.y))
+    .toBeLessThan(2);
+
+  // The pinned header still collapses its card.
+  await head.click();
+  await expect(head).toHaveAttribute("aria-expanded", "false");
+  await expect(details.locator("#detail-sec-sust")).toBeHidden();
+  await expect(details.locator(".detail-section.is-open")).toHaveCount(0);
 });
 
 test("trajectory failure surfaces an error and Retry recovers", async ({ page }) => {

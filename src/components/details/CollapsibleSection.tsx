@@ -10,7 +10,7 @@
 // aria-controls target) but mounts its children only while open.
 
 import { useEffect, useRef, type ReactNode } from "react";
-import { actions, useAppState } from "../../state/store";
+import { actions, useMapViewState } from "../../state/store";
 import { ChevronDown } from "../icons";
 
 export function CollapsibleSection({
@@ -30,7 +30,7 @@ export function CollapsibleSection({
   lazy?: boolean;
   children: ReactNode;
 }) {
-  const state = useAppState();
+  const state = useMapViewState();
   const open = state.openSection === id;
   const bodyId = `detail-sec-${id}`;
   const sectionRef = useRef<HTMLElement>(null);

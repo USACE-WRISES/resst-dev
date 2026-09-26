@@ -1,6 +1,7 @@
 // Results-table and Selected Data panel layout state (src/state/store.ts):
-// the clamped size parsers and the persistence discipline of
-// setTableHeight / setTableCollapsed / setDetailsWidth.
+// the clean start (every panel collapsed, nothing about it persisted), the
+// clamped size parsers, and the persistence discipline of setTableHeight /
+// setDetailsWidth.
 import { describe, expect, it, vi } from "vitest";
 import {
   actions,
@@ -13,6 +14,13 @@ import {
   TABLE_ROW_MAX,
   TABLE_ROW_MIN,
 } from "../src/state/store";
+
+describe("the clean start", () => {
+  it("opens every visit with the Data Filters, the table and Selected Data collapsed", () => {
+    const s = getState();
+    expect([s.filtersCollapsed, s.tableCollapsed, s.detailsCollapsed]).toEqual([true, true, true]);
+  });
+});
 
 describe("parseTableHeight", () => {
   it("clamps numbers and rejects garbage", () => {
@@ -48,14 +56,14 @@ describe("setTableHeight / setTableCollapsed", () => {
     expect(ls.removeItem).toHaveBeenCalledWith("resst.tableHeight");
     expect(emits).toBe(2);
 
-    actions.setTableCollapsed(true);
-    expect(getState().tableCollapsed).toBe(true);
-    expect(ls.setItem).toHaveBeenCalledWith("resst.tableCollapsed", "1");
-    actions.setTableCollapsed(true); // no-op
-    expect(emits).toBe(3);
+    // Open and closed are session state: every visit starts collapsed.
     actions.setTableCollapsed(false);
-    expect(ls.removeItem).toHaveBeenCalledWith("resst.tableCollapsed");
+    expect(getState().tableCollapsed).toBe(false);
+    actions.setTableCollapsed(false); // no-op
+    expect(emits).toBe(3);
+    actions.setTableCollapsed(true);
     expect(emits).toBe(4);
+    expect(ls.setItem).not.toHaveBeenCalledWith("resst.tableCollapsed", expect.anything());
 
     unsubscribe();
     vi.unstubAllGlobals();
@@ -84,7 +92,8 @@ describe("setDetailsWidth", () => {
       emits += 1;
     });
 
-    actions.setDetailsWidth(1000); // clamps to the max
+    expect(DETAILS_COL_MAX).toBe(1200); // raised from 620 (owner, 2026-09-26); the layout also caps it at 70% of the window
+    actions.setDetailsWidth(5000); // clamps to the max
     expect(getState().detailsWidthPx).toBe(DETAILS_COL_MAX);
     expect(ls.setItem).toHaveBeenCalledWith("resst.detailsWidth", String(DETAILS_COL_MAX));
     expect(emits).toBe(1);
