@@ -152,6 +152,10 @@ export class NetworkLayers {
     this.down = [];
     this.mouthMarkers = [];
     this.mouthLabelsOn = false;
+    // Leaflet never retires a renderer on its own: an emptied canvas would
+    // stay over the whole map, redrawn (and, under browser isolation,
+    // streamed) on every move. The next large highlight adds it back.
+    if (this.map.hasLayer(this.canvas)) this.map.removeLayer(this.canvas);
   }
 
   /** Radii follow the zoom like MapLibre's interpolated circle-radius; one pass, one redraw. */

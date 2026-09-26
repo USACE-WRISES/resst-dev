@@ -7,9 +7,13 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { stubEsri, waitForBasemap } from "./helpers/esriStub";
-import { waitForMapIdle } from "./helpers/mapReady";
-import { stubSediment } from "./helpers/sedimentFixtures";
+import { screenPt, waitForMapIdle } from "./helpers/mapReady";
+import { inventoryWithUpstream, stubSediment } from "./helpers/sedimentFixtures";
 import { openDetailSection } from "./helpers/sections";
+
+// Tuttle Creek (the site and its fixture dam share these coordinates).
+const TUTTLE_LON = -96.5943465450358;
+const TUTTLE_LAT = 39.2562232982835;
 
 async function openOnTuttle(page: Page) {
   await stubEsri(page);
@@ -137,6 +141,71 @@ test("the card's ⓘ popovers open fully inside the panel", async ({ page }) => 
   await page.keyboard.press("Escape");
   await net.getByRole("button", { name: "How the downstream path is drawn" }).click();
   await within(net.locator(".info-tip-pop"));
+});
+
+test("a canvas-drawn upstream highlight never blocks the site markers, and clearing it removes the canvas", async ({
+  page,
+}) => {
+  await stubEsri(page);
+  await stubSediment(page, { inventory: inventoryWithUpstream(520) });
+  await page.goto("./");
+  await page.getByRole("button", { name: "OK" }).click();
+  await page.locator(".table-panel input").first().fill("Tuttle");
+  await page.locator(".data-table tbody tr", { hasText: "Tuttle Creek" }).first().click();
+  await openDetailSection(page, "Reservoir Network");
+  await waitForMapIdle(page);
+  const net = page.locator("#detail-sec-net");
+  const upstream = net.locator(".nw-btn", { hasText: "Upstream" });
+  await expect(upstream).toContainText("521");
+  const canvas = page.locator(".leaflet-networkDots-pane > canvas");
+
+  await upstream.click();
+  await expect.poll(() => sourceKinds(page)).toEqual({ up: 521 });
+  await expect(canvas).toHaveCount(1); // past 500 dots the highlight draws on a canvas
+  await expect(canvas).toHaveCSS("pointer-events", "none");
+
+  // Pull back so several documented sites are in view, then probe them: the
+  // canvas spans the whole map above the site markers, yet each marker still
+  // takes the pointer. (jumpTo returns the map, which cannot be serialized.)
+  const pullBack = () =>
+    page.evaluate(() => {
+      (window as any).__resstMapInfo.jumpTo(-96.3, 39.1, 7);
+    });
+  await pullBack();
+  await waitForMapIdle(page);
+  const probe = await page.evaluate(() => {
+    const map = document.querySelector(".map-panel")!.getBoundingClientRect();
+    const hits: Array<{ x: number; y: number; hit: string }> = [];
+    for (const p of document.querySelectorAll(".leaflet-sites-pane path.leaflet-interactive")) {
+      const r = p.getBoundingClientRect();
+      const x = r.left + r.width / 2;
+      const y = r.top + r.height / 2;
+      if (x < map.left + 20 || x > map.right - 60 || y < map.top + 60 || y > map.bottom - 20) continue;
+      const el = document.elementFromPoint(x, y);
+      if (el?.closest(".leaflet-popup-pane, .map-toolbar")) continue;
+      hits.push({ x, y, hit: el?.tagName === "CANVAS" ? "canvas" : el?.closest(".leaflet-sites-pane") ? "marker" : "other" });
+    }
+    return hits;
+  });
+  expect(probe.filter((h) => h.hit === "canvas")).toEqual([]);
+  expect(probe.some((h) => h.hit === "marker")).toBe(true);
+
+  // Clearing the highlight takes the canvas off the map; the next large highlight brings it back.
+  await net.getByRole("button", { name: "Clear highlight", exact: true }).click();
+  await expect(canvas).toHaveCount(0);
+  await upstream.click();
+  await expect(canvas).toHaveCount(1);
+
+  // A marker click selects its site straight through the highlight (same
+  // view as the probe, so its points still apply).
+  await pullBack();
+  await waitForMapIdle(page);
+  const tuttle = await screenPt(page, TUTTLE_LON, TUTTLE_LAT);
+  const other = probe.find((h) => h.hit === "marker" && Math.hypot(h.x - tuttle.x, h.y - tuttle.y) > 12)!;
+  expect(other).toBeTruthy();
+  await page.mouse.click(other.x, other.y);
+  await expect(page.locator(".details-panel .site-name")).not.toHaveText("Tuttle Creek");
+  await expect(canvas).toHaveCount(0); // the new selection reset the highlight
 });
 
 test("a network highlight closes the site popup so it does not cover the network", async ({ page }) => {

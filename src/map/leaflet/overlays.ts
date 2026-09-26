@@ -64,6 +64,19 @@ export class LeafletOverlays implements OverlaySink {
     if (!layer) return;
     if (on && !this.map.hasLayer(layer)) layer.addTo(this.map);
     if (!on && this.map.hasLayer(layer)) this.map.removeLayer(layer);
+    this.retireIdleCanvas();
+  }
+
+  /** Take the shared canvas renderer off the map once no vector overlay is
+      showing (Leaflet keeps a renderer forever otherwise); re-adding a layer
+      that uses it brings it back. */
+  private retireIdleCanvas(): void {
+    for (const d of OVERLAYS) {
+      if (d.kind === "wms") continue;
+      const layer = this.layers.get(d.key);
+      if (layer && this.map.hasLayer(layer)) return; // a vector overlay still draws on it
+    }
+    if (this.map.hasLayer(this.canvas)) this.map.removeLayer(this.canvas);
   }
 
   /** Feature counts of the overlays currently shown (e2e). */
@@ -81,6 +94,7 @@ export class LeafletOverlays implements OverlaySink {
     this.layers.clear();
     this.featureCounts.clear();
     this.visible.clear();
+    if (this.map.hasLayer(this.canvas)) this.map.removeLayer(this.canvas);
   }
 
   private buildGeoJson(def: OverlayDef, fc: FeatureCollection): L.Layer {

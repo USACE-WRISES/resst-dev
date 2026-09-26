@@ -138,6 +138,35 @@ export interface SedimentRouteOptions {
   /** Return HTTP 500 for these files until the returned handle's clear() is
       called — exercises the error → Retry paths. */
   failing?: Array<"sites" | "inventory" | "surveys" | "trajectories">;
+  /** Serve this inventory instead of INVENTORY_FIXTURE (a bigger network). */
+  inventory?: unknown;
+}
+
+/** INVENTORY_FIXTURE plus `extra` headwater dams draining straight into
+    Tuttle Creek Dam (row 1), spread north of it: enough upstream dots for the
+    network highlight's canvas renderer (it takes over past 500). */
+export function inventoryWithUpstream(extra: number): typeof INVENTORY_FIXTURE {
+  const inv = structuredClone(INVENTORY_FIXTURE);
+  const c = inv.cols as Record<string, Array<number | string | null>>;
+  for (let i = 0; i < extra; i++) {
+    c.id.push(1000 + i);
+    c.name.push(`Upstream Pond ${i + 1}`);
+    c.nid.push(`KS9${String(i).padStart(4, "0")}`);
+    c.lon.push(-96.9 + (i % 30) * 0.02);
+    c.lat.push(39.45 + Math.floor(i / 30) * 0.02);
+    for (const k of ["state", "owner", "purpose", "storSrc"]) c[k].push(0);
+    c.yrc.push(1960);
+    c.flags.push(HEADWATER);
+    c.to.push(1);
+    c.deltaTag.push(0);
+    c.maxStor.push(1e6);
+    c.da.push(10);
+    c.sca.push(10);
+    for (const k of ["capOrig", "cap2025", "cap2050", "sed2015", "sed2025", "sed2050"]) c[k].push(null);
+    c.evd.push(0);
+  }
+  inv.n = c.id.length;
+  return inv;
 }
 
 export interface SedimentRoutes {
@@ -169,7 +198,7 @@ export async function stubSediment(page: Page, options: SedimentRouteOptions = {
       case "sites":
         return route.fulfill(json(SITE_LINKS_FIXTURE));
       case "inventory":
-        return route.fulfill(json(INVENTORY_FIXTURE));
+        return route.fulfill(json(options.inventory ?? INVENTORY_FIXTURE));
       case "surveys":
         return route.fulfill(json(SURVEYS_FIXTURE));
       case "trajectories":

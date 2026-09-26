@@ -1145,5 +1145,10 @@ a.lit-card-title:hover { text-decoration: underline; }
 @media (min-width: 1101px) { .app-main.details-collapsed .map-panel .resst-popup .popup-more { display: block; } }
 .dom-place-marker { background: none; border: 0; }
 .dom-place-marker svg { display: block; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35)); }
-/* The national inventory canvas: the map handles its clicks (the panel hit-tests it). */
-.map-panel .national-canvas { pointer-events: none; }
+/* Canvas renderers never take the pointer. Every canvas-drawn layer here is
+   non-interactive (the national inventory, the network highlight's upstream
+   dots, the reference overlays), and Leaflet spans each canvas over the whole
+   map: one left in a pane above the site markers swallowed their clicks and
+   hover cursor. The map still handles every click and hover itself (national
+   dots are hit-tested in MapPanel). */
+.map-panel .leaflet-pane > canvas { pointer-events: none; }
