@@ -18,7 +18,8 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { L } from "./leaflet/leaflet";
-import type { Site } from "../lib/types";
+import type { LiteratureEntry, Site } from "../lib/types";
+import type { SiteSedimentLink } from "../sediment/types";
 import { actions, type AppState } from "../state/store";
 import { registerMapCommands } from "./mapBus";
 import { MapToolbar } from "./MapToolbar";
@@ -39,6 +40,7 @@ import { NationalLayer } from "./leaflet/national";
 import { LeafletOverlays } from "./leaflet/overlays";
 import { createLeafletToolMap } from "./leaflet/toolMapLeaflet";
 import { lz, mz } from "./leaflet/zoom";
+import { fitPadding, popupShift, type Rect } from "./viewInsets";
 
 export interface MapPanelProps {
   /** Filtered sites currently shown on the map. */
@@ -48,6 +50,10 @@ export interface MapPanelProps {
   siteById: Map<string, Site>;
   /** ResNet ShortID → site_id — routes national-layer clicks on documented dams to the site experience. */
   siteByShortId: Map<number, string>;
+  /** site_id → its literature entries (the popup's reference count). */
+  entriesBySite: Map<string, LiteratureEntry[]>;
+  /** site_id → its ResNet/RATTES link (the popup's modeled capacity lost). */
+  siteSediment: Map<string, SiteSedimentLink>;
   state: AppState;
 }
 
@@ -93,7 +99,7 @@ type Handles = { __resstMap?: L.Map; __resstMapInfo?: MapHandles };
 
 const roundZoom = (map: L.Map) => Math.round(mz(map.getZoom()) * 10) / 10;
 
-export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: MapPanelProps) {
+export function MapPanel({ sites, allSites, siteById, siteByShortId, entriesBySite, siteSediment, state }: MapPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -142,6 +148,60 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: Ma
     const pm = placeMarkerRef.current;
     placeMarkerRef.current = null;
     pm?.remove();
+  };
+
+  /** The floating toolbar's box and the docked Screening panel's box, in
+      map-container pixels: the chrome popups and fits keep clear of. The
+      phone layout pins the panel over the top of the map instead of docking
+      it, so it is not a left inset there. */
+  const chromeRects = (): { toolbar: Rect | null; dock: Rect | null } => {
+    const el = containerRef.current;
+    const wrap = el?.parentElement;
+    if (!el || !wrap) return { toolbar: null, dock: null };
+    const base = el.getBoundingClientRect();
+    const rel = (node: Element | null): Rect | null => {
+      if (!node) return null;
+      const r = node.getBoundingClientRect();
+      if (r.width === 0 && r.height === 0) return null;
+      return { left: r.left - base.left, top: r.top - base.top, right: r.right - base.left, bottom: r.bottom - base.top };
+    };
+    const dockEl = wrap.querySelector(".screening-dock");
+    return {
+      toolbar: rel(wrap.querySelector(".map-toolbar")),
+      dock: dockEl && getComputedStyle(dockEl).position !== "fixed" ? rel(dockEl) : null,
+    };
+  };
+
+  /** Fly to a selection at zoom 8 or closer, aimed so its (already open)
+      popup lands clear of the toolbar and the dock. The aim moves only when
+      the popup would not fit above a centred site, so the usual flight still
+      centres it. */
+  const flyToSelection = (map: L.Map, lat: number, lon: number, popup: L.Popup) => {
+    const z = lz(Math.max(mz(map.getZoom()), 8));
+    const site = L.latLng(lat, lon);
+    const box = popup.getElement();
+    let target = site;
+    if (box) {
+      const el = map.getContainer();
+      const { toolbar, dock } = chromeRects();
+      const { dx, dy } = popupShift({
+        mapW: el.clientWidth,
+        mapH: el.clientHeight,
+        popupW: box.offsetWidth,
+        popupH: box.offsetHeight,
+        toolbar,
+        dock,
+      });
+      if (dx || dy) target = map.unproject(map.project(site, z).subtract(L.point(dx, dy)), z);
+    }
+    map.flyTo(target, z, FLY);
+  };
+
+  /** The popup's "Show details": open the drawer on narrow layouts, or
+      expand a collapsed Selected Data panel on wide ones. */
+  const showDetails = () => {
+    if (window.matchMedia("(max-width: 1100px)").matches) actions.setMobilePanel("details");
+    else actions.setPanelCollapsed("details", false);
   };
 
   useEffect(() => {
@@ -240,16 +300,26 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: Ma
     });
     map.on("zoomend", () => network.onZoomEnd());
 
+    // Fits pad for the toolbar and the open Screening dock as well as the
+    // map edge, so fitted features never land under the chrome.
+    const fitOptions = (maxZoom: number): L.FitBoundsOptions => {
+      const { toolbar, dock } = chromeRects();
+      return { ...fitPadding({ mapW: el.clientWidth, mapH: el.clientHeight, toolbar, dock }), maxZoom, ...FLY };
+    };
     const fitCoords = (pts: Array<[number, number]>) => {
+      // Framing features to read them (the network, a drainage area,
+      // screening matches): the selected site's popup would sit on top.
+      popupRef.current?.remove();
+      popupRef.current = null;
       const bounds = L.latLngBounds(pts.map(([lon, lat]) => [lat, lon] as [number, number]));
-      map.flyToBounds(bounds, { padding: [60, 60], maxZoom: lz(9), ...FLY });
+      map.flyToBounds(bounds, fitOptions(lz(9)));
     };
     registerMapCommands({
       fitToSites(list) {
         const pts = list.filter((s) => s.longitude != null && s.latitude != null);
         if (!pts.length) return;
         const bounds = L.latLngBounds(pts.map((s) => [s.latitude!, s.longitude!] as [number, number]));
-        map.flyToBounds(bounds, { padding: [60, 60], maxZoom: lz(10), ...FLY });
+        map.flyToBounds(bounds, fitOptions(lz(10)));
       },
       flyTo(lon, lat, zoom = 9) {
         map.flyTo([lat, lon], lz(Math.max(mz(map.getZoom()), zoom)), FLY);
@@ -342,8 +412,14 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: Ma
 
     // Keep the map sized to the grid cell (panels collapse, drawers open, the
     // table divider drags). No blank-frame hazard here: Leaflet only
-    // re-measures and re-centres.
-    const ro = new ResizeObserver(() => map.invalidateSize({ animate: false }));
+    // re-measures and re-centres. The size also feeds --map-h / --map-w, which
+    // cap the docked Screening panel to the map (custom properties on the
+    // wrap: nothing they style can resize the observed map).
+    const ro = new ResizeObserver(() => {
+      map.invalidateSize({ animate: false });
+      el.parentElement?.style.setProperty("--map-h", `${el.clientHeight}px`);
+      el.parentElement?.style.setProperty("--map-w", `${el.clientWidth}px`);
+    });
     ro.observe(el);
 
     return () => {
@@ -425,6 +501,14 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: Ma
     natLayerRef.current?.setScreening(state.screening, new Set(siteByShortId.keys()));
   }, [state.screening, siteByShortId]);
 
+  // Opening the docked Screening panel starts a national exploration; the
+  // selected site's popup would sit half under the panel, so it closes.
+  useEffect(() => {
+    if (!state.screeningOpen) return;
+    popupRef.current?.remove();
+    popupRef.current = null;
+  }, [state.screeningOpen]);
+
   // Keep the markers in sync with the filtered sites (a diff by id: the
   // array's identity changes on every selection).
   useEffect(() => {
@@ -463,13 +547,19 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: Ma
     if (selectedIds.length !== 1) return;
     const site = siteById.get(selectedIds[0]);
     if (!site || site.longitude == null || site.latitude == null) return;
-    popupRef.current = openPopup(map, site.longitude, site.latitude, popupHtml(site));
-    map.flyTo([site.latitude, site.longitude], lz(Math.max(mz(map.getZoom()), 8)), FLY);
+    const html = popupHtml(site, {
+      references: entriesBySite.get(site.site_id)?.length ?? 0,
+      link: siteSediment.get(site.site_id) ?? null,
+    });
+    const popup = openPopup(map, site.longitude, site.latitude, html, showDetails);
+    popupRef.current = popup;
+    flyToSelection(map, site.latitude, site.longitude, popup);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedIds, siteById]);
 
   // Selected national reservoir (reachable from Comparables even without the
   // national layer): ring + compact popup + fly-to. Declared after the site
-  // effect for the same ordering reason as in the MapLibre panel.
+  // effect so a site → reservoir switch ends with the reservoir's popup.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -485,8 +575,10 @@ export function MapPanel({ sites, allSites, siteById, siteByShortId, state }: Ma
     const lon = core.lon[row];
     const lat = core.lat[row];
     reservoirRingRef.current = L.circleMarker([lat, lon], RING_STYLE).addTo(map);
-    popupRef.current = openPopup(map, lon, lat, reservoirPopupHtml(core, row));
-    map.flyTo([lat, lon], lz(Math.max(mz(map.getZoom()), 8)), FLY);
+    const popup = openPopup(map, lon, lat, reservoirPopupHtml(core, row), showDetails);
+    popupRef.current = popup;
+    flyToSelection(map, lat, lon, popup);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.selectedReservoirId, state.sedimentStatus.core]);
 
   // Armed Select tool → one session per arming (selectTools.ts). The effect

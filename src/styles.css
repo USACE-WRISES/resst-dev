@@ -20,6 +20,17 @@
      #00707b gives ~5.8:1 where #00a0b0 gives only ~2.9:1). */
   --select-deep: #00707b;
   --danger: #a4373a;
+  /* Selected Data cards and the Screening panel (2026-09-25 clarity pass):
+     hairlines inside cards, chip fill, card radius, raised-surface shadow. */
+  --line-soft: #e6ebef;
+  --chip-bg: #edf2f5;
+  --radius: 8px;
+  --shadow-pop: 0 8px 24px rgba(16, 42, 67, 0.16);
+  /* Network highlight colours, mirrored from src/map/palette.ts (the map
+     layer and the Legend read the TS constants; keep both in sync). */
+  --net-up: #6a51a3;
+  --net-down: #1b7837;
+  --net-mouth: #0b3954;
   --header-h: 52px;
   --footer-h: 28px;
   /* Selected Data panel default width (desktop grid track). A drag/keyboard
@@ -221,33 +232,169 @@ html[data-resizing="row"], html[data-resizing="row"] * { cursor: row-resize !imp
 }
 .filtered-counts b, .selected-counts b { font-variant-numeric: tabular-nums; }
 
-/* details */
-.detail-section { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; }
-.detail-section h3 { margin: 0 0 8px; font-size: 14px; }
+/* ---------- Selected Data panel (2026-09-25 clarity pass) ----------
+   A header card names the selection; one accordion card below holds the
+   collapsible cards, one open at a time. Inside a card: an optional lead
+   line, labelled values (.kv), chips, and one source line at the foot.
+   The Dam Report modal portals into this page and inherits this sheet, so
+   the classes it shares with the old panel (.field-*, .lit-title/-meta/-doi,
+   .stat-*, .conn-*, .nw-sentence, .sim-score, .sec-status, .muted, the
+   chart rules) keep their rules as they are; the panel uses its own. */
 .field-list { margin: 0; }
 .field-row { display: grid; grid-template-columns: 46% 54%; gap: 6px; padding: 3px 0; border-bottom: 1px solid var(--panel); }
 .field-row dt { color: var(--ink-3); font-size: 12.5px; }
 .field-row dd { margin: 0; word-break: break-word; }
-.lit-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; }
-.lit-list li { border-bottom: 1px solid var(--panel); padding-bottom: 6px; display: flex; flex-direction: column; gap: 1px; }
 .lit-title { font-weight: 600; }
 .lit-meta { color: var(--ink-3); font-size: 12.5px; }
 .lit-doi { font-size: 12px; word-break: break-all; }
-.empty-note { padding: 4px 2px; }
 .muted { color: var(--ink-3); }
-
-/* ---------- sedimentation sections (details panel) ---------- */
-.sec-h { margin: 0; }
-.detail-sec-head { display: flex; align-items: center; gap: 6px; width: 100%; background: none; border: 0; padding: 0; font: inherit; font-size: 14px; font-weight: 600; color: var(--ink); cursor: pointer; text-align: left; }
-.detail-sec-head:hover .sec-title { text-decoration: underline; }
-.sec-caret { color: var(--ink-3); font-size: 11px; width: 11px; flex: none; }
-.sec-title { min-width: 0; }
-.detail-sec-head .prov-badge { margin-left: auto; }
-.sec-body { margin-top: 8px; }
 .sec-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-3); margin: 8px 0 0; }
 .sec-status[data-status="loading"]::before { content: ""; flex: none; width: 10px; height: 10px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: ov-spin 1s linear infinite; }
 .sec-status[data-status="error"] { color: #b3261e; }
-.sediment-note { font-size: 12px; padding: 2px 2px 0; }
+
+.icon { display: inline-block; flex: none; vertical-align: middle; }
+
+/* panel chrome: title-row buttons, Back link, pager, empty state */
+.details-panel .panel-title-row { align-items: center; min-height: 28px; }
+.panel-btn {
+  display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px;
+  font: inherit; font-size: 12.5px; font-weight: 600; color: var(--accent);
+  background: var(--paper); border: 1px solid var(--line); border-radius: 6px; cursor: pointer;
+}
+.panel-btn:hover { background: var(--accent-soft); border-color: #b9d3dd; }
+.panel-btn-quiet { color: var(--ink-2); background: transparent; border-color: transparent; }
+.panel-btn-quiet:hover { background: #e7edf1; border-color: transparent; }
+.back-link {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 3px; margin: -2px 0 -4px;
+  padding: 2px 0; background: none; border: 0; font: inherit; font-size: 12.5px; font-weight: 600;
+  color: var(--accent); cursor: pointer;
+}
+.back-link:hover { text-decoration: underline; }
+.empty-note {
+  padding: 18px 16px; text-align: center; color: var(--ink-2);
+  background: var(--paper); border: 1px dashed var(--line); border-radius: var(--radius);
+}
+.empty-note p { margin: 0; }
+.empty-note p + p { margin-top: 6px; font-size: 12.5px; }
+
+/* the header card */
+.site-card { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+.site-name { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.3; color: var(--ink); }
+.site-meta { margin: 3px 0 0; font-size: 12.5px; color: var(--ink-2); }
+.site-address { margin: 1px 0 0; font-size: 12px; color: var(--ink-3); }
+.site-kicker { margin: 8px 0 2px; font-size: 12px; color: var(--ink-3); }
+.site-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 10px; }
+.id-tag {
+  display: inline-block; padding: 1px 7px; font-size: 11.5px; line-height: 18px; color: var(--ink-2);
+  background: var(--paper); border: 1px solid var(--line); border-radius: 4px; font-variant-numeric: tabular-nums;
+}
+
+/* the accordion: every collapsible card in one surface, hairline dividers.
+   No overflow:hidden here, or the ⓘ popovers would be clipped. */
+.detail-accordion { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); }
+.detail-section + .detail-section,
+.detail-section + .accordion-note,
+.accordion-note + .detail-section { border-top: 1px solid var(--line-soft); }
+.sec-h { margin: 0; }
+.detail-sec-head {
+  display: flex; align-items: center; gap: 6px; width: 100%; min-height: 44px; padding: 10px 10px 10px 14px;
+  background: none; border: 0; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--ink);
+  text-align: left; cursor: pointer;
+}
+.detail-sec-head:hover { background: #f6f8fa; }
+.detail-sec-head:focus-visible { outline-offset: -2px; }
+.detail-accordion > .detail-section:first-child .detail-sec-head { border-radius: var(--radius) var(--radius) 0 0; }
+.detail-accordion > .detail-section:last-child:not(.is-open) .detail-sec-head { border-radius: 0 0 var(--radius) var(--radius); }
+/* The title never wraps; on a narrow panel the peek gives way first. */
+.sec-title { flex: none; margin-right: auto; white-space: nowrap; }
+.sec-peek { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 400; color: var(--ink-3); }
+.details-panel .detail-sec-head .prov-badge { flex: none; }
+.sec-chevron { color: var(--ink-3); transition: transform 0.15s; }
+.detail-sec-head[aria-expanded="true"] .sec-chevron { transform: rotate(180deg); }
+.sec-body { padding: 0 14px 14px; }
+/* An author `display` would beat the UA's [hidden] rule and show a
+   collapsed card; nothing may. */
+.sec-body[hidden] { display: none !important; }
+.accordion-note { margin: 0; padding: 10px 14px; font-size: 12px; color: var(--ink-3); }
+
+/* card building blocks (src/components/details/ui.tsx) */
+.card-lead { margin: 0 0 10px; font-size: 13px; color: var(--ink-2); }
+.card-lead b { color: var(--ink); }
+.card-label {
+  display: flex; align-items: center; gap: 4px; margin: 16px 0 6px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-3);
+}
+.sec-body > .card-label:first-child, .nw-map .card-label { margin-top: 0; }
+.card-note { margin: 8px 0 0; font-size: 12px; color: var(--ink-3); }
+.card-actions { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; }
+.text-btn { padding: 0; background: none; border: 0; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--accent); cursor: pointer; }
+.text-btn:hover { text-decoration: underline; }
+/* Inline flow, so a wrapped source keeps its ⓘ on the last line of text. */
+.source-line { margin: 12px 0 0; padding-top: 8px; border-top: 1px solid var(--line-soft); font-size: 11.5px; color: var(--ink-3); }
+.source-line .info-tip, .source-line .prov-info { vertical-align: baseline; margin-left: 3px; }
+.kv { margin: 0; }
+.kv-row { display: grid; grid-template-columns: minmax(0, 42%) minmax(0, 1fr); gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--line-soft); }
+.kv-row:last-child { border-bottom: 0; }
+.kv dt { font-size: 12.5px; color: var(--ink-2); }
+.kv dd { margin: 0; font-size: 13px; color: var(--ink); word-break: break-word; }
+.kv-num .kv-row { grid-template-columns: minmax(0, 1fr) auto; }
+.kv-num dd { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.kv-sub { display: block; font-size: 11.5px; font-weight: 400; color: var(--ink-3); }
+.kv-group + .kv-group { margin-top: 2px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.chip {
+  display: inline-block; padding: 1px 9px; font-size: 12px; line-height: 20px; color: var(--ink-2);
+  background: var(--chip-bg); border-radius: 999px;
+}
+.tag {
+  display: inline-block; padding: 0 7px; font-size: 11.5px; line-height: 20px; color: var(--ink-2);
+  background: var(--paper); border: 1px solid var(--line); border-radius: 4px;
+}
+.metric-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0 0 10px; }
+.metric { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.metric-value { font-size: 26px; font-weight: 600; line-height: 1.1; color: var(--ink); font-variant-numeric: tabular-nums; }
+.metric-label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-2); }
+/* The two metric captions double as the capacity bar's legend. */
+.metric-row .metric-label::before { content: ""; flex: none; width: 10px; height: 10px; border-radius: 2px; background: var(--chart-sediment); }
+.metric-row .metric + .metric .metric-label::before { background: repeating-linear-gradient(135deg, var(--chart-sediment) 0 2px, #d9cfc2 2px 4px); }
+.cap-bar { position: relative; height: 10px; margin: 0 0 8px; overflow: hidden; background: var(--accent-soft); border-radius: 5px; }
+.cap-bar-lost, .cap-bar-proj { position: absolute; top: 0; bottom: 0; }
+.cap-bar-lost { left: 0; background: var(--chart-sediment); }
+.cap-bar-proj { background: repeating-linear-gradient(135deg, var(--chart-sediment) 0 3px, #d9cfc2 3px 6px); }
+.info-tip { position: relative; display: inline-flex; }
+.info-tip-btn { padding: 0 2px; background: none; border: 0; font-size: 12px; line-height: 1; color: var(--accent); cursor: pointer; }
+/* Placement (left, width) comes from usePanelPopover, which keeps it inside the panel. */
+.info-tip-pop {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 30; width: 260px; padding: 8px 10px;
+  background: var(--paper); border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow-pop);
+  font-size: 12px; font-weight: 400; line-height: 1.45; letter-spacing: normal; text-transform: none; text-align: left;
+  white-space: normal; color: var(--ink);
+}
+
+/* Sediment Management, Site Literature, NID */
+.kw-list { display: flex; flex-direction: column; gap: 10px; margin: 0; }
+.kw-row dt { margin-bottom: 4px; font-size: 12px; color: var(--ink-3); }
+.kw-row dd { margin: 0; }
+.kw-none { font-size: 12.5px; color: var(--ink-3); }
+.lit-cards { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.lit-cards li { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-bottom: 1px solid var(--line-soft); }
+.lit-cards li:first-child { padding-top: 0; }
+.lit-cards li:last-child { border-bottom: 0; }
+.lit-card-title { font-size: 13px; font-weight: 600; line-height: 1.35; color: var(--ink); }
+a.lit-card-title { color: var(--accent); text-decoration: none; }
+a.lit-card-title:hover { text-decoration: underline; }
+.lit-card-title .icon, .evidence-links .icon, .nid-foot .icon { margin-left: 2px; vertical-align: -1px; opacity: 0.75; }
+.lit-card-meta { font-size: 12px; color: var(--ink-3); }
+.nid-head { display: flex; flex-direction: column; gap: 1px; margin: 0 0 4px; }
+.nid-name { font-size: 13.5px; font-weight: 600; }
+.nid-sub { font-size: 12px; color: var(--ink-3); }
+.nid-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 12px 0 0; padding-top: 8px;
+  border-top: 1px solid var(--line-soft); font-size: 12.5px;
+}
+.nid-foot a { font-weight: 600; color: var(--accent); text-decoration: none; }
+.nid-foot a:hover { text-decoration: underline; }
+.details-panel .selected-counts { flex-direction: row; flex-wrap: wrap; gap: 2px 14px; padding: 8px 12px; font-size: 12px; color: var(--ink-2); border-radius: var(--radius); }
 
 /* provenance labeling — the measured-vs-modeled rule as components */
 .prov-badge { display: inline-block; padding: 1px 7px; border-radius: 9px; font-size: 10.5px; font-weight: 600; letter-spacing: .02em; white-space: nowrap; background: var(--panel); color: var(--ink-2); border: 1px solid var(--line); }
@@ -255,10 +402,12 @@ html[data-resizing="row"], html[data-resizing="row"] * { cursor: row-resize !imp
 .prov-badge[data-type="measured"] { background: #e3efe3; border-color: #c8dfc8; color: #2b552d; }
 .prov-badge[data-type="network"] { background: var(--accent-soft); border-color: #bcd9e4; color: #144d61; }
 .prov-badge[data-type="reported"] { background: #fdf3e0; border-color: #ecd9b0; color: #6d511a; }
-.prov-note { margin: 8px 0 0; font-size: 11.5px; color: var(--ink-3); }
-.prov-info { position: relative; display: inline-block; margin-left: 4px; }
+/* Quieter in the panel's card headers and lines (the report keeps its own). */
+.details-panel .prov-badge { border-color: transparent; }
+.prov-info { position: relative; display: inline-block; margin-left: 2px; }
 .prov-info-btn { border: 0; background: none; color: var(--accent); cursor: pointer; font-size: 12px; padding: 0 2px; line-height: 1; }
-.prov-pop { position: absolute; right: 0; bottom: calc(100% + 4px); z-index: 30; width: 240px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 6px 18px rgba(16, 42, 67, .18); padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink); }
+/* Opens downward; usePanelPopover sets left/width to keep it inside the panel. */
+.prov-pop { position: absolute; left: 0; top: calc(100% + 6px); z-index: 30; width: 260px; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 6px 18px rgba(16, 42, 67, .18); padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; font-size: 12px; line-height: 1.45; color: var(--ink); text-align: left; white-space: normal; }
 .prov-pop a { word-break: break-all; }
 
 /* sustainability headline stats */
@@ -295,31 +444,76 @@ html[data-resizing="row"], html[data-resizing="row"] * { cursor: row-resize !imp
 .chart-data th:first-child, .chart-data td:first-child { text-align: left; }
 .chart-data p { margin: 4px 0 0; font-size: 10.5px; }
 
-/* evidence */
-.evidence-intro { margin: 0 0 6px; font-size: 12.5px; }
-.rattes-class { margin: 8px 0 0; font-size: 12px; color: var(--ink-2); }
+/* evidence: summary, surveys table, methods disclosure, record links */
+.rattes-class { margin: 0 0 10px; font-size: 12.5px; color: var(--ink-2); }
 .rattes-class .prov-badge { margin-right: 4px; }
-.survey-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; max-height: 220px; overflow-y: auto; }
-.survey-list li { border-bottom: 1px solid var(--panel); padding-bottom: 3px; }
+.survey-table { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.survey-table th { padding: 4px 0 6px; font-size: 11.5px; font-weight: 600; color: var(--ink-3); text-align: right; border-bottom: 1px solid var(--line); }
+.survey-table td { padding: 5px 0; text-align: right; border-bottom: 1px solid var(--line-soft); }
+.survey-table th:first-child, .survey-table td:first-child { text-align: left; }
+.table-note { margin: 6px 0 0; font-size: 11.5px; color: var(--ink-3); }
+.survey-details { margin: 10px 0 0; font-size: 12.5px; }
+.survey-details summary { font-weight: 600; color: var(--accent); cursor: pointer; }
+.survey-details ul { display: flex; flex-direction: column; gap: 5px; margin: 6px 0 0; padding-left: 16px; color: var(--ink-2); }
+.survey-note { display: block; font-size: 12px; color: var(--ink-3); }
+.evidence-agency { margin: 10px 0 0; font-size: 12px; }
+/* The glossary popover anchors to the whole link row (the button can wrap
+   anywhere in it), full width, opening downward. */
+.evidence-links { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 8px 0 0; font-size: 12.5px; }
+.evidence-links a { font-weight: 600; color: var(--accent); text-decoration: none; }
+.evidence-links a:hover { text-decoration: underline; }
+.prov-info.codes-info { position: static; margin: 0; }
+.codes-pop { left: 0; right: 0; bottom: auto; top: calc(100% + 6px); width: auto; }
 
-/* evidence extras (round 3): per-survey notes, the code glossary, original-record links */
-.survey-note { display: block; margin: 1px 0 2px 14px; font-size: 12px; }
-.codes-info { display: block; margin: 8px 0 0; }
-.codes-info .linklike { font-size: 12px; }
-.codes-pop { left: 0; right: auto; bottom: auto; top: calc(100% + 4px); width: 280px; }
-.evidence-links { display: flex; flex-direction: column; gap: 2px; margin: 8px 0 0; font-size: 12.5px; }
-.evidence-agency { font-size: 12px; margin: 4px 0 0; }
-
-/* reservoir network section */
-.nw-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+/* reservoir network: Show on map, the downstream path, drainage area */
 .nw-sentence { margin: 6px 0 0; font-size: 12.5px; }
-.nw-flow-path { margin: 6px 0 0; font-size: 12.5px; }
-.nw-flow-note { margin: 2px 0 0; font-size: 11.5px; }
-.nw-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
-.nw-btn { font: inherit; font-size: 12px; padding: 4px 10px; border: 1px solid var(--line); background: var(--paper); border-radius: 14px; cursor: pointer; color: var(--ink-2); }
-.nw-btn:hover { border-color: var(--accent); color: var(--accent); }
-.nw-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
-.conn-wrap { margin-top: 10px; }
+.nw-tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 12px; }
+.nw-map { display: flex; flex-direction: column; gap: 8px; }
+.nw-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 10px;
+  font: inherit; font-size: 12.5px; font-weight: 500; color: var(--ink);
+  background: var(--paper); border: 1px solid var(--line); border-radius: 6px; cursor: pointer;
+}
+.nw-btn:hover:not(:disabled) { background: #f3f7f9; }
+.nw-btn[aria-pressed="true"], .nw-btn[aria-pressed="true"]:hover { color: #fff; background: var(--accent); border-color: var(--accent); }
+.nw-btn:disabled { color: #8d9ba6; cursor: default; }
+.nw-seg { display: flex; }
+.nw-seg .nw-btn { flex: 1 1 auto; border-radius: 0; margin-left: -1px; }
+.nw-seg .nw-btn:first-child { margin-left: 0; border-radius: 6px 0 0 6px; }
+.nw-seg .nw-btn:last-child { border-radius: 0 6px 6px 0; }
+.nw-seg .nw-btn[aria-pressed="true"] { position: relative; z-index: 1; }
+.nw-count { font-weight: 600; font-variant-numeric: tabular-nums; }
+.nw-btn:not([aria-pressed="true"]):not(:disabled) .nw-count { color: var(--ink-2); }
+.nw-dot { width: 9px; height: 9px; flex: none; border-radius: 50%; box-shadow: 0 0 0 1.5px #fff; }
+.nw-dot-up { background: var(--net-up); }
+.nw-dot-down { background: var(--net-down); }
+.nw-dot-basin { width: 11px; height: 9px; border-radius: 2px; background: rgba(106, 81, 163, 0.12); border: 1.5px dashed var(--net-up); box-shadow: none; }
+.nw-btn:disabled .nw-dot { opacity: 0.45; }
+.nw-map-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.nw-map-actions { display: inline-flex; gap: 14px; margin-left: auto; }
+.nw-path-caption { margin: 0 0 8px; font-size: 12.5px; color: var(--ink-2); }
+/* The downstream path schematic: a connector line with one node per stop. */
+.flow { margin: 0; padding: 0; list-style: none; }
+.flow-step { position: relative; padding: 3px 0 3px 22px; font-size: 12.5px; color: var(--ink); }
+.flow-step::before { content: ""; position: absolute; left: 6px; top: 0; bottom: 0; width: 2px; background: #cddbe3; }
+.flow-step:first-child::before { top: 50%; }
+.flow-step:last-child::before { bottom: 50%; }
+.flow-step::after {
+  content: ""; position: absolute; left: 2px; top: 50%; width: 10px; height: 10px; margin-top: -5px;
+  background: var(--paper); border: 2px solid var(--net-down); border-radius: 50%;
+}
+.flow-self::after { background: var(--select); border-color: var(--select-deep); }
+.flow-self .flow-name, .flow-mouth .flow-name { font-weight: 600; }
+.flow-kind { font-size: 11.5px; color: var(--ink-3); }
+.flow-river { color: var(--ink-2); }
+.flow-river::after { left: 3px; width: 8px; height: 8px; margin-top: -4px; background: #86aec3; border: 0; border-radius: 1px; transform: rotate(45deg); }
+.flow-mouth::after { background: var(--net-mouth); border-color: var(--net-mouth); }
+.flow-more { font-style: italic; color: var(--ink-3); }
+.flow-more::before { background: repeating-linear-gradient(to bottom, #cddbe3 0 3px, transparent 3px 6px); }
+.flow-more::after { display: none; }
+.flow-end { color: var(--ink-3); }
+.flow-end::after { left: 4px; width: 6px; height: 6px; margin-top: -3px; background: var(--ink-3); border: 0; }
+.nw-area { margin-top: 12px; }
 .conn-bar { height: 10px; border-radius: 5px; background: repeating-linear-gradient(45deg, var(--panel), var(--panel) 4px, #e3d9cc 4px, #e3d9cc 8px); border: 1px solid var(--line); overflow: hidden; }
 .conn-fill { height: 100%; background: var(--accent); }
 .conn-caption { margin: 4px 0 0; font-size: 11.5px; color: var(--ink-2); }
@@ -333,38 +527,92 @@ html[data-resizing="row"], html[data-resizing="row"] * { cursor: row-resize !imp
 .metric-select { font: inherit; font-size: 12px; padding: 2px 4px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); color: var(--ink); max-width: 190px; }
 .legend-ramp { border-bottom: 1px solid var(--panel); padding-bottom: 4px; margin-bottom: 4px; }
 .legend-ramp-title { margin: 2px 0 4px; font-size: 11.5px; font-weight: 600; color: var(--ink-2); }
-.reservoir-kicker { font-size: 12px; margin: -4px 0 8px; }
-.popup-note { margin: 6px 0 0; font-size: 11px; color: var(--ink-3); }
-
-/* screening popover — the compound selector outranks .tool-popover-panel's
-   330px max-width; dvh keeps it clear of phone browser chrome (vh fallback). */
-.tool-popover-panel.screening-panel { width: auto; min-width: 300px; max-width: min(380px, calc(100vw - 24px)); max-height: min(70vh, 560px); max-height: min(70dvh, 560px); overflow-y: auto; }
-@media (max-width: 480px) {
-  /* Anchored-absolute could overflow a phone viewport — pin it instead, above
-     the drawer-tier chrome (mobile bar z24, drawers z25, table pill). */
-  .tool-popover-panel.screening-panel { position: fixed; left: 12px; right: 12px; top: calc(var(--header-h) + 56px); min-width: 0; max-width: none; z-index: 26; }
-}
 .nat-screen-note { margin: 4px 0 8px 24px; font-size: 11.5px; color: var(--ink-2); border-bottom: 1px solid var(--panel); padding-bottom: 6px; }
-.screen-intro { margin: 0 0 8px; font-size: 12px; color: var(--ink-2); }
-.screen-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
-.screen-preset { font-size: 11.5px; }
-.screen-seg { margin: 6px 0; }
-.screen-seg-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-3); margin-bottom: 3px; }
-.screen-seg-btns { display: flex; flex-wrap: wrap; gap: 4px; }
-.screen-checks { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 8px 0 4px; }
-.screen-select { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0; font-size: 12.5px; color: var(--ink-2); }
-.screen-count { margin: 10px 0 2px; font-size: 13px; border-top: 1px solid var(--panel); padding-top: 8px; }
 
-/* comparable reservoirs */
-.sim-group { margin: 10px 0 4px; font-size: 12px; display: flex; align-items: center; gap: 8px; color: var(--ink-2); }
-.sim-group:first-of-type { margin-top: 2px; }
-.sim-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-.sim-row { display: flex; flex-direction: column; gap: 1px; width: 100%; text-align: left; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font: inherit; cursor: pointer; color: var(--ink); }
-.sim-row:hover { border-color: var(--accent); }
-.sim-head { display: flex; align-items: baseline; gap: 4px; font-size: 12.5px; }
+/* ---------- Screening: the docked panel ----------
+   The host wrapper is static, so the dock anchors to .map-toolbar (its
+   absolute containing block) at the map's left edge, below the toolbar row
+   (or rows: a percentage here is the toolbar's height). --map-h / --map-w
+   come from MapPanel's ResizeObserver, so the dock never runs past the map
+   onto the results table (whose resizer band sits at z 9) or the Selected
+   Data panel. z 6 keeps it above the
+   map but under the search suggestions (7) and the other popovers (8). */
+.tool-popover.screening-host { position: static; }
+.screening-dock {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 6;
+  display: flex; flex-direction: column; width: 340px; max-width: calc(var(--map-w, 360px) - 20px);
+  max-height: calc(var(--map-h, 440px) - 100% - 34px);
+  background: var(--paper); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow-pop);
+}
+@media (max-width: 480px) {
+  /* On phones it pins below the header instead and closes on an outside
+     tap; dvh keeps it clear of the browser chrome (vh fallback). */
+  .screening-dock {
+    position: fixed; left: 12px; right: 12px; top: calc(var(--header-h) + 56px); width: auto; max-width: none;
+    max-height: min(70vh, 560px); max-height: min(70dvh, 560px); z-index: 26;
+  }
+}
+.dock-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 8px 2px 14px; }
+.dock-title { margin: 0; font-size: 14px; font-weight: 600; }
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0;
+  color: var(--ink-3); background: none; border: 0; border-radius: 6px; cursor: pointer;
+}
+.icon-btn:hover { color: var(--ink); background: #edf1f4; }
+.dock-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 0 14px 12px; }
+.dock-body .card-label { margin-top: 10px; }
+.dock-foot { flex: none; padding: 8px 14px 10px; background: #f8fafb; border-top: 1px solid var(--line); border-radius: 0 0 10px 10px; }
+.dock-count-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.dock-count-row .text-btn { flex: none; font-size: 12px; }
+.dock-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
+.btn-sm {
+  padding: 5px 10px; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--accent);
+  background: var(--paper); border: 1px solid var(--line); border-radius: 6px; cursor: pointer;
+}
+.btn-sm:hover:not(:disabled) { background: var(--accent-soft); border-color: #b9d3dd; }
+.btn-sm:disabled { color: #8d9ba6; cursor: default; }
+.screen-intro { margin: 0 0 8px; font-size: 12px; color: var(--ink-2); }
+.screen-questions { display: flex; flex-direction: column; gap: 5px; }
+.screen-q {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; row-gap: 0; width: 100%;
+  padding: 6px 10px; font: inherit; text-align: left; color: var(--ink);
+  background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer;
+}
+.screen-q:hover { border-color: #9dbccb; }
+.screen-q[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.screen-q-title { font-size: 13px; font-weight: 600; }
+.screen-q[aria-pressed="true"] .screen-q-title { color: var(--accent); }
+.screen-q-count { grid-column: 2; grid-row: 1; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); }
+.screen-q-criteria { grid-column: 1 / -1; font-size: 12px; color: var(--ink-3); }
+.screen-refine { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line-soft); }
+.screen-refine summary { font-size: 12.5px; font-weight: 600; color: var(--accent); cursor: pointer; }
+.screen-refine-count { font-weight: 400; color: var(--ink-2); }
+.screen-form { display: flex; flex-direction: column; gap: 7px; margin-top: 10px; }
+.screen-field { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12.5px; color: var(--ink-2); }
+.screen-field .metric-select { width: 158px; max-width: 58%; }
+.screen-checks { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 2px 0 0; font-size: 12.5px; }
+.screen-count { margin: 0; font-size: 13px; color: var(--ink-2); }
+.screen-count b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+/* ---------- Comparable Reservoirs ---------- */
 .sim-score { margin-left: auto; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
-.sim-meta { font-size: 11.5px; color: var(--ink-2); }
-.sim-keywords { color: var(--ink-3); }
+.sim-cards { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.sim-card {
+  display: flex; flex-direction: column; gap: 5px; width: 100%; padding: 8px 10px;
+  font: inherit; text-align: left; color: var(--ink);
+  background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer;
+}
+.sim-card:hover { border-color: #9dbccb; background: #fbfcfd; }
+.sim-card-head { display: flex; align-items: baseline; gap: 6px; min-width: 0; font-size: 13px; }
+.sim-name { font-weight: 600; }
+.sim-state { font-size: 12px; color: var(--ink-3); }
+.sim-go { align-self: center; margin-left: auto; color: var(--ink-3); }
+.sim-card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.sim-lost { font-size: 12px; color: var(--ink-3); }
+.sim-toggle { margin-top: 8px; }
+.sim-more { margin-top: 12px; }
+.sim-more summary { font-size: 12.5px; font-weight: 600; color: var(--accent); cursor: pointer; }
+.sim-more .sim-cards { margin-top: 8px; }
 
 .footer-vintage { color: var(--ink-3); }
 @media (max-width: 760px) { .footer-vintage { display: none; } }
@@ -375,8 +623,11 @@ html[data-resizing="row"], html[data-resizing="row"] * { cursor: row-resize !imp
    cleared/unrendered gap (context lost, pre-style-load resize), it reads as
    map ground, never white. */
 .map-panel { position: absolute; inset: 0; background: #e8ede9; }
+/* z 10: above the results table's resizer band and the edge pills (9), so a
+   toolbar popover taller than the map overlays the table instead of sliding
+   under it; still under the drawers and their scrim (20+). */
 .map-toolbar {
-  position: absolute; top: 10px; left: 10px; z-index: 5;
+  position: absolute; top: 10px; left: 10px; z-index: 10;
   display: flex; flex-wrap: wrap; gap: 8px; row-gap: 6px; align-items: flex-start;
   max-width: calc(100% - 20px); pointer-events: none; /* the row is a layout frame — only its children take clicks */
 }
@@ -386,6 +637,10 @@ html[data-resizing="row"], html[data-resizing="row"] * { cursor: row-resize !imp
   cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.15); font-size: 13px;
 }
 .map-tool.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+/* Screening is a toggle (icon, no ▾); the dot marks criteria filtering the map. */
+.map-tool-toggle { display: inline-flex; align-items: center; gap: 6px; }
+.map-tool-dot { width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--select-deep); }
+.map-tool.active .map-tool-dot { background: #fff; }
 .select-box {
   position: absolute; display: none; border: 2px dashed var(--select);
   background: rgba(0, 160, 176, 0.12); pointer-events: none; z-index: 6;
@@ -459,9 +714,6 @@ html[data-resizing="row"], html[data-resizing="row"] * { cursor: row-resize !imp
    color-contrast, AA needs 4.5) — the highlighted row uses the darker ink. */
 .map-search-results [role="option"].hl .muted { color: var(--ink-2); }
 .map-search-note { margin: 0; padding: 6px 8px; font-size: 12.5px; }
-.site-popup h3 { margin: 0 0 6px; font-size: 14px; }
-.popup-row { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; padding: 1px 0; }
-.popup-row span { color: var(--ink-3); }
 
 /* ---------- map/table resizer ---------- */
 /* A zero-height grid row between map and table. The visible hairline stays on
@@ -539,9 +791,17 @@ html[data-resizing="row"], html[data-resizing="row"] * { cursor: row-resize !imp
 .menu-popover button:hover { background: var(--accent-soft); }
 
 /* details pager */
-.pager { display: flex; align-items: center; justify-content: center; gap: 12px; }
-.pager-btn { background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 3px 10px; cursor: pointer; }
-.pager-btn:disabled { opacity: 0.4; cursor: default; }
+.pager {
+  display: flex; align-items: center; justify-content: space-between; padding: 3px 4px;
+  font-size: 12.5px; color: var(--ink-2); font-variant-numeric: tabular-nums;
+  background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.pager-btn {
+  display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 26px; padding: 0;
+  color: var(--ink-2); background: none; border: 0; border-radius: 6px; cursor: pointer;
+}
+.pager-btn:hover:not(:disabled) { color: var(--ink); background: #edf1f4; }
+.pager-btn:disabled { opacity: 0.35; cursor: default; }
 
 /* map tool popovers (Select / Layers / Legend) */
 .tool-popover { position: relative; }
@@ -551,12 +811,18 @@ html[data-resizing="row"], html[data-resizing="row"] * { cursor: row-resize !imp
   padding: 10px;
 }
 .layers-list { display: flex; flex-direction: column; gap: 4px; }
+.layers-heading {
+  margin: 8px 0 0; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-3);
+}
+.layers-heading:first-child { margin-top: 0; }
 .swatch { width: 13px; height: 13px; border-radius: 3px; display: inline-block; flex: 0 0 auto; }
 .gate-note { font-size: 12px; margin: 6px 0 0; }
 .legend-list { display: flex; flex-direction: column; gap: 6px; }
 .legend-row { display: flex; align-items: center; gap: 8px; }
 .legend-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid; display: inline-block; }
 .legend-line { width: 16px; height: 3px; display: inline-block; border-radius: 2px; }
+/* Area swatch (the drainage-area outline): paints with currentColor. */
+.legend-area { width: 14px; height: 11px; display: inline-block; flex: none; border: 1.5px dashed currentColor; border-radius: 2px; background: rgba(106, 81, 163, 0.1); }
 
 /* downloads (the Download Data dialog borrows .help-head for its title row;
    the help dialog's own styles live below the dialog block so they win the
@@ -840,6 +1106,43 @@ html[data-resizing="row"], html[data-resizing="row"] * { cursor: row-resize !imp
 .map-panel .leaflet-tooltip.network-label::before { display: none; }
 .map-panel .leaflet-popup-content-wrapper { border-radius: 6px; }
 .map-panel .leaflet-popup-content { margin: 10px 12px; font: inherit; line-height: 1.35; -webkit-user-select: text; user-select: text; }
+/* The site / reservoir / place popups (className "resst-popup", popupHtml.ts):
+   a small card. Keep it short: MapPanel aims the camera so the popup clears
+   the toolbar, and a taller card needs a lower site. */
+.map-panel .resst-popup .leaflet-popup-content-wrapper { border-radius: 10px; box-shadow: 0 6px 22px rgba(16, 42, 67, 0.22); }
+.map-panel .resst-popup .leaflet-popup-content { margin: 12px 14px; }
+.map-panel .resst-popup a.leaflet-popup-close-button {
+  top: 8px; right: 8px; width: 22px; height: 22px; border-radius: 4px;
+  font: 17px/22px Tahoma, Verdana, sans-serif; color: var(--ink-3);
+}
+.map-panel .resst-popup a.leaflet-popup-close-button:hover { color: var(--ink); background: #edf1f4; }
+.map-panel .resst-popup .popup-title { margin: 0 24px 2px 0; font-size: 14.5px; font-weight: 600; line-height: 1.3; color: var(--ink); }
+.map-panel .resst-popup .popup-sub {
+  margin: 0; font-size: 12px; color: var(--ink-3);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.map-panel .resst-popup .popup-rows { margin-top: 8px; }
+.map-panel .resst-popup .popup-row { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; font-size: 12.5px; border-top: 1px solid var(--line-soft); }
+.map-panel .resst-popup .popup-row > span { flex: none; color: var(--ink-3); }
+.map-panel .resst-popup .popup-row b { min-width: 0; font-weight: 600; text-align: right; color: var(--ink); }
+.map-panel .resst-popup .popup-none { font-weight: 400; color: var(--ink-3); }
+.map-panel .resst-popup .popup-facts {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; padding-top: 7px;
+  border-top: 1px solid var(--line-soft); font-size: 12.5px; color: var(--ink-2);
+}
+.map-panel .resst-popup .popup-facts-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.map-panel .resst-popup .popup-facts b { font-weight: 600; color: var(--ink); }
+.map-panel .resst-popup .popup-note { font-size: 11.5px; color: var(--ink-3); }
+.map-panel .resst-popup .place-popup { padding-right: 18px; font-size: 13px; font-weight: 600; }
+/* "Show details": only when the Selected Data panel is out of view. */
+.map-panel .resst-popup .popup-more {
+  display: none; flex: none; padding: 4px 10px;
+  font: inherit; font-size: 12.5px; font-weight: 600; color: var(--accent);
+  background: var(--paper); border: 1px solid var(--accent); border-radius: 6px; cursor: pointer;
+}
+.map-panel .resst-popup .popup-more:hover { background: var(--accent-soft); }
+@media (max-width: 1100px) { .map-panel .resst-popup .popup-more { display: block; } }
+@media (min-width: 1101px) { .app-main.details-collapsed .map-panel .resst-popup .popup-more { display: block; } }
 .dom-place-marker { background: none; border: 0; }
 .dom-place-marker svg { display: block; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35)); }
 /* The national inventory canvas: the map handles its clicks (the panel hit-tests it). */

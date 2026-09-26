@@ -70,22 +70,41 @@ export const NID_DETAIL_FIELDS: Array<{ field: string; label: string }> = [
   { field: "website_url", label: "Website" },
 ];
 
-/** Site popup / detail fields, ported from the web map popupInfo. The map
- *  popup keeps this full unsplit list (parity); the details panel splits it
- *  into the two groups below. */
-export const SITE_DETAIL_FIELDS = [
-  "site_name",
-  "nid_id",
-  "responsible_districtagency",
-  "address",
-  "city",
-  "site_type",
-  "sediment_release",
-  "ecological_concern",
-  "analysis",
-] as const;
+/** The Selected Data panel's NID card: the same record as NID_DETAIL_FIELDS
+ *  (which the Dam Report keeps as its flat table), grouped for reading, with
+ *  sentence-case labels. Units live on the values (src/lib/display.ts).
+ *  Dam name, river, city, state, NID ID and website render as the card's
+ *  header and footer rather than rows. */
+export const NID_PANEL_GROUPS: Array<{ title: string; fields: Array<{ field: string; label: string }> }> = [
+  {
+    title: "Overview",
+    fields: [
+      { field: "primary_purpose", label: "Primary purpose" },
+      { field: "purposes", label: "All purposes" },
+      { field: "primary_dam_type", label: "Dam type" },
+      { field: "year_completed", label: "Year completed" },
+      { field: "owner_types", label: "Owner" },
+      { field: "hazard_potential", label: "Hazard potential" },
+      { field: "condition_assessment", label: "Condition" },
+    ],
+  },
+  {
+    title: "Dimensions",
+    fields: [
+      { field: "nid_height", label: "Height" },
+      { field: "dam_length", label: "Length" },
+      { field: "nid_storage", label: "NID storage" },
+      { field: "normal_storage", label: "Normal storage" },
+      { field: "surface_area", label: "Surface area" },
+      { field: "drainage_area", label: "Drainage area" },
+      { field: "max_discharge", label: "Max discharge" },
+    ],
+  },
+];
 
-/** Identity/location attributes — the panel's first section. */
+/** Identity/location attributes — the panel's first section. The map popup
+ *  (owner decision 2026-09-25) no longer mirrors the full web-map popupInfo
+ *  field list; it shows the name, place, release method and NID ID. */
 export const SITE_ID_FIELDS = ["nid_id", "responsible_districtagency", "address", "city", "site_type"] as const;
 
 /** Team-documented management keywords — the panel's Sediment Management section. */

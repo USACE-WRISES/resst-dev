@@ -1,5 +1,6 @@
-// Help overlay — the five guided workflows (About, By Reservoir, By HUC,
-// By River, By Category) in a wide, dense layout: pill navigation, an intro
+// Help overlay — About plus the five guided workflows (Assess a Reservoir,
+// Find Analogs, Screen Nationally, By Region & River, By Category) in a wide,
+// dense layout: pill navigation, an intro
 // band (goal/when/result facets beside the screenshot), then compact numbered
 // steps in columns. Content is hand-authored in config/helpContent.ts; its
 // Rich fields are owner-authored app content, not user input.

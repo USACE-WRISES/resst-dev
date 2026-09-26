@@ -127,15 +127,17 @@ async function main() {
       await page.locator(".table-panel input").first().fill("Tuttle");
       await page.locator(".data-table tbody tr", { hasText: "Tuttle Creek" }).first().click();
       await page.locator(".leaflet-popup").waitFor();
+      // The card ranks its analogs as it opens (no button since 2026-09-25).
       await page.locator(".detail-sec-head", { hasText: "Comparable Reservoirs" }).click();
-      await page.getByRole("button", { name: "Find similar reservoirs" }).click();
-      await page.locator(".sim-list .sim-row").first().waitFor({ timeout: 60_000 });
-      await page.evaluate(() => document.querySelector(".sim-group")?.scrollIntoView({ block: "start" }));
+      await page.locator("#detail-sec-sim .sim-card").first().waitFor({ timeout: 60_000 });
+      await page.evaluate(() =>
+        document.querySelector('[aria-controls="detail-sec-sim"]')?.scrollIntoView({ block: "start" }),
+      );
       await mapSettled(page);
       await shoot(page, "analogs");
     }
 
-    console.log("screen — the national layer with a gap-analysis preset applied");
+    console.log("screen — the national layer with a starting question applied in the docked panel");
     {
       const page = await openApp(browser);
       await page.getByRole("button", { name: "Layers" }).click();
@@ -143,7 +145,7 @@ async function main() {
       await page.waitForFunction(() => window.__resstMapInfo.counts().national > 40_000, undefined, { timeout: 60_000 });
       await page.keyboard.press("Escape");
       await page.getByRole("button", { name: /^Screening/ }).click();
-      await page.getByRole("button", { name: "Undocumented + high sedimentation" }).click();
+      await page.getByRole("button", { name: /^Potential opportunities/ }).click();
       await page.locator(".screen-count").getByText(/of .* modeled reservoirs match/).waitFor();
       await mapSettled(page);
       await shoot(page, "screen");

@@ -40,35 +40,115 @@ export const EMPTY_SCREENING: ScreeningState = {
   purpose: null,
 };
 
-/** The gap-analysis quadrants (ideas doc §7) as preset criteria. Wording
-    guardrail: these surface "potential opportunities" and "reservoirs
-    warranting further evaluation" — never "needs intervention". */
-export const GAP_PRESETS: Array<{ key: string; label: string; hint: string; apply: Partial<ScreeningState> }> = [
+export interface GapPreset {
+  key: string;
+  /** The question as the Screening panel lists it. */
+  title: string;
+  /** The plain-language rule the question applies. */
+  criteria: string;
+  hint: string;
+  apply: Partial<ScreeningState>;
+}
+
+/** The gap-analysis quadrants (ideas doc §7) as the Screening panel's
+    starting questions, listed high-loss first. Each sets only the two
+    quadrant dimensions (documented, 2025 loss); every other criterion is a
+    refinement that survives switching questions. Wording guardrail: these
+    surface "potential opportunities" and "reservoirs warranting further
+    evaluation", never "needs intervention". A reservoir at exactly 25% sits
+    in both loss rows, as the predicate's inclusive bounds have always had it. */
+export const GAP_PRESETS: GapPreset[] = [
   {
     key: "managed-high",
-    label: "Documented + high sedimentation",
+    title: "Potential case studies",
+    criteria: "Documented · 25% or more lost by 2025",
     hint: "Potential case studies: management underway where modeled losses are large",
     apply: { documented: "documented", pctLost2025Min: 25 },
   },
   {
-    key: "managed-low",
-    label: "Documented + low sedimentation",
-    hint: "Possibly proactive management",
-    apply: { documented: "documented", pctLost2025Max: 25 },
-  },
-  {
     key: "gap-high",
-    label: "Undocumented + high sedimentation",
+    title: "Potential opportunities",
+    criteria: "Not documented · 25% or more lost by 2025",
     hint: "Potential sediment-management opportunities warranting further evaluation",
     apply: { documented: "undocumented", pctLost2025Min: 25 },
   },
   {
+    key: "managed-low",
+    title: "Possibly proactive",
+    criteria: "Documented · 25% or less lost by 2025",
+    hint: "Possibly proactive management",
+    apply: { documented: "documented", pctLost2025Max: 25 },
+  },
+  {
     key: "gap-low",
-    label: "Undocumented + low sedimentation",
+    title: "Lower current priority",
+    criteria: "Not documented · 25% or less lost by 2025",
     hint: "Lower current priority",
     apply: { documented: "undocumented", pctLost2025Max: 25 },
   },
 ];
+
+/** The criteria a question sets; applying one clears the others' values. */
+const QUADRANT_RESET: Partial<ScreeningState> = { documented: "any", pctLost2025Min: null, pctLost2025Max: null };
+
+/** Criteria after choosing a question: its quadrant values, refinements kept. */
+export function withPreset(s: ScreeningState, preset: GapPreset): ScreeningState {
+  return { ...s, ...QUADRANT_RESET, ...preset.apply };
+}
+
+/** Criteria after un-choosing the current question (refinements kept). */
+export function withoutPreset(s: ScreeningState): ScreeningState {
+  return { ...s, ...QUADRANT_RESET };
+}
+
+/** Whether the criteria currently answer this question (refinements may be added on top). */
+export function presetMatches(s: ScreeningState, preset: GapPreset): boolean {
+  return (
+    s.documented === (preset.apply.documented ?? "any") &&
+    s.pctLost2025Min === (preset.apply.pctLost2025Min ?? null) &&
+    s.pctLost2025Max === (preset.apply.pctLost2025Max ?? null)
+  );
+}
+
+/** Criteria the Refine section owns (everything a question leaves alone). */
+const REFINE_DEFAULTS: Partial<ScreeningState> = {
+  pctLost2050Min: null,
+  storageMinAcFt: null,
+  rateMinAcFtYr: null,
+  terminalOnly: false,
+  surveyedOnly: false,
+  state: null,
+  owner: null,
+  purpose: null,
+};
+
+/** How many refinements (non-question criteria) are set. */
+export function refineCount(s: ScreeningState): number {
+  let n = 0;
+  for (const [k, v] of Object.entries(REFINE_DEFAULTS)) if (s[k as keyof ScreeningState] !== v) n++;
+  return n;
+}
+
+/** True when no criterion is set (screening then filters nothing). */
+export function isEmptyScreening(s: ScreeningState): boolean {
+  for (const [k, v] of Object.entries(EMPTY_SCREENING)) {
+    if (k === "active") continue;
+    if (s[k as keyof ScreeningState] !== v) return false;
+  }
+  return true;
+}
+
+/** Matching-reservoir count per question under the current refinements —
+    exactly what choosing that question would show (4 × ~57k rows, a few ms). */
+export function quadrantCounts(
+  core: SedimentCore,
+  documentedShortIds: ReadonlySet<number>,
+  s: ScreeningState,
+): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const p of GAP_PRESETS) out[p.key] = screenCore(core, documentedShortIds, withPreset(s, p)).matches;
+  return out;
+}
 
 const pctLost = (sed: number, capOrig: number): number | null =>
   Number.isFinite(capOrig) && capOrig > 0 && Number.isFinite(sed) ? (100 * sed) / capOrig : null;

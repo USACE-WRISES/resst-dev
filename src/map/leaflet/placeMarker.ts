@@ -20,7 +20,13 @@ export function createPlaceMarker(map: L.Map, lon: number, lat: number, label: s
   });
   // `title` doubles as the accessible name Leaflet gives the marker button.
   const m = L.marker([lat, lon], { icon, title: label, keyboard: true }).addTo(map);
-  m.bindPopup(esc(label), { maxWidth: 280, closeButton: true, autoPan: false, closeOnEscapeKey: false });
+  m.bindPopup(`<div class="place-popup">${esc(label)}</div>`, {
+    maxWidth: 280,
+    closeButton: true,
+    autoPan: false,
+    closeOnEscapeKey: false,
+    className: "resst-popup",
+  });
   m.openPopup();
   return m;
 }

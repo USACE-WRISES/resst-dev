@@ -8,9 +8,11 @@ import {
   buildNetworkSentences,
   downstreamChain,
   downstreamDamCount,
+  downstreamPath,
   downstreamRiverPath,
   mouthOf,
   networkStats,
+  riverNodeLabel,
   upstreamCounts,
   upstreamImmediate,
   upstreamSet,
@@ -159,6 +161,81 @@ describe("networkStats / buildNetworkSentences", () => {
     const s = buildNetworkSentences(core, 5);
     expect(s[0]).toContain("No mapped reservoirs upstream");
     expect(s[1]).toContain("ends inland of any mapped river mouth");
+  });
+});
+
+describe("downstreamPath (the panel's downstream schematic)", () => {
+  const core = decodeCore(makeInventory());
+
+  it("lists dams then the mouth in flow order", () => {
+    expect(downstreamPath(core, 3)).toEqual({
+      steps: [
+        { kind: "dam", row: 2, name: "Mid Dam" },
+        { kind: "dam", row: 1, name: "Last Dam" },
+        { kind: "mouth", row: 0, name: "Big River" },
+      ],
+      damCount: 2,
+      endsInland: false,
+    });
+  });
+
+  it("a terminal dam goes straight to the mouth; an isolated dam ends inland", () => {
+    expect(downstreamPath(core, 1).steps).toEqual([{ kind: "mouth", row: 0, name: "Big River" }]);
+    expect(downstreamPath(core, 1).damCount).toBe(0);
+    expect(downstreamPath(core, 5)).toEqual({ steps: [], damCount: 0, endsInland: true });
+  });
+
+  it("collapses long dam runs and keeps junctions in order", () => {
+    // Head → 7 dams → junction "Upper River2" → 1 dam → mouth.
+    //   rows: 0 mouth, 1 junction, 2..8 run, 9 after-junction dam, 10 head
+    const n = 11;
+    const inv = makeInventory();
+    const fill = (v: number | null) => new Array(n).fill(v);
+    inv.n = n;
+    inv.cols = {
+      ...inv.cols,
+      id: Array.from({ length: n }, (_, i) => (i < 2 ? -5 - i : 100 + i)),
+      name: ["Gulf", "Upper River2", "D2", "D3", "D4", "D5", "D6", "D7", "Lock and Dam 19", "Below", "Head"],
+      nid: new Array<string>(n).fill("X"),
+      lon: fill(-96),
+      lat: fill(39),
+      state: fill(0),
+      owner: fill(0),
+      purpose: fill(0),
+      storSrc: fill(0),
+      yrc: fill(0),
+      flags: [M, M, 0, 0, 0, 0, 0, 0, 0, 0, H],
+      to: [-1, 9, 3, 4, 5, 6, 7, 8, 1, 0, 2],
+      deltaTag: fill(0),
+      maxStor: fill(1e6),
+      da: fill(100),
+      sca: fill(100),
+      capOrig: fill(1e6),
+      cap2025: fill(9e5),
+      cap2050: fill(8e5),
+      sed2015: fill(5e4),
+      sed2025: fill(1e5),
+      sed2050: fill(2e5),
+      evd: fill(0),
+    };
+    const long = decodeCore(inv);
+    const path = downstreamPath(long, 10);
+    expect(path.damCount).toBe(8);
+    expect(path.steps).toEqual([
+      { kind: "dam", row: 2, name: "D2" },
+      { kind: "dam", row: 3, name: "D3" },
+      { kind: "more", count: 4 },
+      { kind: "dam", row: 8, name: "Lock and Dam 19" },
+      { kind: "river", row: 1, name: "Upper River" },
+      { kind: "dam", row: 9, name: "Below" },
+      { kind: "mouth", row: 0, name: "Gulf" },
+    ]);
+  });
+
+  it("strips glued dedupe digits from river names only", () => {
+    expect(riverNodeLabel("Upper Mississippi River2")).toBe("Upper Mississippi River");
+    expect(riverNodeLabel("Mississippi River")).toBe("Mississippi River");
+    expect(riverNodeLabel("Canal 7")).toBe("Canal 7");
   });
 });
 

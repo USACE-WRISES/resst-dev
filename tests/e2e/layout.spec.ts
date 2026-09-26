@@ -64,7 +64,7 @@ test("initial view is the Default CONUS extent", async ({ page }) => {
   expect(Math.abs(c.lat - 38.748)).toBeLessThan(1);
 });
 
-test("selecting a site centers the camera on that site", async ({ page }) => {
+test("selecting a site frames it: centred across, low enough for its popup to clear the toolbar", async ({ page }) => {
   await openApp(page);
   await waitForMapReady(page);
   await page.locator(".data-table tbody tr", { hasText: "Tuttle Creek" }).first().click();
@@ -83,10 +83,15 @@ test("selecting a site centers the camera on that site", async ({ page }) => {
     const w = window as any;
     const p = w.__resstMapInfo.project(lng, lat);
     const el = w.__resstMap.getContainer() as HTMLElement;
-    return { dx: p.x - el.clientWidth / 2, dy: p.y - el.clientHeight / 2 };
+    return { dx: p.x - el.clientWidth / 2, dy: p.y - el.clientHeight / 2, half: el.clientHeight / 2 };
   }, TUTTLE);
   expect(Math.abs(off.dx)).toBeLessThan(40);
-  expect(Math.abs(off.dy)).toBeLessThan(40);
+  // The camera sets the site at or below centre so the popup above it fits.
+  expect(off.dy).toBeGreaterThan(-4);
+  expect(off.dy).toBeLessThan(off.half);
+  const popup = (await page.locator(".leaflet-popup").boundingBox())!;
+  const toolbar = (await page.locator(".map-toolbar").boundingBox())!;
+  expect(popup.y).toBeGreaterThanOrEqual(toolbar.y + toolbar.height);
 });
 
 test("tables are virtualized: full totals with a bounded DOM", async ({ page }) => {

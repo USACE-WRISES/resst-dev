@@ -97,28 +97,31 @@ export const HELP_VIEWS: HelpView[] = [
     steps: [
       {
         title: "Select the reservoir",
-        body: "Find it with the map's <strong>Search</strong> box (site names and USGS place names) or click its point. Red points are RESST documented sites; with the national layer on, every other modeled reservoir is clickable too.",
+        body: "Find it with the map's <strong>Search</strong> box (site names and USGS place names) or click its point. Red points are RESST documented sites; with the national layer on, every other modeled reservoir is clickable too. The popup gives the first look (place, agency, purpose, the documented release method, ecological concern, and analysis, the modeled share of capacity lost, and how many references exist), and the full record opens in the <strong>Selected Data</strong> panel.",
+        notes: [
+          { label: "Tip", text: "The panel's cards open one at a time. Collapsed, each header still shows its source badge and a one-line summary, such as the share of capacity lost." },
+        ],
       },
       {
         title: "Read the documented record first",
-        body: "The <strong>Sediment Management</strong> section carries the team-documented release methods, ecological concerns, and analyses; <strong>Site Literature</strong> lists the references for this location. This is RESST's core evidence, reported from real projects.",
+        body: "The <strong>Sediment Management</strong> card shows the team-documented release methods, ecological concerns, and analyses as keywords; <strong>Site Literature</strong> lists the references for this location, each title linking to its source. This is RESST's core evidence, reported from real projects.",
       },
       {
         title: "Open Reservoir Sustainability",
-        body: "Headline estimates (percent capacity lost, original versus estimated remaining storage, annual accumulation) over the modeled trajectory chart. The solid line is modeled history; the dashed part beyond 2025 is projection; whiskers mark the model's 95% range at 2025 and 2050.",
+        body: "The two headline numbers are the estimated share of capacity lost by 2025 and the projected loss by 2050, drawn as a bar beneath them; below come original, remaining, and accumulated storage and the annual accumulation, then the modeled trajectory chart. The solid line is modeled history; the dashed part beyond 2025 is projection; whiskers mark the model's 95% range at 2025 and 2050.",
         notes: [
           { label: "Why it matters", text: "It answers, in seconds: how much storage is already gone, and where is this reservoir heading if nothing changes?" },
         ],
       },
       {
         title: "Check the Evidence",
-        body: "The Evidence badge says whether <strong>measured</strong> RESSED surveys exist and how recent they are. Measured capacities plot as dots on the chart. Where dots and the modeled line agree, confidence grows; where they diverge, trust the surveys and read their notes.",
+        body: "The Evidence badge says whether <strong>measured</strong> RESSED surveys exist and how recent they are. The card lists the surveys (year, measured capacity, sediment since the prior survey), keeps each survey's method and notes under <strong>Survey methods and notes</strong>, and links the original datasheets. Measured capacities plot as dots on the chart. Where dots and the modeled line agree, confidence grows; where they diverge, trust the surveys and read their notes.",
       },
       {
         title: "Explore the Reservoir Network",
-        body: "Upstream and downstream dam counts, the terminal-dam status, and the river mouth the system drains to. <strong>Upstream / Downstream / Full network</strong> highlight the connected dams on the map; the dashed downstream path is schematic, not the river course.",
+        body: "<strong>Show on map</strong> highlights the <strong>Upstream</strong> dams, the <strong>Downstream</strong> path to the river mouth, or <strong>Both</strong>, each button carrying its dam count; <strong>Drainage area</strong> outlines the USGS NLDI basin. Below, the downstream path lists the reservoirs sediment passing this dam would encounter, the rivers it joins, and the mouth. On the map, the dashed downstream path is schematic, not the river course.",
         notes: [
-          { label: "Tip", text: "The connectivity bar shows how much of the drainage area reaches this reservoir without first passing another dam (ResNet's SCA2025)." },
+          { label: "Tip", text: "<strong>Not behind another dam</strong> is the share of the drainage area that reaches this reservoir without first passing another dam (ResNet's SCA2025): a connectivity measure, not sediment delivery." },
           { label: "Note", text: "Downstream counts follow the flow path only. Dams on other tributaries that join the same rivers downstream are not on this path." },
         ],
       },
@@ -138,13 +141,13 @@ export const HELP_VIEWS: HelpView[] = [
     title: "Workflow 2: Management Analog Finder",
     image: {
       src: "help/analogs.jpg",
-      alt: "The Comparable Reservoirs section listing documented analog sites with similarity scores and management keywords.",
+      alt: "The Comparable Reservoirs card listing documented case-study sites with their modeled capacity lost and management keywords.",
     },
     facets: {
       goal: "From your reservoir's characteristics, surface the most similar reservoirs in the country, documented RESST sites first, and read how they manage sediment.",
       when: "You know the sedimentation situation and want precedent projects worth studying.",
-      get: "Ranked documented analogs with their management keywords, plus the nearest reservoirs overall.",
-      tip: "The similarity score is a relative screening index over storage, drainage area, age, modeled capacity loss, sedimentation rate, purpose, and region. Verify real suitability in the analog's literature.",
+      get: "Ranked documented case studies with their management keywords, plus other similar reservoirs without a RESST record.",
+      tip: "Rows are ranked by a relative similarity index over storage, drainage area, age, modeled capacity loss, sedimentation rate, purpose, and region (hover a row for its score). Verify real suitability in the analog's literature.",
     },
     steps: [
       {
@@ -152,17 +155,17 @@ export const HELP_VIEWS: HelpView[] = [
         body: "A documented site or, with the national layer on, any modeled reservoir.",
       },
       {
-        title: "Run the finder",
-        body: "Expand <strong>Comparable Reservoirs</strong> and press <strong>Find similar reservoirs</strong>.",
+        title: "Open Comparable Reservoirs",
+        body: "Open the <strong>Comparable Reservoirs</strong> card; the ranking runs as it opens.",
       },
       {
-        title: "Read the documented analogs first",
-        body: "The top list ranks RESST documented sites; each row shows its similarity score, modeled capacity lost, and the site's <strong>Sediment Release</strong> keywords. These are the analogs with management records and literature behind them.",
+        title: "Read the documented case studies first",
+        body: "The top list ranks RESST documented sites; each row shows the state, modeled capacity lost, and the site's <strong>Sediment Release</strong> methods. These are the analogs with management records and literature behind them. Similar reservoirs without a RESST record sit in the disclosure below.",
         notes: [{ label: "Why it matters", text: "This is the shortest path from “my reservoir has this problem” to “here is how comparable projects handled it.”" }],
       },
       {
         title: "Open an analog",
-        body: "Click a row to select that reservoir: a documented site opens with its full management record and literature; an undocumented one opens its modeled profile.",
+        body: "Click a row to open that reservoir: a documented site opens on its Sediment Management card; an undocumented one opens its modeled profile. <strong>Back</strong> returns to your reservoir and its list.",
       },
       {
         title: "Build the reading list",
@@ -176,7 +179,7 @@ export const HELP_VIEWS: HelpView[] = [
     title: "Workflow 3: National Screening and Gap Analysis",
     image: {
       src: "help/screen.jpg",
-      alt: "The national inventory layer styled by percent capacity lost, with the Screening panel's criteria and count open.",
+      alt: "The national inventory layer styled by percent capacity lost, with the Screening panel docked beside it: the four starting questions with their counts, and the results bar.",
     },
     facets: {
       goal: "Filter the ~57,000 modeled reservoirs with transparent criteria to find where sediment management may deserve further evaluation, and where documented experience already exists.",
@@ -191,19 +194,19 @@ export const HELP_VIEWS: HelpView[] = [
       },
       {
         title: "Open Screening",
-        body: "The <strong>Screening</strong> popover sits beside Layers. Opening it switches the national layer on if it isn't already.",
+        body: "The <strong>Screening</strong> toggle beside the search box opens a panel docked at the left edge of the map. It stays open while you pan, zoom, and click reservoirs; close it with the toggle, ✕, or Esc. Opening it switches the national layer on if it isn't already.",
       },
       {
-        title: "Start from a gap-analysis preset",
-        body: "The four chips are the management-versus-sedimentation quadrants, for example <strong>Undocumented + high sedimentation</strong> (potential opportunities) or <strong>Documented + high sedimentation</strong> (potential case studies).",
+        title: "Start with a question",
+        body: "Four questions cover the management-versus-sedimentation quadrants, each showing how many reservoirs it would find: <strong>Potential case studies</strong> (documented, 25% or more lost by 2025), <strong>Potential opportunities</strong> (not documented, 25% or more lost), <strong>Possibly proactive</strong>, and <strong>Lower current priority</strong>.",
       },
       {
-        title: "Tighten the criteria",
-        body: "Raise the capacity-lost or rate thresholds, restrict to terminal dams or reservoirs with measured surveys, or cut by state, owner type, or purpose. Criteria combine with AND; the map hides non-matching reservoirs.",
+        title: "Refine if needed",
+        body: "Under <strong>Refine criteria</strong>, set capacity-lost or rate thresholds, restrict to terminal dams or reservoirs with measured surveys, or cut by state, owner type, or purpose. Criteria combine with AND, the question counts follow, and the map hides non-matching reservoirs.",
       },
       {
         title: "Read the count and zoom",
-        body: "The readout states how many of the modeled reservoirs match. <strong>Zoom to matches</strong> frames them; click any dot for its details panel.",
+        body: "The results bar states how many of the modeled reservoirs match. <strong>Zoom to matches</strong> frames them; click any dot for its details while the panel stays open.",
       },
       {
         title: "Export the matches",

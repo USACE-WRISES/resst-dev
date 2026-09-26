@@ -1,11 +1,13 @@
 // Provenance UI — the cardinal display rule made into components so it can't
 // drift: badges classify every value group (measured / modeled / network /
-// reported), notes state source + scenario inline, and the ⓘ popover carries
-// the citation (source, version, DOI, caveat). Wording tests assert on these.
+// reported), each card's source line (ui.tsx SourceLine) states source +
+// scenario inline, and the ⓘ popover carries the citation (source, version,
+// DOI, caveat). Wording tests assert on these.
 
 import { useRef, useState } from "react";
 import { useDismissPopover } from "../../map/useDismissPopover";
 import type { ProvenanceGroup } from "../../sediment/types";
+import { usePanelPopover } from "./usePanelPopover";
 
 export type BadgeKind = "modeled" | "measured" | "network" | "reported";
 
@@ -24,20 +26,12 @@ export function ProvBadge({ kind, label }: { kind: BadgeKind; label?: string }) 
   );
 }
 
-/** One-line source note under a section, with the citation popover. */
-export function ProvNote({ text, group }: { text: string; group?: ProvenanceGroup }) {
-  return (
-    <p className="prov-note">
-      {text}
-      {group && <ProvInfo group={group} />}
-    </p>
-  );
-}
-
 export function ProvInfo({ group }: { group: ProvenanceGroup }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
+  const popRef = useRef<HTMLSpanElement>(null);
   useDismissPopover(open, ref, () => setOpen(false));
+  usePanelPopover(open, ref, popRef);
   return (
     <span className="prov-info" ref={ref}>
       <button
@@ -50,7 +44,7 @@ export function ProvInfo({ group }: { group: ProvenanceGroup }) {
         ⓘ
       </button>
       {open && (
-        <span className="prov-pop" role="group" aria-label="Data source details">
+        <span className="prov-pop" role="group" aria-label="Data source details" ref={popRef}>
           <b>{group.source}</b>
           <span>{group.version}</span>
           {group.doi && (

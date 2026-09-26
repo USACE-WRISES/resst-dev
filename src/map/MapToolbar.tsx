@@ -1,8 +1,9 @@
-// The map's top-left toolbar, shared by both map engines: search, the Select
-// menu, the Layers/Legend popovers, Screening, and the hint bar of an armed
+// The map's top-left toolbar: search, the Screening toggle (right beside the
+// search box, above the docked panel it opens at the map's left edge), the
+// Select menu, the Layers/Legend popovers, and the hint bar of an armed
 // Select tool. Its children stay direct children of .map-toolbar: the
-// stylesheet's pointer-events rule (`.map-toolbar > *`) and the e2e selectors
-// depend on that flat shape.
+// stylesheet's pointer-events rule (`.map-toolbar > *`) and the e2e
+// selectors depend on that flat shape.
 
 import type { Site } from "../lib/types";
 import type { AppState } from "../state/store";
@@ -31,9 +32,13 @@ export function MapToolbar({
   return (
     <div className="map-toolbar">
       <SearchControl sites={allSites} />
-      <SelectMenu tool={state.mapTool} distance={state.riverDistanceMiles} hasSelection={state.selectedSiteIds.length > 0} />
-      <MapToolPanels state={state} zoom={zoom} siteByShortId={siteByShortId} />
       <ScreeningPanel state={state} siteByShortId={siteByShortId} />
+      <SelectMenu
+        tool={state.mapTool}
+        distance={state.riverDistanceMiles}
+        hasSelection={state.selectedSiteIds.length > 0 || state.selectedReservoirId != null}
+      />
+      <MapToolPanels state={state} zoom={zoom} siteByShortId={siteByShortId} />
       {state.mapTool !== "none" && (
         <SelectHintBar
           tool={state.mapTool}

@@ -1,52 +1,53 @@
-// "What are comparable reservoirs doing?" — the analog finder (ideas doc #5).
-// Documented analogs list first, each carrying its RESST management keywords:
-// the whole point is routing users from a sedimentation problem to relevant
-// precedent projects and their literature. Computation is on-demand (button),
-// synchronous over the loaded core (<50 ms), and rows click through to the
-// normal site/reservoir selection.
+// "What are comparable reservoirs doing?" — the analog finder (ideas doc #5):
+// the documented RESST sites most like this reservoir, each with its
+// sediment-release methods, as a starting point for relevant case studies.
+// It runs when the card opens (the card is lazy, so nothing is computed
+// until then; synchronous over the loaded core, <50 ms). Undocumented
+// analogs sit behind a disclosure. A row opens that reservoir and the panel
+// offers Back to where the user came from.
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { AppData } from "../../lib/types";
-import { actions, useAppState } from "../../state/store";
+import { actions, useAppState, type ReturnTarget } from "../../state/store";
 import { ensureCore, getCore } from "../../sediment/data";
 import { findSimilar, type SimilarMatch } from "../../sediment/similar";
 import { formatPct, pctLost } from "../../sediment/format";
-import { ProvBadge, ProvNote } from "./Provenance";
-import { PROVENANCE } from "../../sediment/types";
+import { splitKeywords } from "../../lib/display";
+import { ChevronRight } from "../icons";
+import { InfoTip, SourceLine } from "./ui";
 
-export function ComparablesSection({ row, data }: { row: number | null; data: AppData }) {
+/** Documented analogs shown before "Show more". */
+const FIRST = 5;
+
+export function ComparablesSection({ row, data, from }: { row: number | null; data: AppData; from: ReturnTarget }) {
   useAppState(); // sedimentStamp re-render
-  const [requested, setRequested] = useState(false);
   const [error, setError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
+  const [showAll, setShowAll] = useState(false);
+
+  useEffect(() => {
+    setError(false);
+    ensureCore().catch(() => setError(true));
+  }, [retryKey]);
+  useEffect(() => setShowAll(false), [row]);
 
   const core = getCore();
-  const run = () => {
-    setRequested(true);
-    setError(false);
-    void ensureCore().catch(() => setError(true));
-  };
+  const results = useMemo(
+    () => (core && row != null ? findSimilar(core, row, new Set(data.siteByShortId.keys())) : null),
+    [core, row, data],
+  );
 
-  if (!requested) {
-    return (
-      <>
-        <p className="muted">Find the most physically similar reservoirs nationwide, documented RESST sites first.</p>
-        <button type="button" className="nw-btn" onClick={run}>
-          Find similar reservoirs
-        </button>
-      </>
-    );
-  }
   if (error) {
     return (
       <p className="sec-status" data-status="error">
         National dataset failed to load.{" "}
-        <button type="button" className="linklike" onClick={run}>
+        <button type="button" className="linklike" onClick={() => setRetryKey((k) => k + 1)}>
           Retry
         </button>
       </p>
     );
   }
-  if (!core || row == null) {
+  if (!core || !results) {
     return (
       <p className="sec-status" data-status="loading">
         Loading national dataset…
@@ -54,56 +55,68 @@ export function ComparablesSection({ row, data }: { row: number | null; data: Ap
     );
   }
 
-  const results = findSimilar(core, row, new Set(data.siteByShortId.keys()));
   const rowFor = (m: SimilarMatch, documented: boolean) => {
     const name = core.names[m.row] || `NID ${core.nids[m.row]}`;
     const state = core.state[m.row] >= 0 ? core.dicts.state[core.state[m.row]] : "";
     const lost = pctLost(core.sed2025[m.row], core.capOrig[m.row]);
     const siteId = data.siteByShortId.get(core.ids[m.row]);
     const site = siteId ? data.siteById.get(siteId) : undefined;
+    const methods = documented ? splitKeywords(site?.sediment_release) : [];
     return (
       <li key={m.row}>
         <button
           type="button"
-          className="sim-row"
-          onClick={() => (siteId ? actions.selectSite(siteId) : actions.selectReservoir(String(core.ids[m.row])))}
+          className="sim-card"
+          title={`Similarity index ${m.score} of 100`}
+          onClick={() => actions.openComparable(siteId ? { siteId } : { reservoirId: String(core.ids[m.row]) }, from)}
         >
-          <span className="sim-head">
-            <b>{name}</b>
-            {state && <span className="muted"> · {state}</span>}
-            <span className="sim-score">{m.score}</span>
+          <span className="sim-card-head">
+            <b className="sim-name">{name}</b>
+            {state && <span className="sim-state">{state}</span>}
+            <ChevronRight className="sim-go" size={13} />
           </span>
-          <span className="sim-meta">
-            {lost != null && <>Est. {formatPct(lost)} capacity lost (2025)</>}
-            {documented && site?.sediment_release && (
-              <span className="sim-keywords"> · {site.sediment_release}</span>
-            )}
+          <span className="sim-card-meta">
+            {methods.map((v) => (
+              <span key={v} className="chip">
+                {v}
+              </span>
+            ))}
+            {lost != null && <span className="sim-lost">{formatPct(lost)} lost by 2025</span>}
           </span>
         </button>
       </li>
     );
   };
 
+  const shown = showAll ? results.documented : results.documented.slice(0, FIRST);
   return (
     <>
-      <h4 className="sim-group">
-        Documented analogs <ProvBadge kind="reported" label="RESST sites" />
-      </h4>
+      <p className="card-lead">Documented sites most like this reservoir: a starting point for relevant case studies.</p>
+      <h4 className="card-label">Documented case studies</h4>
       {results.documented.length === 0 ? (
         <p className="muted">No documented RESST site ranks as a close analog.</p>
       ) : (
-        <ul className="sim-list">{results.documented.map((m) => rowFor(m, true))}</ul>
+        <ul className="sim-cards">{shown.map((m) => rowFor(m, true))}</ul>
       )}
-      <h4 className="sim-group">Nearest overall</h4>
-      {results.overall.length === 0 ? (
-        <p className="muted">No comparable reservoirs found.</p>
-      ) : (
-        <ul className="sim-list">{results.overall.map((m) => rowFor(m, false))}</ul>
+      {results.documented.length > FIRST && (
+        <button type="button" className="text-btn sim-toggle" onClick={() => setShowAll((v) => !v)}>
+          {showAll ? "Show fewer" : `Show ${results.documented.length - FIRST} more`}
+        </button>
       )}
-      <ProvNote
-        text="Similarity compares storage, drainage area, age, modeled capacity lost, sedimentation rate, purpose, and region. It is a relative screening aid, not a hydrologic equivalence"
-        group={PROVENANCE.resnet}
-      />
+      {results.overall.length > 0 && (
+        // Keyed by reservoir so each one starts in its default state: open
+        // when there is no documented analog to show above it.
+        <details key={row} className="sim-more" open={results.documented.length === 0 || undefined}>
+          <summary>Other similar reservoirs (no RESST record)</summary>
+          <ul className="sim-cards">{results.overall.map((m) => rowFor(m, false))}</ul>
+        </details>
+      )}
+      <SourceLine text="Ranked by similarity: a relative screening aid, not a hydrologic equivalence">
+        <InfoTip label="How similarity is ranked">
+          Compares storage, drainage area, age, modeled capacity lost, sedimentation rate, purpose, and region.
+          Verify real suitability in each site's literature.
+        </InfoTip>
+      </SourceLine>
     </>
   );
 }

@@ -85,7 +85,7 @@ test("site and reservoir selection stay mutually exclusive through a full cycle"
   await clickDam(page, -96.45, 39.05);
   await expect(details).toContainText("Lone Reservoir");
   await expect(details).toContainText("Selected Sites: 0"); // no site selection alongside
-  await details.getByRole("button", { name: "Clear" }).click();
+  await details.getByRole("button", { name: "Clear", exact: true }).click();
   await expect(details).toContainText("Select a site on the map");
 });
 

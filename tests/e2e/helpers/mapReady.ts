@@ -54,14 +54,20 @@ export const screenPt = (page: Page, lon: number, lat: number) =>
     [lon, lat] as const,
   );
 
-/** The fly landed: still, and centred within 0.05°. */
+/** The selection fly landed: still, centred across (within 0.05° of
+    longitude), and the site on screen at or below the vertical centre. The
+    selection camera sets the site lower when its popup would otherwise reach
+    under the map toolbar (src/map/viewInsets.ts popupShift). */
 export const landed = (page: Page, lon: number, lat: number, timeout = 10_000) =>
   page.waitForFunction(
     ([ln, lt]) => {
       const w = window as any;
       if (!w.__resstMap || w.__resstMapInfo.isMoving()) return false;
       const c = w.__resstMapInfo.getCenter();
-      return Math.abs(c.lng - ln) < 0.05 && Math.abs(c.lat - lt) < 0.05;
+      if (Math.abs(c.lng - ln) >= 0.05) return false;
+      const p = w.__resstMapInfo.project(ln, lt);
+      const h = (w.__resstMap.getContainer() as HTMLElement).clientHeight;
+      return p.y >= h / 2 - 2 && p.y <= h;
     },
     [lon, lat] as const,
     { timeout },

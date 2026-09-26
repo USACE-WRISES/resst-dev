@@ -3,7 +3,18 @@
 // them together and pin the unknown-value semantics (a reservoir with no
 // original capacity can match neither a "high" nor a "low" loss criterion).
 import { describe, expect, it } from "vitest";
-import { EMPTY_SCREENING, GAP_PRESETS, screenCore, type ScreeningState } from "../src/sediment/screen";
+import {
+  EMPTY_SCREENING,
+  GAP_PRESETS,
+  isEmptyScreening,
+  presetMatches,
+  quadrantCounts,
+  refineCount,
+  screenCore,
+  withoutPreset,
+  withPreset,
+  type ScreeningState,
+} from "../src/sediment/screen";
 import { decodeCore } from "../src/sediment/decode";
 
 // mouth · documented terminal dam 17% lost w/ surveys · undocumented 50% lost · no-storage row
@@ -73,6 +84,52 @@ describe("matchesRow / screenCore", () => {
     expect(screenCore(core, DOCUMENTED, s(byKey["managed-low"])).rows).toEqual([1]);
     expect(screenCore(core, DOCUMENTED, s(byKey["gap-high"])).rows).toEqual([2]);
     expect(screenCore(core, DOCUMENTED, s(byKey["gap-low"])).rows).toEqual([]);
-    for (const p of GAP_PRESETS) expect(p.hint).not.toMatch(/needs? intervention/i);
+    for (const p of GAP_PRESETS) {
+      for (const text of [p.hint, p.title, p.criteria]) expect(text).not.toMatch(/needs? intervention/i);
+    }
+  });
+});
+
+describe("screening questions (the docked panel)", () => {
+  const preset = (key: string) => GAP_PRESETS.find((p) => p.key === key)!;
+
+  it("lists the high-loss questions first", () => {
+    expect(GAP_PRESETS.map((p) => p.key)).toEqual(["managed-high", "gap-high", "managed-low", "gap-low"]);
+  });
+
+  it("choosing a question sets only its quadrant and keeps refinements", () => {
+    const refined = s({ state: 1, terminalOnly: true, pctLost2025Min: 25, documented: "documented" });
+    const next = withPreset(refined, preset("gap-low"));
+    expect(next).toMatchObject({ documented: "undocumented", pctLost2025Min: null, pctLost2025Max: 25 });
+    expect(next).toMatchObject({ state: 1, terminalOnly: true });
+    expect(withoutPreset(next)).toMatchObject({ documented: "any", pctLost2025Max: null, state: 1 });
+  });
+
+  it("a question stays selected while refinements are added", () => {
+    const next = withPreset(s({}), preset("gap-high"));
+    expect(presetMatches(next, preset("gap-high"))).toBe(true);
+    expect(presetMatches({ ...next, state: 0, storageMinAcFt: 1000 }, preset("gap-high"))).toBe(true);
+    expect(presetMatches({ ...next, pctLost2025Min: 50 }, preset("gap-high"))).toBe(false); // custom loss
+    expect(GAP_PRESETS.filter((p) => presetMatches(next, p))).toHaveLength(1);
+  });
+
+  it("counts refinements and recognizes the empty criteria set", () => {
+    expect(refineCount(EMPTY_SCREENING)).toBe(0);
+    expect(refineCount(withPreset(EMPTY_SCREENING, preset("gap-high")))).toBe(0); // the question is not a refinement
+    expect(refineCount(s({ state: 0, surveyedOnly: true }))).toBe(2);
+    expect(isEmptyScreening(EMPTY_SCREENING)).toBe(true);
+    expect(isEmptyScreening({ ...EMPTY_SCREENING, active: true })).toBe(true); // `active` is derived, not a criterion
+    expect(isEmptyScreening(s({ owner: 0 }))).toBe(false);
+  });
+
+  it("quadrant counts are what choosing each question would show", () => {
+    expect(quadrantCounts(core, DOCUMENTED, EMPTY_SCREENING)).toEqual({
+      "managed-high": 0,
+      "gap-high": 1,
+      "managed-low": 1,
+      "gap-low": 0,
+    });
+    // Refinements narrow every count: Oregon has only the unknown-capacity dam.
+    expect(Object.values(quadrantCounts(core, DOCUMENTED, s({ state: 1 })))).toEqual([0, 0, 0, 0]);
   });
 });

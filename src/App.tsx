@@ -103,6 +103,8 @@ export default function App() {
             allSites={data.sites}
             siteById={data.siteById}
             siteByShortId={data.siteByShortId}
+            entriesBySite={data.entriesBySite}
+            siteSediment={data.siteSediment}
             state={state}
           />
           <TableResizer collapsed={state.tableCollapsed} heightFrac={state.tableHeightFrac} />

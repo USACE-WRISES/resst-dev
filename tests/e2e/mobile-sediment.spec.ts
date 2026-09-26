@@ -8,6 +8,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { stubEsri } from "./helpers/esriStub";
 import { stubSediment } from "./helpers/sedimentFixtures";
 import { openDetailSection } from "./helpers/sections";
+import { waitForMapIdle } from "./helpers/mapReady";
 
 const PHONE = { width: 390, height: 844 };
 
@@ -49,6 +50,25 @@ test("phone: a site's sediment sections render inside the details drawer", async
   expect(serious.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(" | ")}`)).toEqual([]);
 });
 
+test("phone: the card ⓘ popovers stay inside the details drawer", async ({ page }) => {
+  await openPhone(page);
+  await page.locator(".table-panel input").first().fill("Tuttle");
+  await page.locator(".data-table tbody tr", { hasText: "Tuttle Creek" }).first().click();
+  await page.locator(".mobile-bar").getByRole("button", { name: "Selected (1)" }).click();
+  await openDetailSection(page, "Reservoir Network");
+  const net = page.locator("#detail-sec-net");
+  const btn = net.locator(".source-line .prov-info-btn");
+  await btn.scrollIntoViewIfNeeded();
+  await btn.click();
+  const pop = net.locator(".prov-pop");
+  await expect(pop).toBeVisible();
+  const panel = (await page.locator(".details-panel").boundingBox())!;
+  const b = (await pop.boundingBox())!;
+  expect(b.x).toBeGreaterThanOrEqual(panel.x);
+  expect(b.x + b.width).toBeLessThanOrEqual(panel.x + panel.width);
+  expect(b.y + b.height).toBeLessThanOrEqual(PHONE.height); // scrolled into view, not clipped below
+});
+
 test("phone: tapping a national reservoir counts on the bar and opens ReservoirDetails", async ({ page }) => {
   await openPhone(page);
   await page.getByRole("button", { name: "Layers" }).click();
@@ -64,7 +84,7 @@ test("phone: tapping a national reservoir counts on the bar and opens ReservoirD
   await expect(details).toContainText("No documented RESST sediment-management record");
 });
 
-test("phone: the screening popover pins inside the viewport and works", async ({ page }) => {
+test("phone: the screening panel pins inside the viewport, works, and closes on an outside tap", async ({ page }) => {
   await openPhone(page);
   await page.getByRole("button", { name: /^Screening/ }).click();
   const panel = page.locator(".screening-panel");
@@ -73,6 +93,27 @@ test("phone: the screening popover pins inside the viewport and works", async ({
   expect(box.x).toBeGreaterThanOrEqual(0);
   expect(box.x + box.width).toBeLessThanOrEqual(PHONE.width + 1);
   expect(box.y + box.height).toBeLessThanOrEqual(PHONE.height + 1);
-  await page.getByRole("button", { name: "Undocumented + high sedimentation" }).click();
+  await page.getByRole("button", { name: /^Potential opportunities/ }).click();
   await expect(page.locator(".screen-count")).toContainText("1 of 3");
+  // On a phone the panel covers the map, so a tap outside it closes it.
+  await page.locator(".app-footer").click();
+  await expect(panel).toHaveCount(0);
+});
+
+test("phone: the popup clears the two-row toolbar, and Show details opens the drawer", async ({ page }) => {
+  await openPhone(page);
+  await page.locator(".table-panel input").first().fill("Tuttle");
+  await page.locator(".data-table tbody tr", { hasText: "Tuttle Creek" }).first().click();
+  const more = page.locator(".leaflet-popup").getByRole("button", { name: "Show details" });
+  await expect(more).toBeVisible();
+  // The phone toolbar wraps onto two rows; the camera aims the site low enough
+  // that the popup (with its Show details button) sits below them.
+  await waitForMapIdle(page);
+  const popup = (await page.locator(".leaflet-popup").boundingBox())!;
+  const toolbar = (await page.locator(".map-toolbar").boundingBox())!;
+  expect(popup.y).toBeGreaterThanOrEqual(toolbar.y + toolbar.height);
+  await more.click();
+  const details = page.locator(".details-panel");
+  await expect(details).toBeInViewport();
+  await expect(details.locator(".site-name")).toHaveText("Tuttle Creek");
 });

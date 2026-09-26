@@ -1,19 +1,26 @@
 // "How certain are we?" — separates what was MEASURED (RESSED bathymetric
-// surveys) from what is MODELED (everything in the Sustainability section).
+// surveys) from what is MODELED (everything in the Sustainability card).
 // Works for crosswalked sites (badge year known at boot) and national-layer
 // reservoirs (badge year fills in once the survey slice loads). The section
-// badge classifies the evidence even while collapsed. Survey rows spell out
-// the export's method/scope/pool codes (glossary popover for the rest), and
-// the Original records block links the scanned RESSED datasheet when the
-// legacy RESIS datasheet number exists.
+// badge classifies the evidence even while collapsed.
+//
+// Layout: a one-line summary and the RATTES class, the surveys as a compact
+// Year | Capacity | Sediment table, the per-survey method, pool and notes
+// behind a "Survey methods and notes" disclosure (the export's codes spelled
+// out, glossary popover for the rest), then the original-record links.
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useAppState } from "../../state/store";
 import { ensureSurveys, getCore, surveyProvenanceForRow, surveysForRow } from "../../sediment/data";
-import { formatVolumeAcft, surveyMethodText, surveyMonthLabel } from "../../sediment/format";
+import { compact, m3ToAcft, surveyMethodText, surveyMonthLabel } from "../../sediment/format";
 import { PROVENANCE, SURVEY_POOL_LABELS, ressedDatasheetUrl } from "../../sediment/types";
 import { useDismissPopover } from "../../map/useDismissPopover";
-import { ProvBadge, ProvNote } from "./Provenance";
+import { ExternalLink } from "../icons";
+import { ProvBadge } from "./Provenance";
+import { SourceLine } from "./ui";
+import { usePanelPopover } from "./usePanelPopover";
+
+const RESSED_LIST_URL = "https://water.usgs.gov/osw/ressed/list_reservoirs/index.html";
 
 /** The RATTES component that modeled this reservoir (null until the core loads). */
 function RattesClassLine({ row }: { row: number | null }) {
@@ -24,15 +31,15 @@ function RattesClassLine({ row }: { row: number | null }) {
     return (
       <p className="rattes-class">
         <ProvBadge kind="measured" label="Survey-constrained" /> RATTES calibrates this reservoir's estimate to its
-        repeat sedimentation surveys (Supplementary Data 1).
+        repeat surveys.
       </p>
     );
   }
   if (cls === 2) {
     return (
       <p className="rattes-class">
-        <ProvBadge kind="modeled" label="Statistical prediction" /> RATTES estimates this reservoir statistically; it
-        has no qualifying repeat surveys in the model's compilation.
+        <ProvBadge kind="modeled" label="Statistical prediction" /> RATTES estimates this reservoir statistically (no
+        qualifying repeat surveys).
       </p>
     );
   }
@@ -49,14 +56,16 @@ export function evidenceBadgeFor(hasSurveys: boolean, latestYear: number | null 
 function CodesInfo() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
+  const popRef = useRef<HTMLSpanElement>(null);
   useDismissPopover(open, ref, () => setOpen(false));
+  usePanelPopover(open, ref, popRef, true); // spans the link row; just scroll it into view
   return (
     <span className="prov-info codes-info" ref={ref}>
-      <button type="button" className="linklike" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        About these survey codes
+      <button type="button" className="text-btn" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        About survey codes
       </button>
       {open && (
-        <span className="prov-pop codes-pop" role="group" aria-label="RESSED survey code glossary">
+        <span className="prov-pop codes-pop" role="group" aria-label="RESSED survey code glossary" ref={popRef}>
           <b>Pool</b>
           <span>
             Which part of the reservoir the survey covered. The public export never defines the letters; survey notes
@@ -81,32 +90,39 @@ function CodesInfo() {
   );
 }
 
-/** Links to the original RESSED records: the scanned datasheet (legacy dsnum ids) and the USGS list. */
-function OriginalRecords({ row }: { row: number | null }) {
+/** Who surveyed and who supplied the data, said once when they are the same. */
+function AgencyLine({ row }: { row: number | null }) {
+  const prov = row != null ? surveyProvenanceForRow(row) : null;
+  if (!prov || (!prov.agency && !prov.supplier)) return null;
+  const text =
+    prov.agency && prov.agency === prov.supplier
+      ? `Surveys and data by ${prov.agency}.`
+      : [prov.agency && `Surveys by ${prov.agency}.`, prov.supplier && `Data supplied by ${prov.supplier}.`]
+          .filter(Boolean)
+          .join(" ");
+  return <p className="muted evidence-agency">{text}</p>;
+}
+
+/** Links to the original RESSED records and the code glossary, in one row. */
+function RecordLinks({ row }: { row: number | null }) {
   const prov = row != null ? surveyProvenanceForRow(row) : null;
   const dsUrl = ressedDatasheetUrl(prov?.ressedId ?? null);
   return (
-    <>
-      <div className="evidence-links">
-        {dsUrl && (
-          <a href={dsUrl} target="_blank" rel="noopener noreferrer">
-            Original RESSED datasheet (PDF)
-          </a>
-        )}
-        <a href="https://water.usgs.gov/osw/ressed/list_reservoirs/index.html" target="_blank" rel="noopener noreferrer">
-          RESSED reservoir list and datasheets
+    <div className="evidence-links">
+      {dsUrl && (
+        <a href={dsUrl} target="_blank" rel="noopener noreferrer">
+          Original datasheet (PDF) <ExternalLink />
         </a>
-      </div>
-      {prov && (prov.agency || prov.supplier) && (
-        <p className="muted evidence-agency">
-          {prov.agency && <>Surveys by {prov.agency}.</>}
-          {prov.agency && prov.supplier ? " " : ""}
-          {prov.supplier && <>Data supplied by {prov.supplier}.</>}
-        </p>
       )}
-    </>
+      <a href={RESSED_LIST_URL} target="_blank" rel="noopener noreferrer">
+        All RESSED datasheets <ExternalLink />
+      </a>
+      <CodesInfo />
+    </div>
   );
 }
+
+const acft = (m3: number | null) => (m3 == null || !Number.isFinite(m3) ? "—" : compact(m3ToAcft(m3)));
 
 export function EvidenceSection({
   row,
@@ -130,17 +146,21 @@ export function EvidenceSection({
   if (!hasSurveys) {
     return (
       <>
-        <p className="muted">
-          No measured sedimentation surveys are on record for this reservoir in RESSED (2013 compilation). The
-          Reservoir Sustainability values are model estimates only.
+        <p className="card-lead">
+          No measured sedimentation surveys are on record in RESSED (2013 compilation). The Reservoir Sustainability
+          values are model estimates only.
         </p>
         <RattesClassLine row={row} />
-        <ProvNote text="Evidence check: USGS RESSED, 2013 public export" group={PROVENANCE.ressed} />
+        <SourceLine text="Checked against USGS RESSED, 2013 public export" group={PROVENANCE.ressed} />
       </>
     );
   }
 
   const surveys = row != null ? surveysForRow(row) : null;
+  const years = (surveys ?? []).map((s) => s.year);
+  // Many USACE survey dates carry no published values; a table of dashes
+  // says nothing, so those reservoirs get one plain sentence instead.
+  const anyValues = (surveys ?? []).some((s) => s.capM3 != null || s.sedTotM3 != null);
   return (
     <>
       {error ? (
@@ -158,43 +178,74 @@ export function EvidenceSection({
         <p className="muted">Survey records exist but could not be listed for this reservoir.</p>
       ) : (
         <>
-          <ul className="survey-list">
-            {surveys.map((s, i) => {
-              const month = surveyMonthLabel(s.date);
-              const method = surveyMethodText(s);
-              return (
-                <li key={`${s.year}-${i}`}>
-                  <b>{s.year}</b>
-                  {month && <span className="muted"> ({month})</span>}
-                  {s.capM3 != null && <> · measured capacity {formatVolumeAcft(s.capM3)}</>}
-                  {s.sedTotM3 != null && <> · interval sediment {formatVolumeAcft(s.sedTotM3)}</>}
-                  {s.capM3 == null && s.sedTotM3 == null && (
-                    <span className="muted"> · survey date on record; no measured values in the public 2013 export</span>
-                  )}
-                  {method && <span className="muted"> · {method}</span>}
-                  {s.pool && (
-                    <span className="muted" title={`RESSED pool code ${s.pool}`}>
-                      {" "}
-                      · {SURVEY_POOL_LABELS[s.pool] ?? `pool ${s.pool}`}
-                    </span>
-                  )}
-                  {s.note && <span className="survey-note muted">{s.note}</span>}
-                </li>
-              );
-            })}
-          </ul>
-          {surveys.every((s) => s.capM3 == null) && (
-            <p className="muted">
-              Measured capacities from these surveys were not published in the 2013 RESSED export, so the chart shows
-              the modeled trajectory without measured points.
+          <p className="card-lead">
+            <b>
+              {surveys.length} measured survey{surveys.length === 1 ? "" : "s"}
+            </b>
+            {" · "}
+            {Math.min(...years) === Math.max(...years) ? years[0] : `${Math.min(...years)} to ${Math.max(...years)}`}
+          </p>
+          <RattesClassLine row={row} />
+          {anyValues ? (
+            <>
+              <table className="survey-table">
+                <caption className="sr-only">Measured sedimentation surveys, acre-feet</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Year</th>
+                    <th scope="col">Capacity</th>
+                    <th scope="col">Sediment since prior</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {surveys.map((s, i) => (
+                    <tr key={`${s.year}-${i}`}>
+                      <td>{s.year}</td>
+                      <td>{acft(s.capM3)}</td>
+                      <td>{acft(s.sedTotM3)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="table-note">
+                Acre-feet, as measured. A dash marks a value the 2013 export did not publish
+                {surveys.every((s) => s.capM3 == null) ? ", so the chart shows the modeled line only." : "."}
+              </p>
+            </>
+          ) : (
+            <p className="card-note">
+              The 2013 RESSED export published no measured values for these surveys, so the chart shows the modeled
+              line only.
             </p>
           )}
-          <CodesInfo />
-          <OriginalRecords row={row} />
+          <details className="survey-details">
+            <summary>Survey methods and notes</summary>
+            <ul>
+              {surveys.map((s, i) => {
+                const month = surveyMonthLabel(s.date);
+                const parts = [
+                  surveyMethodText(s),
+                  s.pool ? (SURVEY_POOL_LABELS[s.pool] ?? `pool ${s.pool}`) : "",
+                  anyValues && s.capM3 == null && s.sedTotM3 == null
+                    ? "survey date on record; no measured values in the 2013 export"
+                    : "",
+                ].filter(Boolean);
+                return (
+                  <li key={`${s.year}-${i}`}>
+                    <b>{s.year}</b>
+                    {month && ` (${month})`}
+                    {parts.length > 0 && `: ${parts.join(" · ")}`}
+                    {s.note && <span className="survey-note">{s.note}</span>}
+                  </li>
+                );
+              })}
+            </ul>
+          </details>
+          <AgencyLine row={row} />
+          <RecordLinks row={row} />
         </>
       )}
-      <RattesClassLine row={row} />
-      <ProvNote text="Measured surveys: USGS RESSED, 2013 public export (survey methods and datums vary)" group={PROVENANCE.ressed} />
+      <SourceLine text="USGS RESSED, 2013 public export · methods and datums vary" group={PROVENANCE.ressed} />
     </>
   );
 }

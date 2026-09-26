@@ -163,14 +163,72 @@ test("network highlight and the NLDI drainage area draw on the map", async ({ pa
   await landed(page, TUTTLE.lon, TUTTLE.lat);
   await openDetailSection(page, "Reservoir Network");
   const net = page.locator("#detail-sec-net");
-  await net.locator(".nw-btn", { hasText: "Full network" }).click();
+  await net.locator(".nw-btn", { hasText: "Both" }).click();
   await expect.poll(async () => (await mapCounts(page)).network).toBeGreaterThan(0);
   await net.locator(".nw-btn", { hasText: "Drainage area" }).click();
   await expect.poll(async () => (await mapCounts(page)).basin, { timeout: 15_000 }).toBe(1);
   await net.locator(".nw-btn", { hasText: "Drainage area" }).click();
   await expect.poll(async () => (await mapCounts(page)).basin).toBe(0);
-  await net.getByRole("button", { name: "Clear" }).click();
+  await net.getByRole("button", { name: "Clear highlight", exact: true }).click();
   await expect.poll(async () => (await mapCounts(page)).network).toBe(0);
+});
+
+test("the site popup gives the first look at a dam and clears the toolbar, even on a short map", async ({ page }) => {
+  // Table at 60%: a ~330px map, where a centred site would put the popup under the toolbar.
+  await page.addInitScript(() => localStorage.setItem("resst.tableHeight", "0.6"));
+  await openApp(page);
+  await selectFromTable(page, "Tuttle Creek");
+  await expect(page.locator(".leaflet-popup")).toHaveCount(1);
+  await waitForMapIdle(page);
+  const popup = page.locator(".leaflet-popup");
+  await expect(popup.locator(".popup-title")).toHaveText("Tuttle Creek");
+  // Who and where, then purpose and NID ID.
+  await expect(popup.locator(".popup-sub").first()).toHaveText("Manhattan, KS · USACE");
+  await expect(popup.locator(".popup-sub").nth(1)).toContainText("NID KS00012");
+  // What the RESST team documented there.
+  await expect(popup.locator(".popup-row > span")).toHaveText(["Sediment release", "Ecological concern", "Analysis"]);
+  await expect(popup).toContainText("Water Injection Dredging");
+  // The two numbers that say whether to dig in (fixture link: 2.0e8 / 1.2e9).
+  await expect(popup.locator(".popup-facts")).toContainText("17% capacity lost by 2025 (modeled)");
+  await expect(popup.locator(".popup-facts")).toContainText("6 references");
+  // Wide layout with the panel showing: no "Show details" button.
+  await expect(popup.getByRole("button", { name: "Show details" })).toBeHidden();
+  const pb = (await popup.boundingBox())!;
+  const tb = (await page.locator(".map-toolbar").boundingBox())!;
+  const mb = (await page.locator(".map-panel").boundingBox())!;
+  expect(pb.y).toBeGreaterThanOrEqual(tb.y + tb.height);
+  const site = await screenPt(page, TUTTLE.lon, TUTTLE.lat);
+  expect(site.y).toBeGreaterThan(mb.y);
+  expect(site.y).toBeLessThan(mb.y + mb.height);
+});
+
+test("toolbar popovers draw above the results table, not under its divider", async ({ page }) => {
+  // A short map (table at 75%) so the Legend with the national ramp runs past it.
+  await page.addInitScript(() => localStorage.setItem("resst.tableHeight", "0.75"));
+  await openApp(page);
+  await enableNationalLayer(page);
+  await page.getByRole("button", { name: "Legend" }).click();
+  const legend = page.locator(".tool-popover-panel", { has: page.locator(".legend-list") });
+  const lb = (await legend.boundingBox())!;
+  const mb = (await page.locator(".map-panel").boundingBox())!;
+  expect(lb.y + lb.height).toBeGreaterThan(mb.y + mb.height + 10);
+  // At the map/table divider (the resizer band) the Legend is on top.
+  const onTop = await page.evaluate(
+    ([x, y]) => !!document.elementFromPoint(x, y)?.closest(".tool-popover-panel"),
+    [lb.x + lb.width / 2, mb.y + mb.height] as const,
+  );
+  expect(onTop).toBe(true);
+});
+
+test("the popup's Show details expands a collapsed Selected Data panel", async ({ page }) => {
+  await openApp(page);
+  await page.getByRole("button", { name: "Collapse Selected Data panel" }).click();
+  await selectFromTable(page, "Tuttle Creek");
+  const more = page.locator(".leaflet-popup").getByRole("button", { name: "Show details" });
+  await expect(more).toBeVisible();
+  await more.click();
+  await expect(page.getByRole("button", { name: "Collapse Selected Data panel" })).toBeVisible();
+  await expect(page.locator(".details-panel .site-name")).toHaveText("Tuttle Creek");
 });
 
 test("the basemap picker swaps the tile layer", async ({ page }) => {
@@ -199,12 +257,12 @@ test("the national layer draws on canvas, follows the metric, and screening filt
   expect(await page.evaluate(() => (window as any).__resstMapInfo.nationalMetric())).toBe("evidence");
   // Screening hides the non-matching dots; the count readout says how many.
   await page.getByRole("button", { name: /^Screening/ }).click();
-  await page.getByRole("button", { name: "Undocumented + high sedimentation" }).click();
+  await page.getByRole("button", { name: /^Potential opportunities/ }).click();
   await expect(page.locator(".screen-count")).toContainText("1 of 3 modeled reservoirs match");
   await expect.poll(async () => (await mapCounts(page)).national).toBe(1);
   await page.getByRole("button", { name: "Clear screening" }).click();
   await expect.poll(async () => (await mapCounts(page)).national).toBe(3);
-  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Close screening" }).click();
   await page.getByRole("button", { name: "Layers" }).click();
   await page.getByRole("checkbox", { name: /All modeled reservoirs/ }).uncheck();
   await expect.poll(async () => (await mapCounts(page)).national).toBe(0);
@@ -307,8 +365,7 @@ test("a map pan never selects page text", async ({ page }) => {
   expect(await pan({ x: zoomOut.x + zoomOut.width / 2, y: zoomOut.y + zoomOut.height / 2 })).toBe("");
 
   // The one exception: text inside a popup stays selectable, so a value can be
-  // copied. (The bottom row: the popup opens upward from the marker and its
-  // title can sit under the floating map toolbar.)
+  // copied. (Its last label/value row, the NID ID.)
   await page.locator(".data-table tbody tr", { hasText: "Tuttle Creek" }).first().click();
   await landed(page, TUTTLE.lon, TUTTLE.lat);
   const row = page.locator(".leaflet-popup-content .popup-row").last();

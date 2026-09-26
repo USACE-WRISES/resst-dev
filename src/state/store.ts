@@ -7,7 +7,7 @@ import type { FilterState } from "../filters/engine";
 import { FILTER_DEFS } from "../config/filters.generated";
 import { emptyItemState } from "../filters/engine";
 import type { TabId } from "../config/tabs";
-import { EMPTY_SCREENING, type ScreeningState } from "../sediment/screen";
+import { EMPTY_SCREENING, isEmptyScreening, type ScreeningState } from "../sediment/screen";
 
 export type OverlayStatus = "loading" | "ready" | "error";
 
@@ -22,6 +22,16 @@ export type NetworkMode = "none" | "up" | "down" | "full";
 /** Armed map-selection tool. The HUC tool ids double as overlay keys
     (overlays.ts), so arming one can switch its boundary layer on. */
 export type MapTool = "none" | "box" | "polygon" | "huc2" | "huc4" | "huc6" | "huc8" | "river";
+
+/** Where the Selected Data panel's Back link returns to after opening a
+    comparable reservoir: the previous selection and the card that was open. */
+export interface ReturnTarget {
+  siteId: string | null;
+  reservoirId: string | null;
+  /** Display name for the link ("Back to {label}"). */
+  label: string;
+  openSection: string | null;
+}
 
 export type BasemapId = "usgs" | "esri";
 /** The boot default — the original app's Esri Topographic look (docs/PARITY.md row 2). */
@@ -102,8 +112,15 @@ export interface AppState {
   networkView: { mode: NetworkMode; basin: boolean };
   /** National screening criteria (session-only — an investigation, not a preference). */
   screening: ScreeningState;
-  /** Details-panel collapsible sections: section id -> open override. */
-  panelSections: Record<string, boolean>;
+  /** Whether the docked Screening panel is open (the map keeps popups and
+      fits clear of it). */
+  screeningOpen: boolean;
+  /** The one open details-panel card (owner decision 2026-09-25: one at a
+      time). Session-only; it survives the pager and selection changes. */
+  openSection: string | null;
+  /** Back-link target while the panel shows a reservoir opened from
+      Comparable Reservoirs; every other selection change clears it. */
+  returnTo: ReturnTarget | null;
 }
 
 const initialFilters = (): FilterState =>
@@ -156,7 +173,9 @@ let state: AppState = {
   nationalLayer: { on: false, metric: "pctLost2025" },
   networkView: { mode: "none", basin: false },
   screening: EMPTY_SCREENING,
-  panelSections: {},
+  screeningOpen: false,
+  openSection: null,
+  returnTo: null,
   helpOpen: false,
   downloadsOpen: false,
   welcomeOpen: (() => {
@@ -214,13 +233,19 @@ export const actions = {
       showSelectionOnly: siteId ? state.showSelectionOnly : false,
       selectedReservoirId: null,
       networkView: { mode: "none", basin: false },
+      returnTo: null,
     });
   },
   /** Multi-selection from the map Select tools. Dedupes and touches nothing
       else beyond the selection invariant — tool sessions disarm explicitly
       via setMapTool. */
   selectSites(siteIds: string[]): void {
-    set({ selectedSiteIds: [...new Set(siteIds)], selectedReservoirId: null, networkView: { mode: "none", basin: false } });
+    set({
+      selectedSiteIds: [...new Set(siteIds)],
+      selectedReservoirId: null,
+      networkView: { mode: "none", basin: false },
+      returnTo: null,
+    });
   },
   /** National-inventory reservoir selection (non-documented dams). Clears any
       site selection — at most one selection model is active at a time. */
@@ -230,10 +255,45 @@ export const actions = {
       selectedSiteIds: [],
       showSelectionOnly: false,
       networkView: { mode: "none", basin: false },
+      returnTo: null,
     });
   },
   clearSelection(): void {
-    set({ selectedSiteIds: [], showSelectionOnly: false, selectedReservoirId: null, networkView: { mode: "none", basin: false } });
+    set({
+      selectedSiteIds: [],
+      showSelectionOnly: false,
+      selectedReservoirId: null,
+      networkView: { mode: "none", basin: false },
+      returnTo: null,
+    });
+  },
+  /** Open a reservoir from Comparable Reservoirs, remembering where the user
+      came from for the panel's Back link. A documented site arrives with its
+      Sediment Management card open (what did they do?); a national reservoir
+      arrives with every card closed. */
+  openComparable(target: { siteId: string } | { reservoirId: string }, from: ReturnTarget): void {
+    const siteId = "siteId" in target ? target.siteId : null;
+    set({
+      selectedSiteIds: siteId ? [siteId] : [],
+      selectedReservoirId: siteId ? null : (target as { reservoirId: string }).reservoirId,
+      showSelectionOnly: false,
+      networkView: { mode: "none", basin: false },
+      openSection: siteId ? "mgmt" : null,
+      returnTo: from,
+    });
+  },
+  /** The Back link: restore the selection and the card that was open. */
+  goBack(): void {
+    const back = state.returnTo;
+    if (!back) return;
+    set({
+      selectedSiteIds: back.siteId ? [back.siteId] : [],
+      selectedReservoirId: back.siteId ? null : back.reservoirId,
+      showSelectionOnly: false,
+      networkView: { mode: "none", basin: false },
+      openSection: back.openSection,
+      returnTo: null,
+    });
   },
   setShowSelectionOnly(on: boolean): void {
     set({ showSelectionOnly: on });
@@ -337,8 +397,12 @@ export const actions = {
   setNationalLayer(on: boolean): void {
     if (state.nationalLayer.on === on) return;
     // Turning the layer off also ends any screening session (the criteria
-    // filter that layer — leaving them armed invisibly would be confusing).
-    set({ nationalLayer: { ...state.nationalLayer, on }, ...(on ? {} : { screening: EMPTY_SCREENING }) });
+    // filter that layer — leaving them armed invisibly would be confusing)
+    // and closes the Screening panel, which would otherwise switch it back on.
+    set({
+      nationalLayer: { ...state.nationalLayer, on },
+      ...(on ? {} : { screening: EMPTY_SCREENING, screeningOpen: false }),
+    });
   },
   setNationalMetric(metric: NationalMetric): void {
     if (state.nationalLayer.metric === metric) return;
@@ -353,20 +417,33 @@ export const actions = {
     if (state.networkView.basin === on) return;
     set({ networkView: { ...state.networkView, basin: on } });
   },
-  /** Collapsible details-panel sections (session-only; survives the pager). */
-  setPanelSection(id: string, open: boolean): void {
-    set({ panelSections: { ...state.panelSections, [id]: open } });
+  /** Clear the network highlight AND the drainage-area boundary. */
+  clearNetworkView(): void {
+    if (state.networkView.mode === "none" && !state.networkView.basin) return;
+    set({ networkView: { mode: "none", basin: false } });
   },
-  /** Merge screening criteria (marks the session active unless told otherwise). */
+  /** Open one details-panel card (null closes it); opening one closes the
+      others by construction. */
+  setOpenSection(id: string | null): void {
+    if (state.openSection === id) return;
+    set({ openSection: id });
+  },
+  /** Replace the screening criteria. `active` follows the criteria: screening
+      filters the map exactly while at least one criterion is set. */
+  setScreeningCriteria(next: ScreeningState): void {
+    set({ screening: { ...next, active: !isEmptyScreening(next) } });
+  },
+  /** Merge screening criteria. */
   setScreening(partial: Partial<ScreeningState>): void {
-    set({ screening: { ...state.screening, active: true, ...partial } });
-  },
-  /** Replace the whole criteria set (the gap-analysis presets). */
-  applyScreeningPreset(criteria: Partial<ScreeningState>): void {
-    set({ screening: { ...EMPTY_SCREENING, ...criteria, active: true } });
+    actions.setScreeningCriteria({ ...state.screening, ...partial });
   },
   clearScreening(): void {
     set({ screening: EMPTY_SCREENING });
+  },
+  /** Open or close the docked Screening panel. */
+  setScreeningOpen(open: boolean): void {
+    if (state.screeningOpen === open) return;
+    set({ screeningOpen: open });
   },
   closeWelcome(dontShowAgain: boolean): void {
     if (dontShowAgain) {

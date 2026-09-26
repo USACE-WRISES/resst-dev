@@ -1,143 +1,223 @@
 // The Selected Data panel (right side): pages through the selected sites —
 // one at a time with Previous/Next, mirroring the Experience Builder
-// feature-info pager. Section order puts the team-collected data first
-// (attributes → Sediment Management → Site Literature), then the modeled
-// national context for crosswalked sites (Reservoir Sustainability →
-// Evidence), then the NID reference record. Every collapsible section starts
-// collapsed (owner decision, round 3); the header badges still classify the
-// contents, and a user's open/close choices stick for the session.
+// feature-info pager. A header card names the site; below it one accordion
+// holds the cards, team-collected data first (Sediment Management → Site
+// Literature), then the modeled national context for crosswalked sites
+// (Reservoir Sustainability → Evidence → Network → Comparables), then the
+// NID reference record. Every card starts collapsed and one is open at a
+// time (owner decisions, round 3 and 2026-09-25); the header badges still
+// classify the contents, and the open card sticks for the session.
 // Counters total across the whole selection.
 
 import { useEffect, useState } from "react";
-import type { AppData } from "../lib/types";
+import type { AppData, NidRecord, LiteratureEntry, Site } from "../lib/types";
 import type { Derived, SelectedSite } from "../state/derive";
-import { NID_DETAIL_FIELDS, SITE_FIELD_LABELS, SITE_ID_FIELDS, SITE_MGMT_FIELDS } from "../config/fields";
+import { NID_PANEL_GROUPS, SITE_FIELD_LABELS, SITE_MGMT_FIELDS } from "../config/fields";
 import { actions, type AppState } from "../state/store";
 import { PROVENANCE } from "../sediment/types";
+import { formatNidValue, literatureLink, splitKeywords, tidyList } from "../lib/display";
 import { CollapsibleSection } from "./details/CollapsibleSection";
 import { PanelResizer } from "./PanelResizer";
 import { ReportModal } from "../report/ReportModal";
 import type { ReportTarget } from "../report/reportModel";
-import { ProvBadge, ProvNote } from "./details/Provenance";
-import { SustainabilitySection } from "./details/SustainabilitySection";
+import { ProvBadge } from "./details/Provenance";
+import { SustainabilitySection, sustainabilityPeek } from "./details/SustainabilitySection";
 import { EvidenceSection, evidenceBadgeFor } from "./details/EvidenceSection";
-import { NetworkSection } from "./details/NetworkSection";
+import { NetworkSection, networkPeek } from "./details/NetworkSection";
 import { ReservoirDetails } from "./details/ReservoirDetails";
 import { ComparablesSection } from "./details/ComparablesSection";
+import { Chips, KeyValues, SourceLine } from "./details/ui";
+import { ChevronLeft, ChevronRight, DocumentIcon, ExternalLink } from "./icons";
 
-function FieldList({ rows }: { rows: Array<{ label: string; value: string }> }) {
+/** The site's header card: name, place and agency, site-type chips, NID ID. */
+function SiteCard({ site }: { site: Site }) {
+  const meta = [site.city || site.address, tidyList(site.responsible_districtagency)].filter(Boolean).join(" · ");
+  const types = splitKeywords(site.site_type);
   return (
-    <dl className="field-list">
-      {rows
-        .filter((r) => r.value !== "")
-        .map((r) => (
-          <div key={r.label} className="field-row">
-            <dt>{r.label}</dt>
+    <section className="site-card">
+      <h3 className="site-name">{site.site_name}</h3>
+      {meta && <p className="site-meta">{meta}</p>}
+      {site.city && site.address && <p className="site-address">{site.address}</p>}
+      {(types.length > 0 || site.nid_id) && (
+        <div className="site-tags">
+          <Chips values={types} label="Site type" />
+          {site.nid_id && <span className="id-tag">NID {site.nid_id}</span>}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** The team-documented management keywords as labelled chip groups. */
+function ManagementCard({ site }: { site: Site }) {
+  const groups = SITE_MGMT_FIELDS.map((f) => {
+    const raw = String(site[f] ?? "").trim();
+    return { f, label: SITE_FIELD_LABELS[f] ?? f, raw, values: splitKeywords(raw) };
+  });
+  if (groups.every((g) => g.raw === "")) {
+    return <p className="muted">No sediment management keywords are recorded for this site.</p>;
+  }
+  return (
+    <>
+      <dl className="kw-list">
+        {groups.map((g) => (
+          <div key={g.f} className="kw-row">
+            <dt>{g.label}</dt>
             <dd>
-              {/^https?:\/\//i.test(r.value) ? (
-                <a href={r.value} target="_blank" rel="noopener noreferrer">{r.value}</a>
+              {g.values.length > 0 ? (
+                <Chips values={g.values} />
               ) : (
-                r.value
+                <span className="kw-none">{g.raw ? "Not applicable" : "Not recorded"}</span>
               )}
             </dd>
           </div>
         ))}
-    </dl>
+      </dl>
+      <SourceLine text="RESST team, from project records and literature" group={PROVENANCE.resst} />
+    </>
   );
 }
 
-function SiteDetails({ current, data }: { current: SelectedSite; data: AppData }) {
-  const mgmtRows = SITE_MGMT_FIELDS.map((f) => ({
-    label: SITE_FIELD_LABELS[f] ?? f,
-    value: String(current.site[f] ?? ""),
-  }));
+/** Literature entries: the title links to the source; one quiet meta line. */
+function LiteratureCard({ entries }: { entries: LiteratureEntry[] }) {
+  if (entries.length === 0) return <p className="muted">No literature entries are linked to this site.</p>;
+  const showInTable = () => {
+    actions.setActiveTab("siteLit");
+    actions.setShowSelectionOnly(true);
+    actions.setTableCollapsed(false);
+    actions.setMobilePanel(null);
+  };
   return (
     <>
-      <section className="detail-section">
-        <h3>{current.site.site_name}</h3>
-        <FieldList
-          rows={SITE_ID_FIELDS.map((f) => ({
-            label: SITE_FIELD_LABELS[f] ?? f,
-            value: String(current.site[f] ?? ""),
-          }))}
-        />
-      </section>
-      <CollapsibleSection id="mgmt" title="Sediment Management" defaultOpen={false} badge={<ProvBadge kind="reported" />}>
-        {mgmtRows.every((r) => r.value === "") ? (
-          <p className="muted">No sediment management keywords are recorded for this site.</p>
-        ) : (
-          <FieldList rows={mgmtRows} />
-        )}
-        <ProvNote text="Documented by the RESST team from project records and literature" group={PROVENANCE.resst} />
-      </CollapsibleSection>
-      <CollapsibleSection id="lit" title={`Site Literature (${current.entries.length})`} defaultOpen={false}>
-        {current.entries.length === 0 ? (
-          <p className="muted">No literature entries are linked to this site.</p>
-        ) : (
-          <ul className="lit-list">
-            {current.entries.map((e) => (
-              <li key={e.entry_id}>
-                <span className="lit-title">{e.title || "(untitled)"}</span>
-                <span className="lit-meta">{[e.author, e.year, e.document_type].filter(Boolean).join(" · ")}</span>
-                {e.doi && /^https?:\/\//i.test(e.doi) && (
-                  <a className="lit-doi" href={e.doi} target="_blank" rel="noopener noreferrer">
-                    {e.doi}
-                  </a>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </CollapsibleSection>
-      {current.sedimentLink ? (
-        <>
-          <CollapsibleSection id="sust" title="Reservoir Sustainability" defaultOpen={false} badge={<ProvBadge kind="modeled" />}>
-            <SustainabilitySection
-              name={current.site.site_name}
-              row={current.reservoirRow}
-              link={current.sedimentLink}
-              hasSurveys={current.sedimentLink.has_surveys}
-            />
-          </CollapsibleSection>
-          <CollapsibleSection
-            id="evid"
-            title="Evidence"
-            defaultOpen={false}
-            badge={evidenceBadgeFor(current.sedimentLink.has_surveys, current.sedimentLink.latest_survey_year)}
-          >
-            <EvidenceSection
-              row={current.reservoirRow}
-              hasSurveys={current.sedimentLink.has_surveys}
-              latestYear={current.sedimentLink.latest_survey_year}
-            />
-          </CollapsibleSection>
-          <CollapsibleSection id="net" title="Reservoir Network" defaultOpen={false} badge={<ProvBadge kind="network" />}>
-            <NetworkSection row={current.reservoirRow} />
-          </CollapsibleSection>
-          <CollapsibleSection id="sim" title="Comparable Reservoirs" defaultOpen={false}>
-            <ComparablesSection row={current.reservoirRow} data={data} />
-          </CollapsibleSection>
-        </>
-      ) : (
-        <p className="muted sediment-note">
-          National sedimentation modeling (RATTES/ResNet) covers large CONUS dams; this site is not linked to a
-          modeled reservoir.
-        </p>
-      )}
-      <CollapsibleSection id="nid" title="National Inventory of Dams" defaultOpen={false}>
-        {!current.site.nid_id ? (
-          <p className="muted">This site has no NID ID recorded.</p>
-        ) : !current.nid ? (
-          <p className="muted">No NID record found for ID “{current.site.nid_id}”.</p>
-        ) : (
-          <FieldList
-            rows={NID_DETAIL_FIELDS.map((f) => ({
+      <ul className="lit-cards">
+        {entries.map((e) => {
+          const src = literatureLink(e.doi);
+          const title = e.title || "(untitled)";
+          const meta = [e.author, e.year, e.document_type, src.id].filter(Boolean).join(" · ");
+          return (
+            <li key={e.entry_id}>
+              {src.href ? (
+                <a className="lit-card-title" href={src.href} target="_blank" rel="noopener noreferrer">
+                  {title} <ExternalLink />
+                </a>
+              ) : (
+                <span className="lit-card-title">{title}</span>
+              )}
+              {meta && <span className="lit-card-meta">{meta}</span>}
+            </li>
+          );
+        })}
+      </ul>
+      <div className="card-actions">
+        <button type="button" className="text-btn" onClick={showInTable}>
+          Show in table
+        </button>
+      </div>
+    </>
+  );
+}
+
+/** The NID record: a two-line header, grouped values with units, ID + website. */
+function NidCard({ site, nid }: { site: Site; nid: NidRecord | null | undefined }) {
+  if (!site.nid_id) return <p className="muted">This site has no NID ID recorded.</p>;
+  if (!nid) return <p className="muted">No NID record found for ID “{site.nid_id}”.</p>;
+  const sub = [nid.river_or_stream, [nid.city, nid.state].filter(Boolean).join(", ")].filter(Boolean).join(" · ");
+  const samePurposes = nid.purposes.trim().toLowerCase() === nid.primary_purpose.trim().toLowerCase();
+  const website = /^https?:\/\//i.test(nid.website_url) ? nid.website_url : "";
+  return (
+    <>
+      <p className="nid-head">
+        <span className="nid-name">{nid.name}</span>
+        {sub && <span className="nid-sub">{sub}</span>}
+      </p>
+      {NID_PANEL_GROUPS.map((g) => (
+        <div key={g.title} className="kv-group">
+          <h4 className="card-label">{g.title}</h4>
+          <KeyValues
+            numeric={g.title === "Dimensions"}
+            rows={g.fields.map((f) => ({
               label: f.label,
-              value: current.nid![f.field as keyof typeof current.nid] ?? "",
+              value:
+                f.field === "purposes" && samePurposes
+                  ? ""
+                  : formatNidValue(f.field, nid[f.field as keyof NidRecord]),
             }))}
           />
+        </div>
+      ))}
+      <p className="nid-foot">
+        <span className="id-tag">NID {nid.nidid}</span>
+        {website && (
+          <a href={website} target="_blank" rel="noopener noreferrer">
+            Website <ExternalLink />
+          </a>
         )}
-      </CollapsibleSection>
+      </p>
+    </>
+  );
+}
+
+function SiteDetails({ current, data, state }: { current: SelectedSite; data: AppData; state: AppState }) {
+  const site = current.site;
+  const link = current.sedimentLink;
+  return (
+    <>
+      <SiteCard site={site} />
+      <div className="detail-accordion">
+        <CollapsibleSection id="mgmt" title="Sediment Management" badge={<ProvBadge kind="reported" />}>
+          <ManagementCard site={site} />
+        </CollapsibleSection>
+        <CollapsibleSection id="lit" title={`Site Literature (${current.entries.length})`}>
+          <LiteratureCard entries={current.entries} />
+        </CollapsibleSection>
+        {link ? (
+          <>
+            <CollapsibleSection
+              id="sust"
+              title="Reservoir Sustainability"
+              badge={<ProvBadge kind="modeled" />}
+              peek={sustainabilityPeek(link.sed2025_m3, link.cap_orig_m3)}
+            >
+              <SustainabilitySection
+                name={site.site_name}
+                row={current.reservoirRow}
+                link={link}
+                hasSurveys={link.has_surveys}
+              />
+            </CollapsibleSection>
+            <CollapsibleSection id="evid" title="Evidence" badge={evidenceBadgeFor(link.has_surveys, link.latest_survey_year)}>
+              <EvidenceSection
+                row={current.reservoirRow}
+                hasSurveys={link.has_surveys}
+                latestYear={link.latest_survey_year}
+              />
+            </CollapsibleSection>
+            <CollapsibleSection
+              id="net"
+              title="Reservoir Network"
+              badge={<ProvBadge kind="network" />}
+              peek={networkPeek(current.reservoirRow, state.networkView)}
+            >
+              <NetworkSection row={current.reservoirRow} />
+            </CollapsibleSection>
+            <CollapsibleSection id="sim" title="Comparable Reservoirs" lazy>
+              <ComparablesSection
+                row={current.reservoirRow}
+                data={data}
+                from={{ siteId: site.site_id, reservoirId: null, label: site.site_name, openSection: "sim" }}
+              />
+            </CollapsibleSection>
+          </>
+        ) : (
+          <p className="accordion-note">
+            This site is not linked to a modeled reservoir, so no sedimentation estimates are shown (RATTES and ResNet
+            cover large U.S. dams).
+          </p>
+        )}
+        <CollapsibleSection id="nid" title="National Inventory of Dams">
+          <NidCard site={site} nid={current.nid} />
+        </CollapsibleSection>
+      </div>
     </>
   );
 }
@@ -167,26 +247,30 @@ export function DetailsPanel({ derived, state, data }: { derived: Derived; state
         <h2>Selected Data</h2>
         <span className="panel-title-tools">
           {(current || selectedReservoir) && (
-            <button type="button" className="linklike" onClick={openReport} aria-label="Open the dam report">
-              Report
+            <button type="button" className="panel-btn" onClick={openReport} aria-label="Open the dam report">
+              <DocumentIcon /> Report
             </button>
           )}
           {(selected.length > 0 || selectedReservoir) && (
-            <button type="button" className="linklike" onClick={() => actions.clearSelection()}>
+            <button type="button" className="panel-btn panel-btn-quiet" onClick={() => actions.clearSelection()}>
               Clear
             </button>
           )}
         </span>
       </div>
       {reportTarget && <ReportModal target={reportTarget} data={data} onClose={() => setReportTarget(null)} />}
+      {state.returnTo && (
+        <button type="button" className="back-link" onClick={() => actions.goBack()}>
+          <ChevronLeft size={13} /> Back to {state.returnTo.label}
+        </button>
+      )}
       {selected.length === 0 && selectedReservoir ? (
         <ReservoirDetails shortId={selectedReservoir} data={data} />
       ) : selected.length === 0 ? (
-        <p className="muted empty-note">
-          Select a site on the map or in the Sites table to see site details, literature, and National Inventory of
-          Dams records here. The map's Select menu picks sites by box, drawn polygon, watershed (HUC), or distance
-          from a river.
-        </p>
+        <div className="empty-note">
+          <p>Select a site on the map or in the table to see its details.</p>
+          <p className="muted">Tip: the map's Select menu picks several sites at once by box, polygon, watershed, or river.</p>
+        </div>
       ) : (
         <>
           {selected.length > 1 && (
@@ -198,7 +282,7 @@ export function DetailsPanel({ derived, state, data }: { derived: Derived; state
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
                 aria-label="Previous site"
               >
-                ◀
+                <ChevronLeft />
               </button>
               <span aria-live="polite">
                 {page + 1} of {selected.length}
@@ -210,16 +294,20 @@ export function DetailsPanel({ derived, state, data }: { derived: Derived; state
                 onClick={() => setPage((p) => Math.min(selected.length - 1, p + 1))}
                 aria-label="Next site"
               >
-                ▶
+                <ChevronRight />
               </button>
             </div>
           )}
-          {current && <SiteDetails current={current} data={data} />}
+          {current && <SiteDetails current={current} data={data} state={state} />}
         </>
       )}
       <div className="selected-counts" aria-live="polite">
-        <div>Selected Sites: <b>{selected.length}</b></div>
-        <div>Selected Site Literature: <b>{derived.selection.entries.length}</b></div>
+        <div>
+          Selected Sites: <b>{selected.length}</b>
+        </div>
+        <div>
+          Selected Site Literature: <b>{derived.selection.entries.length}</b>
+        </div>
       </div>
     </aside>
   );

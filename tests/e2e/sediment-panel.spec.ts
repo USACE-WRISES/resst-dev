@@ -72,25 +72,31 @@ test("evidence section: badge from boot data, measured surveys after the lazy lo
 
   await evHead.click();
   const ev = details.locator("#detail-sec-evid");
-  await expect(ev.locator(".survey-list li")).toHaveCount(2);
-  await expect(ev).toContainText("1970");
-  await expect(ev).toContainText("measured capacity");
+  // Summary line, then the surveys as a Year | Capacity | Sediment table.
+  await expect(ev.locator(".card-lead")).toContainText("2 measured surveys");
+  await expect(ev.locator(".card-lead")).toContainText("1970 to 2000");
+  await expect(ev.locator(".survey-table tbody tr")).toHaveCount(2);
+  await expect(ev.locator(".survey-table thead")).toContainText("Capacity");
   await expect(ev).toContainText("RESSED");
-  // Round-3 enrichment: codes spelled out, month from the full date, free-text note.
-  const first = ev.locator(".survey-list li").first();
+  // Round-3 enrichment behind the methods disclosure: codes spelled out,
+  // month from the full date, free-text note.
+  await ev.locator(".survey-details summary").click();
+  const first = ev.locator(".survey-details li").first();
+  await expect(first).toBeVisible();
   await expect(first).toContainText("(Jul)");
   await expect(first).toContainText("range and contour survey, detailed");
   await expect(first).toContainText("sediment pool");
-  await expect(ev.locator(".survey-list li").nth(1)).toContainText("hydrographic & field surveys");
+  await expect(ev.locator(".survey-details li").nth(1)).toContainText("hydrographic & field surveys");
   // The glossary popover opens and stays honest about undocumented codes.
-  await ev.getByRole("button", { name: "About these survey codes" }).click();
+  await ev.getByRole("button", { name: "About survey codes" }).click();
   await expect(ev.locator(".codes-pop")).toContainText("total pool");
   await expect(ev.locator(".codes-pop")).toContainText("not defined in the public documentation");
   await page.keyboard.press("Escape");
+  await expect(ev.locator(".codes-pop")).toHaveCount(0);
   // Original records: fixture id 32003 is a legacy dsnum → the scanned datasheet links.
-  const dsLink = ev.getByRole("link", { name: "Original RESSED datasheet (PDF)" });
+  const dsLink = ev.getByRole("link", { name: "Original datasheet (PDF)" });
   await expect(dsLink).toHaveAttribute("href", "https://water.usgs.gov/osw/ressed/datasheets/32-3.pdf");
-  await expect(ev.getByRole("link", { name: "RESSED reservoir list and datasheets" })).toBeVisible();
+  await expect(ev.getByRole("link", { name: "All RESSED datasheets" })).toBeVisible();
   await expect(ev.locator(".evidence-agency")).toContainText("Surveys by USACE Kansas City District");
   // The RATTES model-class line (fixture Tuttle is evd=1, survey-constrained).
   await expect(ev.locator(".rattes-class")).toContainText("calibrates this reservoir's estimate");
@@ -111,16 +117,30 @@ test("a site without a crosswalk degrades to one honest note", async ({ page }) 
   );
 });
 
-test("all cards start collapsed; an opened section stays open across sites (store-backed)", async ({ page }) => {
+test("all cards start collapsed; one opens at a time and stays open across sites (store-backed)", async ({ page }) => {
   await openApp(page);
   await selectSite(page, "Tuttle Creek");
   const details = page.locator(".details-panel");
   for (const title of ["Sediment Management", "Site Literature", "Reservoir Sustainability", "Evidence", "Reservoir Network", "Comparable Reservoirs", "National Inventory of Dams"]) {
     await expect(details.locator(".detail-sec-head", { hasText: title })).toHaveAttribute("aria-expanded", "false");
   }
+  // The collapsed headers still summarize: the Sustainability peek and the badges.
+  await expect(details.locator(".detail-sec-head", { hasText: "Reservoir Sustainability" }).locator(".sec-peek")).toHaveText("17% lost");
+
+  // One card at a time (owner decision 2026-09-25): opening Evidence closes Sustainability.
+  const sustHead = details.locator(".detail-sec-head", { hasText: "Reservoir Sustainability" });
+  const evHead = details.locator(".detail-sec-head", { hasText: "Evidence" });
+  await sustHead.click();
+  await expect(sustHead).toHaveAttribute("aria-expanded", "true");
+  await evHead.click();
+  await expect(evHead).toHaveAttribute("aria-expanded", "true");
+  await expect(sustHead).toHaveAttribute("aria-expanded", "false");
+  await expect(details.locator("#detail-sec-sust")).toBeHidden();
+
   const mgmt = details.locator(".detail-sec-head", { hasText: "Sediment Management" });
   await mgmt.click();
   await expect(mgmt).toHaveAttribute("aria-expanded", "true");
+  await expect(evHead).toHaveAttribute("aria-expanded", "false");
   await selectSite(page, "Fall Creek");
   await expect(details.locator(".detail-sec-head", { hasText: "Sediment Management" })).toHaveAttribute(
     "aria-expanded",
@@ -142,14 +162,27 @@ test("trajectory failure surfaces an error and Retry recovers", async ({ page })
   await expect(sust.locator(".traj-chart svg")).toBeVisible();
 });
 
-test("the expanded sedimentation panel is axe-clean", async ({ page }) => {
+test("the expanded sedimentation cards are axe-clean", async ({ page }) => {
   await openApp(page);
   await selectSite(page, "Tuttle Creek");
+  const scan = async () => {
+    const results = await new AxeBuilder({ page })
+      .exclude(".leaflet-tile-pane")
+      .exclude(".leaflet-pane svg")
+      .exclude(".leaflet-pane canvas")
+      .exclude(".leaflet-tooltip-pane")
+      .analyze();
+    const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+    expect(serious.map((v) => `${v.id}: ${v.nodes.length} nodes`)).toEqual([]);
+  };
+  // One card at a time, so each card gets its own scan.
   await openDetailSection(page, "Reservoir Sustainability");
-  await page.locator(".detail-sec-head", { hasText: "Evidence" }).click();
   await expect(page.locator(".traj-chart svg")).toBeVisible();
   await page.locator(".chart-data summary").click();
-  const results = await new AxeBuilder({ page }).exclude(".leaflet-tile-pane").exclude(".leaflet-pane svg").exclude(".leaflet-pane canvas").exclude(".leaflet-tooltip-pane").analyze();
-  const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
-  expect(serious.map((v) => `${v.id}: ${v.nodes.length} nodes`)).toEqual([]);
+  await scan();
+  await openDetailSection(page, "Evidence");
+  await page.locator("#detail-sec-evid .survey-details summary").click();
+  await scan();
+  await openDetailSection(page, "National Inventory of Dams");
+  await scan();
 });

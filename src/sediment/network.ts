@@ -130,6 +130,61 @@ export function downstreamRiverPath(core: SedimentCore, row: number): string[] {
     .map((r) => core.names[r] || core.nids[r]);
 }
 
+/** One stop on the panel's downstream schematic. A "river" stop is a
+    junction node the chain passes (the mouth of a tributary river); the last
+    mouth node is the network outlet. Long runs of dams collapse to "more". */
+export type PathStep =
+  | { kind: "dam"; row: number; name: string }
+  | { kind: "river"; row: number; name: string }
+  | { kind: "mouth"; row: number; name: string }
+  | { kind: "more"; count: number };
+
+export interface DownstreamPath {
+  steps: PathStep[];
+  /** Downstream dams on the path (mouth/junction nodes excluded). */
+  damCount: number;
+  /** The chain ends without reaching a mapped river mouth. */
+  endsInland: boolean;
+}
+
+/** Junction names carry synthetic dedupe digits glued to the word
+    ("Upper Mississippi River2"); dam names keep theirs ("Lock and Dam 19"). */
+export const riverNodeLabel = (name: string): string => name.replace(/([A-Za-z])\d+$/, "$1");
+
+/**
+ * The downstream chain as display stops, in flow order. Runs of more than
+ * `maxRun` consecutive dams collapse to the first two, a "more" stop, and the
+ * last, so a Mississippi-mainstem chain stays a few lines tall.
+ */
+export function downstreamPath(core: SedimentCore, row: number, maxRun = 4): DownstreamPath {
+  const chain = downstreamChain(core, row);
+  const steps: PathStep[] = [];
+  const dam = (r: number): PathStep => ({ kind: "dam", row: r, name: core.names[r] || core.nids[r] });
+  let run: number[] = [];
+  let damCount = 0;
+  const flush = () => {
+    if (run.length > maxRun) {
+      steps.push(dam(run[0]), dam(run[1]), { kind: "more", count: run.length - 3 }, dam(run[run.length - 1]));
+    } else {
+      for (const r of run) steps.push(dam(r));
+    }
+    run = [];
+  };
+  chain.forEach((r, i) => {
+    if (core.flags[r] & FLAG.MOUTH) {
+      flush();
+      const name = riverNodeLabel(core.names[r] || core.nids[r]);
+      steps.push({ kind: i === chain.length - 1 ? "mouth" : "river", row: r, name });
+    } else {
+      run.push(r);
+      damCount++;
+    }
+  });
+  flush();
+  const last = chain.length ? chain[chain.length - 1] : -1;
+  return { steps, damCount, endsInland: last < 0 || !(core.flags[last] & FLAG.MOUTH) };
+}
+
 /**
  * The network summary, worded to prevent the "sediment passing this dam
  * reaches the coast" misreading: downstream reservoirs are things sediment

@@ -45,6 +45,7 @@ export function MapToolPanels({ state, zoom, siteByShortId }: { state: AppState;
     <>
       <ToolPopover label="Layers" ariaLabel="Reference layers">
         <div className="layers-list">
+          <p className="layers-heading">Modeled reservoirs</p>
           <div className="layer-row nat-row">
             <label className="value-option">
               <input
@@ -101,6 +102,7 @@ export function MapToolPanels({ state, zoom, siteByShortId }: { state: AppState;
               </select>
             </label>
           )}
+          <p className="layers-heading">Reference layers</p>
           {OVERLAYS.map((d) => {
             const on = !!state.overlays[d.key];
             const status = state.overlayStatus[d.key];
@@ -180,6 +182,12 @@ export function MapToolPanels({ state, zoom, siteByShortId }: { state: AppState;
               )}
             </>
           )}
+          {state.networkView.basin && (
+            <div className="legend-row">
+              <span className="legend-area" style={{ color: NET_UP }} aria-hidden="true" />
+              <span>Drainage area (USGS NLDI)</span>
+            </div>
+          )}
           {visibleOverlays.map((d) => (
             <div key={d.key} className="legend-row">
               <span
@@ -190,9 +198,12 @@ export function MapToolPanels({ state, zoom, siteByShortId }: { state: AppState;
               <span>{d.label}</span>
             </div>
           ))}
-          {visibleOverlays.length === 0 && state.networkView.mode === "none" && (
-            <p className="muted">Only Sites are visible. Turn on reference layers under Layers.</p>
-          )}
+          {visibleOverlays.length === 0 &&
+            state.networkView.mode === "none" &&
+            !state.networkView.basin &&
+            !state.nationalLayer.on && (
+              <p className="muted">Only Sites are visible. Turn on reference layers under Layers.</p>
+            )}
         </div>
       </ToolPopover>
     </>

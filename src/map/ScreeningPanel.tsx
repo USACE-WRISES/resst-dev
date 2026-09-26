@@ -1,25 +1,54 @@
-// The national Screening popover: gap-analysis presets (ideas doc §7) plus
-// transparent threshold criteria over the modeled inventory. Lives on the map
-// toolbar beside Layers, but deliberately NOT inside the left Data Filters
-// panel — those keyword filters drive the parity-tested documented-data
-// tables; screening filters the national MAP layer only. Wording guardrail
-// baked in: results are "potential opportunities … warranting further
-// evaluation", never "needs intervention".
+// The national Screening panel: find modeled reservoirs that match
+// transparent criteria. Docked under the map toolbar (owner decision
+// 2026-09-25) so it stays open while the map is panned, zoomed and clicked;
+// ✕, the toolbar toggle, or Escape from inside it closes it (on phones, where
+// it covers the map, a tap outside does too). It lives beside Layers but
+// deliberately NOT inside the left Data Filters panel — those keyword filters
+// drive the parity-tested documented-data tables; screening filters the
+// national MAP layer only.
+//
+// The workflow reads top to bottom: start with one of the four gap-analysis
+// questions (each shows how many reservoirs it would find), optionally refine,
+// then zoom to or export the matches from the pinned results bar. Wording
+// guardrail baked in: results are "potential opportunities … warranting
+// further evaluation", never "needs intervention".
 
-import { useEffect, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { actions, type AppState } from "../state/store";
 import { ensureCore, getCore } from "../sediment/data";
-import { GAP_PRESETS, damCount, screenCore, type ScreeningState } from "../sediment/screen";
+import {
+  GAP_PRESETS,
+  damCount,
+  presetMatches,
+  quadrantCounts,
+  refineCount,
+  screenCore,
+  withPreset,
+  withoutPreset,
+  type ScreeningState,
+} from "../sediment/screen";
 import { exportCsv } from "../utils/exporters";
 import { M3_PER_ACFT, FLAG } from "../sediment/types";
+import { CloseIcon, FilterIcon } from "../components/icons";
 import { mapCommands } from "./mapBus";
 import { useDismissPopover } from "./useDismissPopover";
 
-const PCT_CHOICES = [10, 25, 50];
-const STORAGE_CHOICES = [1000, 10000, 100000, 1000000];
-const RATE_CHOICES = [10, 100, 1000];
+const n = (v: number) => v.toLocaleString("en-US");
 
-function Segmented({
+/** The 2025-loss select covers both bounds: "25% or less" is the low-loss
+    questions' maximum, the rest are minimums. */
+const LOSS_2025: Array<{ value: string; label: string; min: number | null; max: number | null }> = [
+  { value: "any", label: "Any", min: null, max: null },
+  { value: "max25", label: "25% or less", min: null, max: 25 },
+  { value: "min10", label: "10% or more", min: 10, max: null },
+  { value: "min25", label: "25% or more", min: 25, max: null },
+  { value: "min50", label: "50% or more", min: 50, max: null },
+];
+const LOSS_2050 = [10, 25, 50];
+const STORAGE = [1000, 10000, 100000, 1000000];
+const RATE = [10, 100, 1000];
+
+function NumberSelect({
   label,
   value,
   choices,
@@ -33,40 +62,57 @@ function Segmented({
   onPick: (v: number | null) => void;
 }) {
   return (
-    <div className="screen-seg" role="group" aria-label={label}>
-      <span className="screen-seg-label">{label}</span>
-      <div className="screen-seg-btns">
-        <button type="button" className="nw-btn" aria-pressed={value == null} onClick={() => onPick(null)}>
-          Any
-        </button>
+    <label className="screen-field">
+      <span>{label}</span>
+      <select className="metric-select" value={value ?? ""} onChange={(e) => onPick(e.target.value === "" ? null : Number(e.target.value))}>
+        <option value="">Any</option>
         {choices.map((c) => (
-          <button type="button" key={c} className="nw-btn" aria-pressed={value === c} onClick={() => onPick(value === c ? null : c)}>
+          <option key={c} value={c}>
             {format(c)}
-          </button>
+          </option>
         ))}
-      </div>
-    </div>
+      </select>
+    </label>
   );
 }
 
 export function ScreeningPanel({ state, siteByShortId }: { state: AppState; siteByShortId: Map<number, string> }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useDismissPopover(open, ref, () => setOpen(false));
+  const open = state.screeningOpen;
   const s = state.screening;
+  const hostRef = useRef<HTMLDivElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const [refineOpen, setRefineOpen] = useState(() => refineCount(s) > 0);
+  const ids = useId();
 
-  // Opening the panel implies working with the national layer (precedent: the
-  // HUC Select tools auto-enable their boundary overlay).
-  useEffect(() => {
-    if (!open) return;
-    if (!state.nationalLayer.on) actions.setNationalLayer(true);
-    void ensureCore().catch(() => {});
-  }, [open, state.nationalLayer.on]);
+  // Tap-outside dismissal only where the panel covers the map (phones);
+  // Escape is handled locally so an Escape meant for a Select sketch, another
+  // popover, or the report never closes the panel.
+  useDismissPopover(open, hostRef, (reason) => {
+    if (reason === "outside" && window.matchMedia("(max-width: 480px)").matches) actions.setScreeningOpen(false);
+  });
 
   const core = getCore();
-  const documentedIds = new Set(siteByShortId.keys());
-  const summary = core && s.active ? screenCore(core, documentedIds, s) : null;
-  const totalDams = core ? damCount(core) : 57307;
+  const documentedIds = useMemo(() => new Set(siteByShortId.keys()), [siteByShortId]);
+  const totalDams = useMemo(() => (core ? damCount(core) : 57307), [core]);
+  const summary = useMemo(() => (core && s.active ? screenCore(core, documentedIds, s) : null), [core, documentedIds, s]);
+  const counts = useMemo(() => (open && core ? quadrantCounts(core, documentedIds, s) : null), [open, core, documentedIds, s]);
+  const refinements = refineCount(s);
+
+  const openPanel = () => {
+    actions.setScreeningOpen(true);
+    // Opening implies working with the national layer (precedent: the HUC
+    // Select tools switch their boundary overlay on). Only on this user
+    // action: turning the layer off afterwards closes the panel instead.
+    if (!state.nationalLayer.on) actions.setNationalLayer(true);
+    void ensureCore().catch(() => {});
+  };
+  const closePanel = () => {
+    actions.setScreeningOpen(false);
+    toggleRef.current?.focus();
+  };
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "Escape" && open) closePanel();
+  };
 
   const upd = (partial: Partial<ScreeningState>) => actions.setScreening(partial);
 
@@ -98,7 +144,7 @@ export function ScreeningPanel({ state, siteByShortId }: { state: AppState; site
   };
 
   const dictSelect = (label: string, list: string[] | undefined, value: number | null, key: "state" | "owner" | "purpose") => (
-    <label className="screen-select">
+    <label className="screen-field">
       <span>{label}</span>
       <select
         className="metric-select"
@@ -116,112 +162,178 @@ export function ScreeningPanel({ state, siteByShortId }: { state: AppState; site
     </label>
   );
 
+  const loss2025 =
+    LOSS_2025.find((o) => o.min === s.pctLost2025Min && o.max === s.pctLost2025Max)?.value ?? "any";
+  const noMatches = !summary || summary.rows.length === 0;
+
   return (
-    <div className="tool-popover" ref={ref}>
+    <div className="tool-popover screening-host" ref={hostRef} onKeyDown={onKeyDown}>
+      {/* A toggle, not a dropdown: it shows or hides the docked panel below
+          it, so no ▾. The dot marks criteria filtering the map. */}
       <button
+        ref={toggleRef}
         type="button"
-        className={open ? "map-tool active" : "map-tool"}
+        className={open ? "map-tool map-tool-toggle active" : "map-tool map-tool-toggle"}
         aria-expanded={open}
+        aria-controls={open ? `${ids}-dock` : undefined}
         aria-label={s.active ? "Screening (active: criteria are filtering the national layer)" : "Screening"}
-        onClick={() => setOpen(!open)}
+        onClick={() => (open ? closePanel() : openPanel())}
       >
-        Screening{s.active ? " ●" : ""} ▾
+        <FilterIcon />
+        Screening
+        {s.active && <span className="map-tool-dot" aria-hidden="true" />}
       </button>
       {open && (
-        <div className="tool-popover-panel screening-panel" role="group" aria-label="National screening">
-          <p className="screen-intro">
-            Filter the {totalDams.toLocaleString("en-US")} modeled reservoirs with transparent criteria.
-          </p>
-          <div className="screen-presets" role="group" aria-label="Gap-analysis presets">
-            {GAP_PRESETS.map((p) => (
-              <button
-                key={p.key}
-                type="button"
-                className="nw-btn screen-preset"
-                title={p.hint}
-                onClick={() => actions.applyScreeningPreset(p.apply)}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-          <Segmented
-            label="Est. capacity lost by 2025 at least"
-            value={s.pctLost2025Min}
-            choices={PCT_CHOICES}
-            format={(v) => `≥${v}%`}
-            onPick={(v) => upd({ pctLost2025Min: v })}
-          />
-          <Segmented
-            label="Projected lost by 2050 at least"
-            value={s.pctLost2050Min}
-            choices={PCT_CHOICES}
-            format={(v) => `≥${v}%`}
-            onPick={(v) => upd({ pctLost2050Min: v })}
-          />
-          <Segmented
-            label="Storage at least (ac-ft)"
-            value={s.storageMinAcFt}
-            choices={STORAGE_CHOICES}
-            format={(v) => (v >= 1000000 ? "≥1M" : `≥${v / 1000}k`)}
-            onPick={(v) => upd({ storageMinAcFt: v })}
-          />
-          <Segmented
-            label="Est. annual rate at least (ac-ft/yr)"
-            value={s.rateMinAcFtYr}
-            choices={RATE_CHOICES}
-            format={(v) => `≥${v >= 1000 ? "1k" : v}`}
-            onPick={(v) => upd({ rateMinAcFtYr: v })}
-          />
-          <div className="screen-checks">
-            <label className="value-option">
-              <input type="checkbox" checked={s.terminalOnly} onChange={(e) => upd({ terminalOnly: e.target.checked })} />
-              <span>Terminal dams only</span>
-            </label>
-            <label className="value-option">
-              <input type="checkbox" checked={s.surveyedOnly} onChange={(e) => upd({ surveyedOnly: e.target.checked })} />
-              <span>Measured surveys only</span>
-            </label>
-          </div>
-          <label className="screen-select">
-            <span>Documented management</span>
-            <select
-              className="metric-select"
-              value={s.documented}
-              onChange={(e) => upd({ documented: e.target.value as ScreeningState["documented"] })}
-            >
-              <option value="any">Any</option>
-              <option value="documented">RESST documented sites only</option>
-              <option value="undocumented">No documented record</option>
-            </select>
-          </label>
-          {dictSelect("State", core?.dicts.state, s.state, "state")}
-          {dictSelect("Owner type", core?.dicts.owner, s.owner, "owner")}
-          {dictSelect("Primary purpose", core?.dicts.purpose, s.purpose, "purpose")}
-          <p className="screen-count" aria-live="polite">
-            {!core ? (
-              state.sedimentStatus.core === "error" ? "National dataset failed to load." : "Loading national dataset…"
-            ) : summary ? (
-              <>
-                <b>{summary.matches.toLocaleString("en-US")}</b> of {summary.total.toLocaleString("en-US")} modeled
-                reservoirs match
-              </>
-            ) : (
-              "Pick a preset or criterion to screen."
-            )}
-          </p>
-          <div className="nw-actions">
-            <button type="button" className="nw-btn" disabled={!summary || summary.rows.length === 0} onClick={zoomToMatches}>
-              Zoom to matches
+        <div
+          id={`${ids}-dock`}
+          className="screening-panel screening-dock"
+          role="region"
+          aria-labelledby={`${ids}-title`}
+        >
+          <div className="dock-head">
+            <h2 id={`${ids}-title`} className="dock-title">
+              Screen reservoirs
+            </h2>
+            <button type="button" className="icon-btn" aria-label="Close screening" onClick={closePanel}>
+              <CloseIcon />
             </button>
-            <button type="button" className="nw-btn" disabled={!summary || summary.rows.length === 0} onClick={exportMatches}>
-              Export matches (CSV)
-            </button>
-            {s.active && (
-              <button type="button" className="linklike" onClick={() => actions.clearScreening()}>
-                Clear screening
+          </div>
+          <div className="dock-body">
+            <p className="screen-intro" title={`${n(totalDams)} modeled reservoirs`}>
+              Filter modeled reservoirs with transparent criteria.
+            </p>
+            <div className="screen-questions" role="group" aria-label="Screening questions">
+              {GAP_PRESETS.map((p) => {
+                const pressed = presetMatches(s, p);
+                const base = `${ids}-${p.key}`;
+                return (
+                  <button
+                    key={p.key}
+                    type="button"
+                    className="screen-q"
+                    aria-pressed={pressed}
+                    aria-labelledby={`${base}-t ${base}-n`}
+                    aria-describedby={`${base}-c`}
+                    title={p.hint}
+                    onClick={() => actions.setScreeningCriteria(pressed ? withoutPreset(s) : withPreset(s, p))}
+                  >
+                    <span id={`${base}-t`} className="screen-q-title">
+                      {p.title}
+                    </span>
+                    <span id={`${base}-n`} className="screen-q-count">
+                      {counts ? n(counts[p.key]) : ""}
+                    </span>
+                    <span id={`${base}-c`} className="screen-q-criteria">
+                      {p.criteria}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <details className="screen-refine" open={refineOpen} onToggle={(e) => setRefineOpen(e.currentTarget.open)}>
+              <summary>
+                Refine criteria
+                {refinements > 0 && <span className="screen-refine-count"> ({refinements} active)</span>}
+              </summary>
+              <div className="screen-form">
+                <label className="screen-field">
+                  <span>Capacity lost by 2025</span>
+                  <select
+                    className="metric-select"
+                    value={loss2025}
+                    onChange={(e) => {
+                      const o = LOSS_2025.find((x) => x.value === e.target.value) ?? LOSS_2025[0];
+                      upd({ pctLost2025Min: o.min, pctLost2025Max: o.max });
+                    }}
+                  >
+                    {LOSS_2025.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <NumberSelect
+                  label="Projected lost by 2050"
+                  value={s.pctLost2050Min}
+                  choices={LOSS_2050}
+                  format={(v) => `${v}% or more`}
+                  onPick={(v) => upd({ pctLost2050Min: v })}
+                />
+                <NumberSelect
+                  label="Storage at least"
+                  value={s.storageMinAcFt}
+                  choices={STORAGE}
+                  format={(v) => `${n(v)} ac-ft`}
+                  onPick={(v) => upd({ storageMinAcFt: v })}
+                />
+                <NumberSelect
+                  label="Sedimentation rate at least"
+                  value={s.rateMinAcFtYr}
+                  choices={RATE}
+                  format={(v) => `${n(v)} ac-ft/yr`}
+                  onPick={(v) => upd({ rateMinAcFtYr: v })}
+                />
+                <label className="screen-field">
+                  <span>Documented in RESST</span>
+                  <select
+                    className="metric-select"
+                    value={s.documented}
+                    onChange={(e) => upd({ documented: e.target.value as ScreeningState["documented"] })}
+                  >
+                    <option value="any">Any</option>
+                    <option value="documented">Documented sites only</option>
+                    <option value="undocumented">Not documented</option>
+                  </select>
+                </label>
+                {dictSelect("State", core?.dicts.state, s.state, "state")}
+                {dictSelect("Owner type", core?.dicts.owner, s.owner, "owner")}
+                {dictSelect("Primary purpose", core?.dicts.purpose, s.purpose, "purpose")}
+                <div className="screen-checks">
+                  <label className="value-option">
+                    <input type="checkbox" checked={s.terminalOnly} onChange={(e) => upd({ terminalOnly: e.target.checked })} />
+                    <span>Terminal dams only</span>
+                  </label>
+                  <label className="value-option">
+                    <input type="checkbox" checked={s.surveyedOnly} onChange={(e) => upd({ surveyedOnly: e.target.checked })} />
+                    <span>Has measured surveys</span>
+                  </label>
+                </div>
+              </div>
+            </details>
+          </div>
+          <div className="dock-foot">
+            <div className="dock-count-row">
+              <p className="screen-count" aria-live="polite">
+                {!core ? (
+                  state.sedimentStatus.core === "error" ? "National dataset failed to load." : "Loading national dataset…"
+                ) : summary ? (
+                  <>
+                    <b>{n(summary.matches)}</b> of {n(summary.total)} modeled reservoirs match
+                  </>
+                ) : (
+                  "Choose a question or refine the criteria."
+                )}
+              </p>
+              {s.active && (
+                <button
+                  type="button"
+                  className="text-btn"
+                  aria-label="Clear screening"
+                  onClick={() => actions.clearScreening()}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            <div className="dock-actions">
+              <button type="button" className="btn-sm" disabled={noMatches} onClick={zoomToMatches}>
+                Zoom to matches
               </button>
-            )}
+              <button type="button" className="btn-sm" disabled={noMatches} onClick={exportMatches}>
+                Export matches (CSV)
+              </button>
+            </div>
           </div>
         </div>
       )}

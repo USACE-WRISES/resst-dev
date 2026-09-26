@@ -1,9 +1,10 @@
-// "How serious is the sedimentation problem?" — RATTES headline stats plus
-// the trajectory chart. Works for two callers: a crosswalked RESST site
-// (stats render instantly from the boot-loaded link) and a national-layer
+// "How serious is the sedimentation problem?" — the two headline losses, a
+// capacity bar that shows them at a glance, the supporting volumes, and the
+// trajectory chart. Works for two callers: a crosswalked RESST site (stats
+// render instantly from the boot-loaded link) and a national-layer
 // reservoir (stats come from the loaded core row). Labels always say
 // Estimated/Projected — never a bare "Current Storage" (a user could read
-// that as today's water volume).
+// that as today's water volume). The labels match the Dam Report's.
 
 import { useEffect, useState } from "react";
 import { useAppState } from "../../state/store";
@@ -11,15 +12,29 @@ import { ensureCore, ensureSurveys, ensureTrajectory, getCore, getTrajectory, su
 import { annualRateM3, formatPct, formatRateAcftPerYear, formatVolumeAcft, pctLost } from "../../sediment/format";
 import { PROVENANCE, type SiteSedimentLink } from "../../sediment/types";
 import { TrajectoryChart } from "../charts/TrajectoryChart";
-import { ProvNote } from "./Provenance";
+import { KeyValues, Metric, SourceLine } from "./ui";
 
-function Stat({ label, value, big }: { label: string; value: string; big?: boolean }) {
+/** Original capacity as a bar: lost by 2025 (solid), lost by 2050 (hatched), remaining. */
+function CapacityBar({ lost2025, lost2050 }: { lost2025: number | null; lost2050: number | null }) {
+  if (lost2025 == null) return null;
+  const clamp = (v: number) => Math.max(0, Math.min(100, v));
+  const a = clamp(lost2025);
+  const b = lost2050 == null ? a : clamp(Math.max(a, lost2050));
+  const label =
+    `Estimated ${formatPct(lost2025)} of original capacity lost by 2025` +
+    (lost2050 != null ? `; projected ${formatPct(lost2050)} by 2050` : "");
   return (
-    <div className={big ? "stat-cell stat-big" : "stat-cell"}>
-      <span className="stat-label">{label}</span>
-      <span className="stat-value">{value}</span>
+    <div className="cap-bar" role="img" aria-label={label} title={label}>
+      <span className="cap-bar-lost" style={{ width: `${a}%` }} />
+      <span className="cap-bar-proj" style={{ left: `${a}%`, width: `${b - a}%` }} />
     </div>
   );
+}
+
+/** Header peek for the Sustainability card ("74% lost"), or null when unknown. */
+export function sustainabilityPeek(sedM3: number | null | undefined, capOrigM3: number | null | undefined): string | null {
+  const lost = pctLost(sedM3, capOrigM3);
+  return lost == null ? null : `${formatPct(lost)} lost`;
 }
 
 export function SustainabilitySection({
@@ -95,26 +110,34 @@ export function SustainabilitySection({
   const traj = row != null ? getTrajectory(row) : undefined;
   const surveys = row != null && hasSurveys ? surveysForRow(row) : null;
   const ci2050 = traj?.ci.find((c) => c.year === 2050);
-  let proj2050 = formatVolumeAcft(stats.cap2050);
+  let range2050: string | undefined;
   if (ci2050 && ci2050.capLo != null && ci2050.capHi != null) {
     const lo = formatVolumeAcft(ci2050.capLo);
     const hi = formatVolumeAcft(ci2050.capHi);
     // The CI bounds are independent model runs; near capacity exhaustion they
     // converge and a "71k–71k" range reads as noise — show it only when it says something.
-    if (lo !== hi) proj2050 += ` (${lo.replace(" ac-ft", "")}–${hi})`;
+    if (lo !== hi) range2050 = `95% range ${lo.replace(" ac-ft", "")}–${hi}`;
   }
+  const lost2025 = pctLost(stats.sed2025, stats.capOrig);
+  const lost2050 = pctLost(stats.sed2050, stats.capOrig);
 
   return (
     <>
-      <div className="stat-grid">
-        <Stat big label="Est. capacity lost (2025)" value={formatPct(pctLost(stats.sed2025, stats.capOrig))} />
-        <Stat big label="Projected lost by 2050" value={formatPct(pctLost(stats.sed2050, stats.capOrig))} />
-        <Stat label="Original storage capacity" value={formatVolumeAcft(stats.capOrig)} />
-        <Stat label="Est. remaining capacity (2025)" value={formatVolumeAcft(stats.cap2025)} />
-        <Stat label="Est. accumulated sediment (2025)" value={formatVolumeAcft(stats.sed2025)} />
-        <Stat label="Est. annual accumulation" value={formatRateAcftPerYear(annualRateM3(stats.sed2025, stats.sed2015))} />
-        <Stat label="Projected capacity (2050)" value={proj2050} />
+      <div className="metric-row">
+        <Metric value={formatPct(lost2025)} label="Est. capacity lost (2025)" />
+        <Metric value={formatPct(lost2050)} label="Projected lost by 2050" />
       </div>
+      <CapacityBar lost2025={lost2025} lost2050={lost2050} />
+      <KeyValues
+        numeric
+        rows={[
+          { label: "Original storage capacity", value: formatVolumeAcft(stats.capOrig) },
+          { label: "Est. remaining capacity (2025)", value: formatVolumeAcft(stats.cap2025) },
+          { label: "Est. accumulated sediment (2025)", value: formatVolumeAcft(stats.sed2025) },
+          { label: "Est. annual accumulation", value: formatRateAcftPerYear(annualRateM3(stats.sed2025, stats.sed2015)) },
+          { label: "Projected capacity (2050)", value: formatVolumeAcft(stats.cap2050), sub: range2050 },
+        ]}
+      />
       {chartError ? (
         <p className="sec-status" data-status="error">
           Trajectory failed to load.{" "}
@@ -140,12 +163,11 @@ export function SustainabilitySection({
         />
       )}
       {link?.method === "spatial_name" && (
-        <p className="prov-note">
-          Linked to ResNet dam {link.nid} by location/name ({link.confidence} confidence); see
-          data/site_resnet_crosswalk.csv.
+        <p className="card-note">
+          Matched to ResNet dam {link.nid} by location and name ({link.confidence} confidence).
         </p>
       )}
-      <ProvNote text="RATTES v1.2 · silt scenario · modeled estimate" group={PROVENANCE.rattes} />
+      <SourceLine text="RATTES v1.2 · silt scenario · modeled estimate" group={PROVENANCE.rattes} />
     </>
   );
 }
